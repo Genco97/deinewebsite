@@ -46,7 +46,7 @@ export default async function Profil({ searchParams }: PageProps<"/crm/profil">)
           <p className="mb-3 text-sm text-muted">
             {gruender
               ? "Wer sich über diesen Link registriert, wird Partner in deinem Team. Mitgründer machst du danach unter Admin → Team zum Gründer."
-              : "Wer sich über diesen Link registriert, kommt in dein Team."}
+              : "Wer sich über diesen Link registriert, kommt in dein Team. Die Person bekommt 20 % auf ihre eigenen Verkäufe, du zusätzlich 5 % vom Verkaufsbetrag."}
           </p>
           <KopierFeld wert={link} label="Einladungslink" />
         </Karte>
