@@ -8,6 +8,7 @@ import { Hinweis, Karte, Select, Textarea, buttonClass, inputClass } from "@/com
 import { holeProfil } from "@/lib/crm";
 import { mapsSuche } from "@/lib/besuche";
 import { EINWILLIGUNG_ARTEN } from "@/lib/einwilligung";
+import { PHASE_INFO, type Phase } from "@/lib/projekte";
 import { PAKET_NAMEN, type PaketId } from "@/lib/pakete";
 import { DEAL_STATUS_LABEL, LEAD_STATUS, STATUS_LABEL, type LeadStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
@@ -60,7 +61,11 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
       .eq("lead_id", id)
       .order("created_at", { ascending: false })
       .limit(100),
-    supabase.from("deals").select("id, paket, betrag, status, created_at").eq("lead_id", id).order("created_at"),
+    supabase
+      .from("deals")
+      .select("id, paket, betrag, status, projekt_phase, created_at")
+      .eq("lead_id", id)
+      .order("created_at"),
   ]);
 
   const status = lead.status as LeadStatus;
@@ -316,7 +321,17 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
                   <li key={d.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
                     <span>
                       <span className="font-semibold text-ink">{PAKET_NAMEN[d.paket as PaketId]}</span>{" "}
-                      <span className="text-muted">· {DEAL_STATUS_LABEL[d.status]}</span>
+                      <span className="text-muted">
+                        · {DEAL_STATUS_LABEL[d.status]}
+                        {d.status !== "storniert" ? (
+                          <>
+                            {" · "}
+                            <Link href="/crm/projekte" className="text-brand hover:underline">
+                              {PHASE_INFO[d.projekt_phase as Phase]?.label ?? d.projekt_phase}
+                            </Link>
+                          </>
+                        ) : null}
+                      </span>
                     </span>
                     <span className="font-semibold">{euro(d.betrag)}</span>
                   </li>
