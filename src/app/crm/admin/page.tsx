@@ -11,7 +11,6 @@ import { datum, datumZeit, euro } from "@/lib/zeit";
 import { gewinnProMonat } from "@/lib/gewinn";
 import {
   aktivSetzen,
-  anfragenSetzen,
   anfrageUebernehmen,
   dealAktualisieren,
   dealAnlegen,
@@ -41,8 +40,6 @@ type Person = {
   aktiv: boolean;
   upline_id: string | null;
   created_at: string;
-  bekommt_anfragen: boolean;
-  letzte_anfrage_am: string | null;
 };
 
 const ART_LABEL: Record<string, string> = { demo: "Gratis-Demo", rueckruf: "Rückruf", beratung: "Beratung" };
@@ -54,7 +51,7 @@ export default async function Admin({ searchParams }: PageProps<"/crm/admin">) {
   const fehler = typeof sp.fehler === "string" ? sp.fehler : "";
 
   const supabase = await createClient();
-  const { data: personenRoh } = await supabase.from("profiles").select("id, name, email, rolle, aktiv, upline_id, created_at, bekommt_anfragen, letzte_anfrage_am")
+  const { data: personenRoh } = await supabase.from("profiles").select("id, name, email, rolle, aktiv, upline_id, created_at")
     .order("name");
   const personen = (personenRoh ?? []) as Person[];
   const name = (id: string | null) => {
@@ -132,48 +129,14 @@ async function Anfragen({
     leads: { besitzer_id: string | null; quelle: string } | null;
   }[];
   const offen = anfragen.filter((a) => !a.lead_id);
-  const rotation = [...personen.filter((p) => p.bekommt_anfragen)].sort((a, b) =>
-    (a.letzte_anfrage_am ?? "").localeCompare(b.letzte_anfrage_am ?? "") || a.created_at.localeCompare(b.created_at),
-  );
-
+  // Offene Anfragen zuerst, danach die bereits zugeteilten
+  anfragen.sort((x, y) => Number(!!x.lead_id) - Number(!!y.lead_id));
   return (
     <section>
-      <Karte className={`mb-4 p-4 sm:p-5 ${rotation.length ? "border-brand/40" : ""}`}>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="font-bold text-ink">
-              Automatische Verteilung:{" "}
-              <span className={rotation.length ? "text-ok" : "text-muted"}>{rotation.length ? "an" : "aus"}</span>
-            </p>
-            {rotation.length ? (
-              <>
-                <p className="mt-1 text-sm text-muted">
-                  Neue Anfragen gehen reihum an {rotation.length} {rotation.length === 1 ? "Person" : "Personen"}. Als
-                  Nächstes ist <strong className="text-ink">{rotation[0].name.trim() || rotation[0].email}</strong> dran.
-                </p>
-                <ol className="mt-3 flex flex-wrap gap-2">
-                  {rotation.map((p, i) => (
-                    <li
-                      key={p.id}
-                      className={`rounded-full px-3 py-1 text-sm ${i === 0 ? "bg-brand text-white" : "bg-bg text-ink"}`}
-                    >
-                      {i + 1}. {p.name.trim() || p.email}
-                    </li>
-                  ))}
-                </ol>
-              </>
-            ) : (
-              <p className="mt-1 text-sm text-muted">
-                Niemand ist eingeteilt – neue Anfragen bleiben hier offen, bis ihr sie übernehmt.
-              </p>
-            )}
-          </div>
-          <Link href="/crm/admin?tab=team" className={buttonClass("secondary", "w-full sm:w-auto")}>
-            Einteilen
-          </Link>
-        </div>
-      </Karte>
-
+      <p className="mb-4 text-muted">
+        Neue Anfragen von der Website landen hier. Teile jede Anfrage der Person zu, die sie bearbeiten soll – sie
+        erscheint dann bei ihr unter „Heute“ mit Rückruf in 30 Minuten.
+      </p>
       <p className="mb-3 text-sm text-muted">
         {offen.length} offen · {anfragen.length - offen.length} zugeteilt
       </p>
@@ -207,7 +170,7 @@ async function Anfragen({
                   {a.lead_id ? (
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm text-muted">
-                        {a.leads?.quelle?.startsWith("anfrage:") ? "Automatisch zugeteilt an " : "Übernommen von "}
+                        Zugeteilt an{" "}
                         <strong className="text-ink">{name(a.leads?.besitzer_id ?? null)}</strong>
                       </p>
                       <Link href={`/crm/leads/${a.lead_id}`} className={buttonClass("ghost")}>
@@ -217,8 +180,8 @@ async function Anfragen({
                   ) : (
                     <form action={anfrageUebernehmen} className="flex flex-col gap-2 sm:flex-row">
                       <input type="hidden" name="id" value={a.id} />
-                      <label className="sr-only" htmlFor={`besitzer-${a.id}`}>
-                        Zuständig
+                      <label className="text-sm font-semibold text-ink sm:sr-only" htmlFor={`besitzer-${a.id}`}>
+                        Zuteilen an
                       </label>
                       <Select id={`besitzer-${a.id}`} name="besitzer" defaultValue={adminId} className="sm:max-w-xs">
                         {personen.map((p) => (
@@ -228,7 +191,7 @@ async function Anfragen({
                           </option>
                         ))}
                       </Select>
-                      <button className={buttonClass("primary")}>Als Lead übernehmen</button>
+                      <button className={buttonClass("primary")}>Zuteilen</button>
                     </form>
                   )}
                 </div>
@@ -611,12 +574,6 @@ function Team({ personen, ichId, name }: { personen: Person[]; ichId: string; na
             {p.rolle === "admin" ? "Gründer" : `Partner · eingeladen von ${name(p.upline_id)}`} · seit {datum(p.created_at)}
             {p.aktiv ? "" : " · deaktiviert"}
           </p>
-          {p.bekommt_anfragen && p.aktiv ? (
-            <p className="mt-1 inline-flex rounded-full bg-ok-light px-2.5 py-0.5 text-xs font-semibold text-ok">
-              Bekommt Anfragen
-              {p.letzte_anfrage_am ? ` · zuletzt ${datum(p.letzte_anfrage_am)}` : " · noch keine"}
-            </p>
-          ) : null}
         </div>
       </div>
       <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
@@ -628,15 +585,6 @@ function Team({ personen, ichId, name }: { personen: Person[]; ichId: string; na
           <input id={`name-${p.id}`} name="name" defaultValue={p.name} placeholder="Name" className={`${inputClass} sm:w-48`} />
           <button className={buttonClass("secondary", "shrink-0")}>Speichern</button>
         </form>
-        {p.aktiv ? (
-          <form action={anfragenSetzen}>
-            <input type="hidden" name="id" value={p.id} />
-            <input type="hidden" name="an" value={p.bekommt_anfragen ? "false" : "true"} />
-            <button className={buttonClass(p.bekommt_anfragen ? "secondary" : "primary", "w-full sm:w-auto")}>
-              {p.bekommt_anfragen ? "Keine Anfragen mehr" : "Anfragen zuteilen"}
-            </button>
-          </form>
-        ) : null}
         {p.id !== ichId ? (
           <>
             <form action={rolleSetzen}>
@@ -684,12 +632,6 @@ function Team({ personen, ichId, name }: { personen: Person[]; ichId: string; na
           <li>Sie ist danach automatisch Partner in deinem Team und kann sich unter /login anmelden.</li>
           <li>Mitgründer: hier unten bei der Person auf „Zum Gründer machen“ tippen.</li>
         </ol>
-        <h2 className="mt-5 font-bold text-ink">Automatische Verteilung</h2>
-        <p className="mt-1 text-muted">
-          Tippe bei jeder Person, die Website-Anfragen bekommen soll, auf „Anfragen zuteilen“. Neue Anfragen gehen dann
-          reihum an diese Personen – wer am längsten keine bekommen hat, ist als Nächstes dran. Der Lead erscheint sofort
-          bei der Person unter „Heute“, mit Rückruf in 30 Minuten.
-        </p>
       </Karte>
 
       <Karte className="overflow-hidden">
