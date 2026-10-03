@@ -80,7 +80,14 @@ export default async function Partner() {
 
   return (
     <>
-      <Kopf titel="Partner & Provision" text="Deine Provisionen, dein Einladungslink und dein Team." />
+      <Kopf
+        titel="Partner & Provision"
+        text={
+          gruender
+            ? "Dein Gründer-Anteil, dein Einladungslink und dein Team."
+            : "Deine Provisionen, dein Einladungslink und dein Team."
+        }
+      />
 
       {gruender ? (
         <Karte className="mb-6 border-2 border-brand p-5">
@@ -97,6 +104,33 @@ export default async function Partner() {
         </Karte>
       ) : null}
 
+      {gruender ? (
+        <>
+      <Karte className="p-5">
+        <h2 className="font-bold text-ink">So verdienen eure Partner</h2>
+        <ul className="mt-3 space-y-2 text-sm">
+          {EBENEN.map((e) => (
+            <li key={e.ebene} className="flex items-baseline justify-between gap-4 border-b border-line pb-2 last:border-0">
+              <span className="text-muted">
+                <span className="font-semibold text-ink">{e.titel}:</span>{" "}
+                {e.ebene === 1
+                  ? "auf die eigenen Verkäufe"
+                  : e.ebene === 2
+                    ? "auf Verkäufe der Partner, die er/sie eingeladen hat"
+                    : "auf Verkäufe von deren eingeladenen Partnern"}
+              </span>
+              <span className="shrink-0 font-serif text-xl font-semibold text-brand">{e.prozent} %</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-sm text-muted">
+          Wäre eine dieser Ebenen ein Gründer, entsteht dort keine Provision – der Betrag bleibt im Gründer-Topf.
+        </p>
+      </Karte>
+
+        </>
+      ) : (
+        <>
       <div className="grid gap-4 sm:grid-cols-2">
         <Karte className="p-5">
           <p className="text-sm font-semibold text-muted">Offen</p>
@@ -134,15 +168,20 @@ export default async function Partner() {
         über dir ein Gründer, bleibt ihr Anteil im Gründer-Topf.
       </p>
 
+        </>
+      )}
+
       <Karte className="mt-8 p-5">
         <h2 className="font-bold text-ink">Dein Einladungslink</h2>
         <p className="mb-3 mt-1 text-sm text-muted">
-          Wer sich über diesen Link registriert, kommt in dein Team. Du bekommst 5 % auf deren Verkäufe.
+          {gruender
+            ? "Wer sich über diesen Link registriert, wird Partner in deinem Team und bekommt 20 % auf die eigenen Verkäufe. Die 5 % für die einladende Person gehen bei Gründern in den Gründer-Topf."
+            : "Wer sich über diesen Link registriert, kommt in dein Team. Die Person bekommt 20 % auf ihre eigenen Verkäufe – und du zusätzlich 5 % vom Verkaufsbetrag."}
         </p>
         <KopierFeld wert={link} label="Einladungslink" />
       </Karte>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
+      <div className={`mt-8 grid gap-6 ${gruender ? "" : "lg:grid-cols-2"}`}>
         <Karte>
           <h2 className="border-b border-line px-5 py-3 font-bold text-ink">Dein Team</h2>
           {direkt.length === 0 ? (
@@ -167,6 +206,7 @@ export default async function Partner() {
           )}
         </Karte>
 
+        {gruender ? null : (
         <Karte>
           <h2 className="border-b border-line px-5 py-3 font-bold text-ink">Deine Provisionen</h2>
           {provisionen.length === 0 ? (
@@ -189,6 +229,7 @@ export default async function Partner() {
             </ul>
           )}
         </Karte>
+        )}
       </div>
 
       <Karte className="mt-6">
