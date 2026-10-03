@@ -33,7 +33,7 @@ export async function anfrageUebernehmen(fd: FormData) {
 
   const { data: a } = await supabase.from("anfragen").select("*").eq("id", id).single();
   if (!a) zurueck("anfragen", "Anfrage nicht gefunden.");
-  if (a.lead_id) zurueck("anfragen", "Diese Anfrage wurde schon übernommen.");
+  if (a.lead_id) zurueck("anfragen", "Diese Anfrage wurde schon zugeteilt.");
 
   const status = a.art === "demo" ? "demo" : a.art === "beratung" ? "interessiert" : "rueckruf";
   const { data: lead, error } = await supabase
@@ -45,6 +45,7 @@ export async function anfrageUebernehmen(fd: FormData) {
       telefon: a.telefon,
       email: a.email,
       status,
+      naechster_rueckruf: new Date(Date.now() + 30 * 60000).toISOString(),
       quelle: `anfrage:${a.art}`,
       besitzer_id: besitzer,
     })
@@ -54,7 +55,7 @@ export async function anfrageUebernehmen(fd: FormData) {
 
   const artText = { demo: "Gratis-Demo", beratung: "Beratung", rueckruf: "Rückruf" }[a.art as string] ?? a.art;
   const notiz = [
-    `Anfrage über die Website: ${artText}${a.paket ? ` (Paket ${a.paket})` : ""}`,
+    `Zugeteilt von ${admin.name.trim() || admin.email} – Anfrage über die Website: ${artText}${a.paket ? ` (Paket ${a.paket})` : ""}`,
     a.wuensche ? `Wünsche: ${a.wuensche}` : null,
   ]
     .filter(Boolean)

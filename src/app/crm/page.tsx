@@ -78,7 +78,16 @@ export default async function Heute() {
   const offen = `(${ABGESCHLOSSEN.join(",")})`;
   const felder = "id, firma, branche, status, naechster_rueckruf";
 
-  const [heute, ueberfaellig, angebote, verkaeufe] = await Promise.all([
+  const vor7Tagen = new Date(Date.parse(jetzt) - 7 * 86400000).toISOString();
+  const [neu, heute, ueberfaellig, angebote, verkaeufe] = await Promise.all([
+    supabase
+      .from("leads")
+      .select("id, firma, ansprechpartner, branche, telefon, email, status, quelle, created_at")
+      .like("quelle", "anfrage:%")
+      .in("status", ["demo", "interessiert", "rueckruf"])
+      .gte("created_at", vor7Tagen)
+      .order("created_at", { ascending: false })
+      .limit(20),
     supabase
       .from("leads")
       .select(felder)
@@ -111,6 +120,22 @@ export default async function Heute() {
   }[];
   const summe = deals.reduce((s, d) => s + Number(d.betrag), 0);
   const vorname = profil.name.split(" ")[0];
+  const neueAnfragen = (neu.data ?? []) as {
+    id: string;
+    firma: string;
+    ansprechpartner: string | null;
+    branche: string | null;
+    telefon: string | null;
+    email: string | null;
+    status: LeadStatus;
+    quelle: string;
+    created_at: string;
+  }[];
+  const ART: Record<string, string> = {
+    "anfrage:demo": "Gratis-Demo",
+    "anfrage:beratung": "Beratung",
+    "anfrage:rueckruf": "Rückruf",
+  };
 
   return (
     <>
@@ -119,6 +144,44 @@ export default async function Heute() {
           Zu den Leads
         </Link>
       </Kopf>
+
+      {neueAnfragen.length > 0 ? (
+        <Karte className="mb-6 border-2 border-brand">
+          <h2 className="flex items-center justify-between border-b border-line bg-brand-light px-4 py-3 font-bold text-ink sm:px-5">
+            <span>Neue Website-Anfragen für {profil.rolle === "admin" ? "das Team" : "dich"}</span>
+            <span className="rounded-full bg-brand px-2.5 py-0.5 text-sm text-white">{neueAnfragen.length}</span>
+          </h2>
+          <ul className="divide-y divide-line">
+            {neueAnfragen.map((l) => (
+              <li key={l.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                <Link href={`/crm/leads/${l.id}`} className="min-w-0 hover:text-brand">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-ink">{l.firma}</span>
+                    <span className="rounded-full bg-brand-light px-2 py-0.5 text-xs font-semibold text-brand">
+                      {ART[l.quelle] ?? "Anfrage"}
+                    </span>
+                  </span>
+                  <span className="block truncate text-sm text-muted">
+                    {[l.ansprechpartner, l.branche].filter(Boolean).join(" · ") || "–"} · {datumZeit(l.created_at)}
+                  </span>
+                </Link>
+                <span className="flex shrink-0 gap-2">
+                  {l.telefon ? (
+                    <a href={`tel:${l.telefon.replace(/[^+0-9]/g, "")}`} className={buttonClass("primary", "flex-1 sm:flex-none")}>
+                      Anrufen
+                    </a>
+                  ) : null}
+                  {l.email ? (
+                    <a href={`mailto:${l.email}`} className={buttonClass("secondary", "flex-1 sm:flex-none")}>
+                      E-Mail
+                    </a>
+                  ) : null}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Karte>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Block titel="Überfällige Rückrufe" anzahl={ueberfaellig.data?.length ?? 0} rot>

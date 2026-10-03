@@ -88,7 +88,7 @@ export default async function Admin({ searchParams }: PageProps<"/crm/admin">) {
         </div>
       ) : null}
 
-      {tab === "anfragen" ? <Anfragen personen={aktivePersonen} adminId={admin.id} /> : null}
+      {tab === "anfragen" ? <Anfragen personen={aktivePersonen} adminId={admin.id} name={name} /> : null}
       {tab === "deals" ? <Deals personen={aktivePersonen} name={name} /> : null}
       {tab === "provisionen" ? <Provisionen name={name} /> : null}
       {tab === "gewinn" ? <Gewinn /> : null}
@@ -99,20 +99,46 @@ export default async function Admin({ searchParams }: PageProps<"/crm/admin">) {
 }
 
 // ---------------------------------------------------------------------------
-async function Anfragen({ personen, adminId }: { personen: Person[]; adminId: string }) {
+async function Anfragen({
+  personen,
+  adminId,
+  name,
+}: {
+  personen: Person[];
+  adminId: string;
+  name: (id: string | null) => string;
+}) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("anfragen")
-    .select("id, art, paket, firma, name, email, telefon, branche, wuensche, lead_id, created_at")
+    .select("id, art, paket, firma, name, email, telefon, branche, wuensche, lead_id, created_at, leads(besitzer_id, quelle)")
     .order("created_at", { ascending: false })
     .limit(200);
-  const anfragen = data ?? [];
+  const anfragen = (data ?? []) as unknown as {
+    id: string;
+    art: string;
+    paket: string | null;
+    firma: string | null;
+    name: string;
+    email: string | null;
+    telefon: string | null;
+    branche: string | null;
+    wuensche: string | null;
+    lead_id: string | null;
+    created_at: string;
+    leads: { besitzer_id: string | null; quelle: string } | null;
+  }[];
   const offen = anfragen.filter((a) => !a.lead_id);
-
+  // Offene Anfragen zuerst, danach die bereits zugeteilten
+  anfragen.sort((x, y) => Number(!!x.lead_id) - Number(!!y.lead_id));
   return (
     <section>
+      <p className="mb-4 text-muted">
+        Neue Anfragen von der Website landen hier. Teile jede Anfrage der Person zu, die sie bearbeiten soll – sie
+        erscheint dann bei ihr unter „Heute“ mit Rückruf in 30 Minuten.
+      </p>
       <p className="mb-3 text-sm text-muted">
-        {offen.length} offen · {anfragen.length - offen.length} übernommen
+        {offen.length} offen · {anfragen.length - offen.length} zugeteilt
       </p>
       {anfragen.length === 0 ? (
         <Karte className="px-5 py-10 text-center text-muted">Noch keine Anfragen.</Karte>
@@ -142,14 +168,20 @@ async function Anfragen({ personen, adminId }: { personen: Person[]; adminId: st
                 </div>
                 <div className="mt-3 border-t border-line pt-3">
                   {a.lead_id ? (
-                    <Link href={`/crm/leads/${a.lead_id}`} className={buttonClass("ghost")}>
-                      Zum Lead
-                    </Link>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm text-muted">
+                        Zugeteilt an{" "}
+                        <strong className="text-ink">{name(a.leads?.besitzer_id ?? null)}</strong>
+                      </p>
+                      <Link href={`/crm/leads/${a.lead_id}`} className={buttonClass("ghost")}>
+                        Zum Lead
+                      </Link>
+                    </div>
                   ) : (
                     <form action={anfrageUebernehmen} className="flex flex-col gap-2 sm:flex-row">
                       <input type="hidden" name="id" value={a.id} />
-                      <label className="sr-only" htmlFor={`besitzer-${a.id}`}>
-                        Zuständig
+                      <label className="text-sm font-semibold text-ink sm:sr-only" htmlFor={`besitzer-${a.id}`}>
+                        Zuteilen an
                       </label>
                       <Select id={`besitzer-${a.id}`} name="besitzer" defaultValue={adminId} className="sm:max-w-xs">
                         {personen.map((p) => (
@@ -159,7 +191,7 @@ async function Anfragen({ personen, adminId }: { personen: Person[]; adminId: st
                           </option>
                         ))}
                       </Select>
-                      <button className={buttonClass("primary")}>Als Lead übernehmen</button>
+                      <button className={buttonClass("primary")}>Zuteilen</button>
                     </form>
                   )}
                 </div>
