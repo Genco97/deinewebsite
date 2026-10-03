@@ -14,6 +14,14 @@ import { notizHinzufuegen, rueckrufSetzen, statusSetzen } from "../actions";
 
 export const metadata: Metadata = { title: "Lead" };
 
+const QUELLE: Record<string, string> = {
+  manuell: "manuell angelegt",
+  csv: "per CSV-Import",
+  "anfrage:demo": "aus einer Website-Anfrage (Gratis-Demo)",
+  "anfrage:beratung": "aus einer Website-Anfrage (Beratung)",
+  "anfrage:rueckruf": "aus einer Website-Anfrage (Rückruf)",
+};
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function Abschnitt({ titel, children }: { titel: string; children: React.ReactNode }) {
@@ -191,7 +199,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
               })}
               <li className="relative">
                 <span aria-hidden className="absolute -left-[23px] top-1.5 h-3 w-3 rounded-full border-2 border-surface bg-line" />
-                <p className="text-sm text-muted">Lead angelegt ({lead.quelle})</p>
+                <p className="text-sm text-muted">Lead angelegt – {QUELLE[lead.quelle] ?? lead.quelle}</p>
                 <p className="mt-0.5 text-xs text-muted">{datumZeit(lead.created_at)}</p>
               </li>
             </ol>
@@ -219,6 +227,10 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
             ) : null}
             {gesperrt ? (
               <p className="text-sm text-muted">Für gesperrte Leads kann kein Verkauf gemeldet werden.</p>
+            ) : (deals ?? []).some((d) => d.status !== "storniert") ? (
+              <p className="text-sm text-muted">
+                Für diesen Lead ist bereits ein Verkauf eingetragen. Änderungen macht ein Gründer unter Admin → Deals.
+              </p>
             ) : (
               <VerkaufFormular leadId={lead.id} />
             )}
