@@ -15,8 +15,8 @@ const sourceSerif = Source_Serif_4({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: {
-    default: "Sichtbar – Websites für Betriebe aus Wien",
-    template: "%s | Sichtbar",
+    default: "Ursprung – Websites für Betriebe aus Wien",
+    template: "%s | Ursprung",
   },
   description:
     "Eine Website für Ihren Betrieb. Erst ansehen, dann zahlen. Fixpreis, persönlich aus Wien.",

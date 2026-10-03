@@ -171,7 +171,7 @@ export default function Startseite() {
           </div>
           <div className="space-y-4 text-lg leading-relaxed text-muted">
             <p>
-              [Platzhalter: Wer steht hinter Sichtbar? Ein paar Sätze zur Person, zum Hintergrund und warum Sie
+              [Platzhalter: Wer steht hinter Ursprung? Ein paar Sätze zur Person, zum Hintergrund und warum Sie
               Websites für kleine Betriebe machen.]
             </p>
             <p>

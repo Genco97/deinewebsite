@@ -8,7 +8,7 @@ export default function Datenschutz() {
     <Rechtstext titel="Datenschutzerklärung">
       <p>[Platzhalter – die Datenschutzerklärung wird noch ergänzt und rechtlich geprüft.]</p>
       <h2>Verantwortlicher</h2>
-      <p>[Firmenname], [Adresse], [E-Mail]</p>
+      <p>Ursprung [Rechtsform], [Adresse], [E-Mail]</p>
       <h2>Anfragen über unsere Formulare</h2>
       <p>
         Wenn Sie eine Demo, einen Rückruf oder eine Beratung anfragen, speichern wir Ihre Angaben (z. B. Name,

@@ -7,12 +7,12 @@ export function Footer() {
       <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:grid-cols-3">
         <div className="space-y-2">
           <p className="flex items-center gap-2 font-bold text-ink">
-            <LogoMark className="h-5 w-5" /> Sichtbar
+            <LogoMark className="h-5 w-5" /> Ursprung
           </p>
           <p className="text-sm text-muted">Websites für Betriebe – persönlich aus Wien.</p>
         </div>
         <address className="space-y-1 text-sm not-italic text-muted">
-          <p className="font-semibold text-ink">[Firmenname]</p>
+          <p className="font-semibold text-ink">Ursprung [Rechtsform]</p>
           <p>[Adresse]</p>
           <p>UID: [UID]</p>
         </address>
@@ -30,7 +30,7 @@ export function Footer() {
       </div>
       <div className="border-t border-line">
         <p className="mx-auto w-full max-w-6xl px-4 py-4 text-xs text-muted">
-          © {new Date().getFullYear()} [Firmenname]
+          © {new Date().getFullYear()} Ursprung
         </p>
       </div>
     </footer>

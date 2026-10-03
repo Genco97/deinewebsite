@@ -20,7 +20,7 @@ export function Seitenleiste({ name, admin }: { name: string; admin: boolean }) 
       <div className="flex h-14 items-center justify-between gap-2 px-4 md:h-16">
         <Link href="/crm" className="inline-flex min-h-11 items-center gap-2.5 font-bold">
           <LogoMark className="h-6 w-6" />
-          Sichtbar
+          Ursprung
           <span className="rounded bg-white/10 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white/70">
             CRM
           </span>
