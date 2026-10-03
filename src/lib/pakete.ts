@@ -75,6 +75,3 @@ export const PAKET_NAMEN: Record<PaketId, string> = {
 export function istPaket(wert: unknown): wert is PaketId {
   return wert === "basis" || wert === "business" || wert === "premium";
 }
-
-/** Platzhalter bis zur Klärung mit der Steuerberatung */
-export const UST_HINWEIS = "[inkl./zzgl. USt.]";

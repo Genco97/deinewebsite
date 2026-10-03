@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { LogoMark } from "@/components/Logo";
+import { Angabe } from "@/components/public/Angabe";
+import { FIRMA, firmenname } from "@/lib/firma";
 
 export function Footer() {
   return (
@@ -12,9 +14,25 @@ export function Footer() {
           <p className="text-sm text-muted">Websites für Betriebe – persönlich aus Wien.</p>
         </div>
         <address className="space-y-1 text-sm not-italic text-muted">
-          <p className="font-semibold text-ink">Ursprung [Rechtsform]</p>
-          <p>[Adresse]</p>
-          <p>UID: [UID]</p>
+          <p className="font-semibold text-ink">
+            {firmenname()}
+            {FIRMA.rechtsform ? null : (
+              <>
+                {" "}
+                <Angabe wert={null} platzhalter="Rechtsform" />
+              </>
+            )}
+          </p>
+          <p>
+            <Angabe wert={FIRMA.strasse} platzhalter="Straße" />, <Angabe wert={FIRMA.plz} platzhalter="PLZ" />{" "}
+            {FIRMA.ort}
+          </p>
+          <p>
+            <Angabe wert={FIRMA.telefon} platzhalter="Telefon" /> · <Angabe wert={FIRMA.email} platzhalter="E-Mail" />
+          </p>
+          <p>
+            UID: <Angabe wert={FIRMA.uid} platzhalter="UID" />
+          </p>
         </address>
         <nav aria-label="Rechtliches" className="flex flex-col text-sm">
           <Link href="/impressum" className="inline-flex min-h-11 items-center text-muted hover:text-ink">
@@ -30,7 +48,7 @@ export function Footer() {
       </div>
       <div className="border-t border-line">
         <p className="mx-auto w-full max-w-6xl px-4 py-4 text-xs text-muted">
-          © {new Date().getFullYear()} Ursprung
+          © {new Date().getFullYear()} {firmenname()}
         </p>
       </div>
     </footer>

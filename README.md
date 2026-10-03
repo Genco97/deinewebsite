@@ -61,6 +61,8 @@ Neue Website-Anfragen landen unter Admin → Anfragen. Ein Gründer teilt jede A
 2. Ersten Admin anlegen: *Authentication → Users → Add user* (E-Mail + Passwort, „Auto confirm“). Da noch kein Profil existiert, wird dieses Konto Admin.
 3. Als Admin einloggen → *Partner & Provision* → Einladungslink an Partner weitergeben.
 
-## Platzhalter
+## Firmendaten und Platzhalter
 
-Alle fehlenden Inhalte stehen in eckigen Klammern, z. B. `[Rechtsform]`, `[Adresse]`, `[UID]`, `[inkl./zzgl. USt.]`, `[Betrag]` (Hosting), Beispiele, Über uns sowie Impressum, Datenschutz und AGB.
+Alle Firmendaten (Rechtsform, Adresse, UID, Gewerbe, USt.-Regelung, Hosting-Preis …) stehen zentral in `src/lib/firma.ts`. Solange ein Wert `null` ist, zeigt die Seite einen gelb markierten Platzhalter. Ausnahmen, die direkt im Code stehen: Beispiele (Startseite), Teamfoto und Vornamen (Über uns).
+
+Impressum, Datenschutz und AGB sind ausformuliert, sollten aber vor dem Start rechtlich geprüft werden (z. B. Gründerservice der WKO).

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { RueckrufFormular } from "@/components/public/RueckrufFormular";
 import { Karte, buttonClass } from "@/components/ui";
-import { PAKETE, UST_HINWEIS } from "@/lib/pakete";
+import { Angabe } from "@/components/public/Angabe";
+import { FIRMA, preisHinweis } from "@/lib/firma";
+import { PAKETE } from "@/lib/pakete";
 
 const VERTRAUEN = [
   { titel: "Erst zahlen, wenn's passt", text: "Sie sehen Ihre Website als Demo, bevor Sie etwas bezahlen." },
@@ -10,7 +12,9 @@ const VERTRAUEN = [
   { titel: "Die Website gehört Ihnen", text: "Inhalte und Domain gehören Ihnen – ohne Knebelvertrag." },
 ];
 
-const FAQ = [
+const hosting = <Angabe wert={FIRMA.hostingProMonat} platzhalter="Betrag" />;
+
+const FAQ: { frage: string; antwort: React.ReactNode }[] = [
   {
     frage: "Was passiert, wenn mir die Demo nicht gefällt?",
     antwort:
@@ -18,17 +22,42 @@ const FAQ = [
   },
   {
     frage: "Gibt es versteckte Kosten?",
+    antwort: (
+      <>
+        Nein. Sie zahlen den vereinbarten Fixpreis. Für Hosting und Wartung fallen laufend {hosting} pro Monat an –
+        das sagen wir Ihnen vorher. Der Hosting-Vertrag ist monatlich kündbar.
+      </>
+    ),
+  },
+  {
+    frage: "Wie lange dauert es, bis meine Website online ist?",
     antwort:
-      "Nein. Sie zahlen den vereinbarten Fixpreis. Für Hosting und Wartung fallen laufend [Betrag] pro Monat an – das sagen wir Ihnen vorher.",
+      "Beim Paket Basis rund 7 Tage, bei Business rund 10 Tage – gerechnet ab dem Zeitpunkt, an dem wir Ihre Fotos und Infos haben. Bei Premium legen wir den Zeitplan im Erstgespräch fest.",
   },
   {
     frage: "Wem gehört die Website?",
-    antwort: "Ihnen. Texte, Fotos und Domain gehören Ihrem Betrieb.",
+    antwort:
+      "Ihnen. Texte, Fotos und Domain gehören Ihrem Betrieb. Nach der Bezahlung dürfen Sie die Website uneingeschränkt nutzen und ändern.",
+  },
+  {
+    frage: "Was ist eine Änderungsrunde?",
+    antwort:
+      "Sie sehen sich die fertige Website an und schicken uns alle Änderungswünsche gesammelt auf einmal. Wir setzen sie um. Wie viele Runden enthalten sind, steht beim jeweiligen Paket.",
+  },
+  {
+    frage: "Brauche ich schon eine eigene Domain?",
+    antwort:
+      "Nein. Wenn Sie noch keine haben, kümmern wir uns darum – registriert wird sie auf Ihren Namen. Eine bestehende Domain übernehmen wir gerne.",
   },
   {
     frage: "Was muss ich selbst tun?",
     antwort:
       "Schicken Sie uns Fotos und die wichtigsten Infos zu Ihrem Betrieb – etwa Leistungen, Öffnungszeiten und Kontaktdaten. Den Rest übernehmen wir.",
+  },
+  {
+    frage: "Wie bezahle ich?",
+    antwort:
+      "Ganz einfach per Rechnung und Überweisung – erst nachdem Sie die Website freigegeben haben. Beim Paket Premium gibt es nach dem Erstgespräch eine Anzahlung von 30 %.",
   },
 ];
 
@@ -121,7 +150,9 @@ export default function Startseite() {
                   {p.ab ? <span className="text-muted">ab</span> : null}
                   <span className="font-serif text-4xl font-semibold text-ink">{p.preisText}</span>
                 </p>
-                <p className="mt-1 text-sm text-muted">einmalig, {UST_HINWEIS}</p>
+                <p className="mt-1 text-sm text-muted">
+                  einmalig, {preisHinweis() ?? <Angabe wert={null} platzhalter="inkl./zzgl. USt." />}
+                </p>
                 <ul className="mt-6 flex-1 space-y-3">
                   {p.leistungen.map((l) => (
                     <li key={l} className="flex gap-3 text-[15px] text-ink">
@@ -141,7 +172,9 @@ export default function Startseite() {
             );
           })}
         </div>
-        <p className="mt-6 text-sm text-muted">Hosting und Wartung: [Betrag] pro Monat. Keine Google-Ads-Pakete.</p>
+        <p className="mt-6 text-sm text-muted">
+          Hosting und Wartung: {hosting} pro Monat, monatlich kündbar. Keine Werbe- oder Google-Ads-Pakete.
+        </p>
       </Abschnitt>
 
       {/* Beispiele */}
@@ -167,12 +200,17 @@ export default function Startseite() {
       <Abschnitt id="ueber-uns" titel="Über uns">
         <div className="grid gap-8 md:grid-cols-[1fr_2fr]">
           <div className="flex aspect-square max-w-xs items-center justify-center rounded-xl border border-line bg-surface text-sm text-muted">
-            [Foto]
+            <Angabe wert={null} platzhalter="Teamfoto" />
           </div>
           <div className="space-y-4 text-lg leading-relaxed text-muted">
             <p>
-              [Platzhalter: Wer steht hinter Ursprung? Ein paar Sätze zur Person, zum Hintergrund und warum Sie
-              Websites für kleine Betriebe machen.]
+              Hinter {FIRMA.name} steht ein kleines Gründerteam aus Wien:{" "}
+              <Angabe wert={null} platzhalter="Vornamen der Gründer" />.
+            </p>
+            <p>
+              Viele Betriebe sind online kaum zu finden – nicht, weil sie schlecht arbeiten, sondern weil eine gute
+              Website teuer und kompliziert wirkt. Genau das wollen wir ändern: Wir bauen Websites, die schnell
+              online sind, einen fixen Preis haben und die Sie sich ansehen können, bevor Sie zahlen.
             </p>
             <p>
               Wir arbeiten persönlich aus Wien. Sie haben einen fixen Ansprechpartner, der Sie anruft, zuhört und

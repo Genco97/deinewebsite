@@ -19,7 +19,15 @@ export const metadata: Metadata = {
     template: "%s | Ursprung",
   },
   description:
-    "Eine Website für Ihren Betrieb. Erst ansehen, dann zahlen. Fixpreis, persönlich aus Wien.",
+    "Eine Website für Ihren Betrieb. Erst ansehen, dann zahlen. Gratis-Demo, Fixpreis ab 500 €, persönlich aus Wien.",
+  openGraph: {
+    type: "website",
+    locale: "de_AT",
+    siteName: "Ursprung",
+    title: "Ursprung – Websites für Betriebe aus Wien",
+    description: "Eine Website für Ihren Betrieb. Erst ansehen, dann zahlen. Gratis-Demo, Fixpreis, persönlich aus Wien.",
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
