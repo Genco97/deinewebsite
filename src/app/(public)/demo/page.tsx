@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { DemoFormular } from "@/components/public/DemoFormular";
 import { Karte } from "@/components/ui";
-import { PAKETE, UST_HINWEIS, istPaket } from "@/lib/pakete";
+import { Angabe } from "@/components/public/Angabe";
+import { preisHinweis } from "@/lib/firma";
+import { PAKETE, istPaket } from "@/lib/pakete";
 
 export const metadata: Metadata = {
   title: "Gratis-Demo anfordern",
@@ -38,7 +40,9 @@ export default async function DemoSeite({ searchParams }: PageProps<"/demo">) {
               <span className="font-serif text-2xl font-semibold text-ink">{paket.preisText}</span>
             </p>
           </div>
-          <p className="mt-1 text-right text-xs text-muted">{UST_HINWEIS}</p>
+          <p className="mt-1 text-right text-xs text-muted">
+            {preisHinweis() ?? <Angabe wert={null} platzhalter="inkl./zzgl. USt." />}
+          </p>
           <ul className="mt-4 space-y-2 text-sm text-ink">
             {paket.leistungen.map((l) => (
               <li key={l} className="flex gap-2.5">
