@@ -32,7 +32,7 @@ const FAQ: { frage: string; antwort: React.ReactNode }[] = [
   {
     frage: "Wie lange dauert es, bis meine Website online ist?",
     antwort:
-      "Beim Paket Basis rund 7 Tage, bei Business rund 10 Tage – gerechnet ab dem Zeitpunkt, an dem wir Ihre Fotos und Infos haben. Bei Premium legen wir den Zeitplan im Erstgespräch fest.",
+      "Beim Paket Basic rund 7 Tage, bei Business rund 10 Tage – gerechnet ab dem Zeitpunkt, an dem wir Ihre Fotos und Infos haben. Bei Pro legen wir den Zeitplan im Erstgespräch fest.",
   },
   {
     frage: "Wem gehört die Website?",
@@ -57,7 +57,7 @@ const FAQ: { frage: string; antwort: React.ReactNode }[] = [
   {
     frage: "Wie bezahle ich?",
     antwort:
-      "Ganz einfach per Rechnung und Überweisung – erst nachdem Sie die Website freigegeben haben. Beim Paket Premium gibt es nach dem Erstgespräch eine Anzahlung von 30 %.",
+      "Ganz einfach per Rechnung und Überweisung – erst nachdem Sie die Website freigegeben haben. Beim Paket Pro gibt es nach dem Erstgespräch eine Anzahlung von 30 %.",
   },
 ];
 

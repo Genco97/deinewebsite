@@ -15,20 +15,20 @@ export default function Agb() {
 
       <h2>1. Leistungen</h2>
       <p>
-        Wir erstellen Websites für Betriebe in den Paketen Basis, Business und Premium. Der genaue Leistungsumfang ergibt
-        sich aus der Paketbeschreibung auf unserer Website bzw. aus dem individuellen Angebot (Premium). Zusätzliche
+        Wir erstellen Websites für Betriebe in den Paketen Basic, Business und Pro. Der genaue Leistungsumfang ergibt
+        sich aus der Paketbeschreibung auf unserer Website bzw. aus dem individuellen Angebot (Pro). Zusätzliche
         Leistungen vereinbaren wir gesondert.
       </p>
 
       <h2>2. Gratis-Demo und Vertragsabschluss</h2>
       <p>
-        Bei den Paketen Basis und Business erstellen wir zunächst eine kostenlose und unverbindliche Demo. Gefällt dem
+        Bei den Paketen Basic und Business erstellen wir zunächst eine kostenlose und unverbindliche Demo. Gefällt dem
         Kunden die Demo nicht, entstehen ihm keine Kosten. Der Vertrag kommt erst zustande, wenn der Kunde die Demo
         freigibt und den Auftrag erteilt (schriftlich, per E-Mail oder mündlich mit schriftlicher Bestätigung durch
         uns).
       </p>
       <p>
-        Beim Paket Premium erstellen wir nach einem Erstgespräch ein Angebot. Mit Annahme des Angebots kommt der Vertrag
+        Beim Paket Pro erstellen wir nach einem Erstgespräch ein Angebot. Mit Annahme des Angebots kommt der Vertrag
         zustande.
       </p>
 
@@ -40,11 +40,11 @@ export default function Agb() {
       </p>
       <ul className="list-disc space-y-1 pl-5">
         <li>
-          <strong className="text-ink">Basis und Business:</strong> Der Preis wird mit der Freigabe der Website zur
+          <strong className="text-ink">Basic und Business:</strong> Der Preis wird mit der Freigabe der Website zur
           Veröffentlichung fällig.
         </li>
         <li>
-          <strong className="text-ink">Premium:</strong> 30 % Anzahlung nach Annahme des Angebots, der Rest mit der
+          <strong className="text-ink">Pro:</strong> 30 % Anzahlung nach Annahme des Angebots, der Rest mit der
           Freigabe zur Veröffentlichung.
         </li>
       </ul>
@@ -63,7 +63,7 @@ export default function Agb() {
 
       <h2>5. Korrekturen und Änderungsrunden</h2>
       <p>
-        Im Paketpreis sind enthalten: Basis – 1 Korrektur von Texten und Fotos; Business – 1 Änderungsrunde; Premium –
+        Im Paketpreis sind enthalten: Basic – 1 Korrektur von Texten und Fotos; Business – 1 Änderungsrunde; Pro –
         2 Änderungsrunden. Eine Änderungsrunde umfasst alle Änderungswünsche, die der Kunde gesammelt auf einmal
         übermittelt. Weitere Änderungen führen wir nach vorheriger Absprache gegen gesondertes Entgelt durch.
       </p>

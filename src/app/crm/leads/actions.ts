@@ -199,7 +199,7 @@ export async function verkaufMelden(_v: AktionStatus, fd: FormData): Promise<Akt
   let betrag = paket.preis;
   if (paket.id === "premium") {
     const roh = Number(text(fd, "betrag", 20).replace(/\./g, "").replace(",", "."));
-    if (!Number.isFinite(roh) || roh < paket.preis) return { meldung: "Premium startet bei 2.000 €. Bitte gib den vereinbarten Betrag ein." };
+    if (!Number.isFinite(roh) || roh < paket.preis) return { meldung: "Pro startet bei 2.000 €. Bitte gib den vereinbarten Betrag ein." };
     betrag = Math.round(roh * 100) / 100;
   }
 
