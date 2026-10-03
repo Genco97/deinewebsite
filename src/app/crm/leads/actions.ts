@@ -192,6 +192,13 @@ export async function verkaufMelden(_v: AktionStatus, fd: FormData): Promise<Akt
   if (!lead) return { meldung: "Lead nicht gefunden." };
   if (lead.status === "nicht_anrufen") return { meldung: "Für diesen Lead gilt „Nicht anrufen“." };
 
+  const { count } = await supabase
+    .from("deals")
+    .select("id", { count: "exact", head: true })
+    .eq("lead_id", id)
+    .neq("status", "storniert");
+  if (count) return { meldung: "Für diesen Lead ist bereits ein Verkauf eingetragen." };
+
   const { error } = await supabase.from("deals").insert({
     lead_id: id,
     partner_id: profil.rolle === "admin" ? (lead.besitzer_id ?? profil.id) : profil.id,

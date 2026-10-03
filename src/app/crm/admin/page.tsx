@@ -64,8 +64,8 @@ export default async function Admin({ searchParams }: PageProps<"/crm/admin">) {
     <>
       <Kopf titel="Admin" text="Anfragen, Deals, Provisionen und Export." />
 
-      <nav aria-label="Admin-Bereiche" className="-mx-4 mb-6 overflow-x-auto px-4">
-        <ul className="flex gap-1 border-b border-line">
+      <nav aria-label="Admin-Bereiche" className="mb-6">
+        <ul className="flex flex-wrap gap-x-1 border-b border-line">
           {TABS.map((t) => (
             <li key={t.id}>
               <Link
@@ -315,7 +315,7 @@ async function Deals({ personen, name }: { personen: Person[]; name: (id: string
                     <div className="min-w-0">
                       <p className="font-semibold text-ink">
                         {d.lead_id ? (
-                          <Link href={`/crm/leads/${d.lead_id}`} className="hover:text-brand">
+                          <Link href={`/crm/leads/${d.lead_id}`} className="inline-flex min-h-11 items-center hover:text-brand">
                             {d.leads?.firma ?? "Lead"}
                           </Link>
                         ) : (

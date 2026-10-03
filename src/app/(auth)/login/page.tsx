@@ -15,6 +15,11 @@ export default async function LoginSeite({ searchParams }: PageProps<"/login">) 
           Dein Konto ist deaktiviert. Bitte wende dich an einen Gründer.
         </p>
       ) : null}
+      {fehler === "profil" ? (
+        <p className="mt-4 rounded-lg bg-danger-light px-4 py-3 text-sm text-danger">
+          Zu deinem Konto wurde kein Profil gefunden. Bitte wende dich an einen Gründer.
+        </p>
+      ) : null}
       {fehler === "link" ? (
         <p className="mt-4 rounded-lg bg-danger-light px-4 py-3 text-sm text-danger">
           Der Bestätigungslink ist ungültig oder abgelaufen.

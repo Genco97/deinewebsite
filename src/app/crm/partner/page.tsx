@@ -122,7 +122,7 @@ export default async function Partner() {
               </div>
               <p className="mt-1 text-sm text-muted">{e.text}</p>
               <p className="mt-4 flex justify-between border-t border-line pt-3 text-sm">
-                <span className="text-muted">{liste.length} Provisionen</span>
+                <span className="text-muted">{liste.length} {liste.length === 1 ? "Provision" : "Provisionen"}</span>
                 <span className="font-semibold text-ink">{euro(liste.reduce((s, p) => s + Number(p.betrag), 0))}</span>
               </p>
             </Karte>

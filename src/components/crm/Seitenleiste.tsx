@@ -30,8 +30,8 @@ export function Seitenleiste({ name, admin }: { name: string; admin: boolean }) 
         </form>
       </div>
 
-      <nav aria-label="CRM-Navigation" className="overflow-x-auto md:flex-1 md:overflow-visible">
-        <ul className="flex gap-1 px-2 pb-2 md:flex-col md:px-3 md:pb-0">
+      <nav aria-label="CRM-Navigation" className="md:flex-1">
+        <ul className="flex flex-wrap gap-1 px-2 pb-2 md:flex-col md:flex-nowrap md:px-3 md:pb-0">
           {links.map((l) => (
             <li key={l.href} className="shrink-0">
               <Link

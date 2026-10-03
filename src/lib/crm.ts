@@ -33,11 +33,8 @@ export const holeProfil = cache(async (): Promise<Profil> => {
     .select("id, name, email, rolle, upline_id, einladungscode, aktiv")
     .eq("id", user.id)
     .single();
-  if (!data) redirect("/login?fehler=profil");
-  if (!data.aktiv) {
-    await supabase.auth.signOut();
-    redirect("/login?fehler=inaktiv");
-  }
+  if (!data) redirect("/auth/abmelden?grund=profil");
+  if (!data.aktiv) redirect("/auth/abmelden?grund=inaktiv");
   return data as Profil;
 });
 
