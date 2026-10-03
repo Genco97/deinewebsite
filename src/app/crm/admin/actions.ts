@@ -147,3 +147,45 @@ export async function provisionAusbezahlt(fd: FormData) {
   revalidatePath("/crm/partner");
   zurueck("provisionen");
 }
+
+// ---------------------------------------------------------------------------
+// Team
+// ---------------------------------------------------------------------------
+export async function rolleSetzen(fd: FormData) {
+  const ich = await nurAdmin();
+  const id = text(fd, "id", 50);
+  const rolle = text(fd, "rolle", 20);
+  if (rolle !== "admin" && rolle !== "partner") zurueck("team", "Ungültige Rolle.");
+  if (id === ich.id && rolle === "partner") zurueck("team", "Du kannst dich nicht selbst zum Partner machen.");
+  const supabase = await createClient();
+  const { error } = await supabase.from("profiles").update({ rolle }).eq("id", id);
+  if (error) {
+    zurueck("team", error.message.includes("mindestens ein") ? "Es muss mindestens ein aktiver Gründer bleiben." : "Rolle konnte nicht geändert werden.");
+  }
+  zurueck("team");
+}
+
+export async function aktivSetzen(fd: FormData) {
+  const ich = await nurAdmin();
+  const id = text(fd, "id", 50);
+  const aktiv = text(fd, "aktiv", 5) === "true";
+  if (id === ich.id && !aktiv) zurueck("team", "Du kannst dich nicht selbst deaktivieren.");
+  const supabase = await createClient();
+  const { error } = await supabase.from("profiles").update({ aktiv }).eq("id", id);
+  if (error) {
+    zurueck("team", error.message.includes("mindestens ein") ? "Es muss mindestens ein aktiver Gründer bleiben." : "Konnte nicht gespeichert werden.");
+  }
+  zurueck("team");
+}
+
+export async function nameSetzen(fd: FormData) {
+  await nurAdmin();
+  const id = text(fd, "id", 50);
+  const name = text(fd, "name", 100);
+  if (!name) zurueck("team", "Der Name darf nicht leer sein.");
+  const supabase = await createClient();
+  const { error } = await supabase.from("profiles").update({ name }).eq("id", id);
+  if (error) zurueck("team", "Name konnte nicht gespeichert werden.");
+  revalidatePath("/crm", "layout");
+  zurueck("team");
+}

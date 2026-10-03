@@ -12,6 +12,7 @@ export function Seitenleiste({ name, admin }: { name: string; admin: boolean }) 
     { href: "/crm/leads", label: "Leads", aktiv: pfad.startsWith("/crm/leads") },
     { href: "/crm/partner", label: "Partner & Provision", aktiv: pfad.startsWith("/crm/partner") },
     ...(admin ? [{ href: "/crm/admin", label: "Admin", aktiv: pfad.startsWith("/crm/admin") }] : []),
+    { href: "/crm/profil", label: "Mein Profil", aktiv: pfad.startsWith("/crm/profil") },
   ];
 
   return (
@@ -48,8 +49,10 @@ export function Seitenleiste({ name, admin }: { name: string; admin: boolean }) 
       </nav>
 
       <div className="hidden border-t border-white/10 p-4 md:block">
-        <p className="truncate text-sm font-semibold">{name || "Ohne Namen"}</p>
-        <p className="text-xs text-white/60">{admin ? "Admin" : "Partner"}</p>
+        <Link href="/crm/profil" className="block truncate text-sm font-semibold hover:underline">
+          {name}
+        </Link>
+        <p className="text-xs text-white/60">{admin ? "Gründer · Admin" : "Partner"}</p>
         <form action={abmelden} className="mt-2">
           <button className="inline-flex min-h-11 items-center text-sm text-white/70 hover:text-white">Abmelden</button>
         </form>

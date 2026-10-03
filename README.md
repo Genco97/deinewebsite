@@ -29,6 +29,8 @@ Migrationen in `supabase/migrations/`:
 - `0001_crm.sql` – Profile (Admin/Partner, Upline, Einladungscode), Leads, Verlauf, Deals, Provisionen, RLS, Trigger
 - `0002_anfragen.sql` – Lead-Status `demo`, Tabelle `anfragen`, Änderungsrunden bei Deals
 - `0003_rechte.sql` – Trigger-Funktionen nicht per API aufrufbar
+- `0004_gruender.sql` – Gründer-Modell (siehe unten)
+- `0005_aktiv_policies.sql` – deaktivierte Partner sehen ihre Leads nicht mehr (**noch nicht eingespielt**, im Supabase SQL-Editor ausführen)
 
 Wichtige Regeln (in der Datenbank erzwungen, nicht nur in der Oberfläche):
 
@@ -38,6 +40,14 @@ Wichtige Regeln (in der Datenbank erzwungen, nicht nur in der Oberfläche):
 - Partner können Verkäufe nur als `gemeldet` anlegen; Deals ändern nur Admins.
 - Provisionen (20 / 5 / 2 % über drei Ebenen) entstehen ausschließlich per Trigger, wenn ein Admin einen Deal auf `voll_bezahlt` setzt.
 - Anfragen: anonym nur `insert`, lesen/ändern nur Admin.
+
+## Gründer und Partner
+
+- **Gründer** = Rolle `admin`. Volle Rechte, keine persönlichen Provisionen, keine Upline.
+- **Partner** bekommen 20 % auf eigene Verkäufe, 5 % auf Verkäufe ihrer direkt Eingeladenen, 2 % eine Ebene tiefer.
+- Fällt eine Ebene auf einen Gründer, entsteht keine Provision – der Betrag bleibt im **Gründer-Topf**.
+- Gründer-Topf = Umsatz voll bezahlter Deals − Partner-Provisionen, gleich verteilt auf alle aktiven Gründer (Admin → Gewinn).
+- Mitgründer: über einen Einladungslink registrieren lassen, dann unter Admin → Team „Zum Gründer machen“.
 
 ## Ersteinrichtung
 

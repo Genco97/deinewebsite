@@ -82,3 +82,18 @@ export async function abmelden() {
   await supabase.auth.signOut();
   redirect("/login");
 }
+
+export async function passwortVergessen(_v: AuthStatus, fd: FormData): Promise<AuthStatus> {
+  const email = text(fd, "email");
+  if (!istEmail(email)) return { meldung: "Bitte gib eine gültige E-Mail-Adresse ein." };
+  const supabase = await createClient();
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  // Antwort immer gleich – verrät nicht, ob es die Adresse gibt
+  await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${site}/auth/callback?weiter=${encodeURIComponent("/crm/profil?passwort=neu")}`,
+  });
+  return {
+    ok: true,
+    meldung: "Wenn es ein Konto mit dieser Adresse gibt, haben wir dir einen Link zum Zurücksetzen geschickt.",
+  };
+}

@@ -12,7 +12,13 @@ export type Profil = {
   rolle: Rolle;
   upline_id: string | null;
   einladungscode: string;
+  aktiv: boolean;
 };
+
+/** Anzeigename: Name, sonst E-Mail */
+export function anzeigename(p: { name?: string | null; email?: string | null }) {
+  return p.name?.trim() || p.email || "Ohne Namen";
+}
 
 /** Eingeloggtes Profil – einmal pro Request geladen. Leitet ohne Login auf /login um. */
 export const holeProfil = cache(async (): Promise<Profil> => {
@@ -24,10 +30,14 @@ export const holeProfil = cache(async (): Promise<Profil> => {
 
   const { data } = await supabase
     .from("profiles")
-    .select("id, name, email, rolle, upline_id, einladungscode")
+    .select("id, name, email, rolle, upline_id, einladungscode, aktiv")
     .eq("id", user.id)
     .single();
   if (!data) redirect("/login?fehler=profil");
+  if (!data.aktiv) {
+    await supabase.auth.signOut();
+    redirect("/login?fehler=inaktiv");
+  }
   return data as Profil;
 });
 
