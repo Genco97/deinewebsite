@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 import { LogoMark } from "@/components/Logo";
 import { abmelden } from "@/app/(auth)/actions";
 
-export function Seitenleiste({ name, admin }: { name: string; admin: boolean }) {
+export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin: boolean; faellig?: number }) {
   const pfad = usePathname();
   const links = [
-    { href: "/crm", label: "Heute", aktiv: pfad === "/crm" },
+    { href: "/crm", label: "Heute", aktiv: pfad === "/crm", zahl: faellig },
     { href: "/crm/leads", label: "Leads", aktiv: pfad.startsWith("/crm/leads") },
     { href: "/crm/besuche", label: "Besuche", aktiv: pfad.startsWith("/crm/besuche") },
     { href: "/crm/projekte", label: "Projekte", aktiv: pfad.startsWith("/crm/projekte") },
@@ -45,6 +45,14 @@ export function Seitenleiste({ name, admin }: { name: string; admin: boolean }) 
                 }`}
               >
                 {l.label}
+                {"zahl" in l && l.zahl ? (
+                  <span
+                    className="ml-2 rounded-full bg-danger px-1.5 py-0.5 text-[11px] font-bold leading-none text-white md:ml-auto"
+                    aria-label={`${l.zahl} fällig`}
+                  >
+                    {l.zahl > 99 ? "99+" : l.zahl}
+                  </span>
+                ) : null}
               </Link>
             </li>
           ))}

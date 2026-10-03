@@ -197,3 +197,35 @@ export async function nameSetzen(fd: FormData) {
   revalidatePath("/crm", "layout");
   zurueck("team");
 }
+
+// ---------------------------------------------------------------------------
+// E-Mail-Vorlagen
+// ---------------------------------------------------------------------------
+function vorlageLesen(fd: FormData) {
+  return {
+    titel: text(fd, "titel", 100),
+    betreff: text(fd, "betreff", 200),
+    text: text(fd, "text", 4000),
+    reihenfolge: Number(text(fd, "reihenfolge", 5)) || 0,
+  };
+}
+
+export async function vorlageSpeichern(fd: FormData) {
+  await nurAdmin();
+  const id = text(fd, "id", 50);
+  const v = vorlageLesen(fd);
+  if (!v.titel || !v.betreff || !v.text) zurueck("vorlagen", "Titel, Betreff und Text dürfen nicht leer sein.");
+  const supabase = await createClient();
+  const { error } = id
+    ? await supabase.from("vorlagen").update({ ...v, updated_at: new Date().toISOString() }).eq("id", id)
+    : await supabase.from("vorlagen").insert(v);
+  if (error) zurueck("vorlagen", "Die Vorlage konnte nicht gespeichert werden.");
+  zurueck("vorlagen");
+}
+
+export async function vorlageLoeschen(fd: FormData) {
+  await nurAdmin();
+  const supabase = await createClient();
+  await supabase.from("vorlagen").delete().eq("id", text(fd, "id", 50));
+  zurueck("vorlagen");
+}

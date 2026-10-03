@@ -9,6 +9,7 @@ import { holeProfil } from "@/lib/crm";
 import { mapsSuche } from "@/lib/besuche";
 import { EINWILLIGUNG_ARTEN } from "@/lib/einwilligung";
 import { PHASE_INFO, type Phase } from "@/lib/projekte";
+import { mailtoLink, vorlageFuellen, type Vorlage } from "@/lib/vorlagen";
 import { PAKET_NAMEN, type PaketId } from "@/lib/pakete";
 import { DEAL_STATUS_LABEL, LEAD_STATUS, STATUS_LABEL, type LeadStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
@@ -54,7 +55,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
   // RLS: fremde Leads liefern keine Zeile → 404
   if (!lead) notFound();
 
-  const [{ data: verlauf }, { data: deals }] = await Promise.all([
+  const [{ data: verlauf }, { data: deals }, { data: vorlagenRoh }] = await Promise.all([
     supabase
       .from("lead_verlauf")
       .select("id, art, text, created_at, autor:profiles!lead_verlauf_autor_id_fkey(name)")
@@ -63,9 +64,10 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
       .limit(100),
     supabase
       .from("deals")
-      .select("id, paket, betrag, status, projekt_phase, created_at")
+      .select("id, paket, betrag, status, projekt_phase, website_url, created_at")
       .eq("lead_id", id)
       .order("created_at"),
+    supabase.from("vorlagen").select("id, titel, betreff, text, reihenfolge").order("reihenfolge"),
   ]);
 
   const status = lead.status as LeadStatus;
@@ -74,6 +76,24 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
   const kontakt = { ...lead, telefon: gesperrt ? null : lead.telefon };
   const statusButtons = LEAD_STATUS.filter((s) => s !== "verkauft");
   const anrufErlaubt = !gesperrt && !!lead.einwilligung_wie;
+  const ausAnfrage = lead.quelle.startsWith("anfrage:");
+  const site = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const website = (deals ?? []).find((d) => d.website_url)?.website_url ?? "[Link einfügen]";
+  const platzhalter: Record<string, string> = {
+    anrede: lead.ansprechpartner ? `Guten Tag ${lead.ansprechpartner}` : "Guten Tag",
+    firma: lead.firma,
+    ansprechpartner: lead.ansprechpartner ?? "",
+    mein_name: profil.name.trim() || profil.email,
+    meine_email: profil.email,
+    demo_link: `${site}/demo`,
+    website,
+  };
+  const mails = ((vorlagenRoh ?? []) as Vorlage[]).map((v) => ({
+    ...v,
+    link: lead.email
+      ? mailtoLink(lead.email, vorlageFuellen(v.betreff, platzhalter), vorlageFuellen(v.text, platzhalter))
+      : null,
+  }));
 
   return (
     <>
@@ -306,6 +326,30 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
                   </Select>
                   <button className={buttonClass("secondary")}>Einwilligung eintragen</button>
                 </form>
+              )}
+            </Abschnitt>
+          ) : null}
+
+          {!gesperrt && mails.length > 0 ? (
+            <Abschnitt titel="E-Mail schreiben">
+              {!lead.email ? (
+                <p className="text-sm text-muted">Trag unten eine E-Mail-Adresse ein, dann kannst du Vorlagen verwenden.</p>
+              ) : (
+                <>
+                  {!anrufErlaubt && !ausAnfrage ? (
+                    <p className="mb-3 text-sm text-amber-900">
+                      Ohne Einwilligung nur schreiben, wenn der Betrieb dich darum gebeten hat – keine Werbe-E-Mails.
+                    </p>
+                  ) : null}
+                  <p className="mb-3 text-sm text-muted">Öffnet dein E-Mail-Programm mit fertigem Text. Vor dem Senden kurz prüfen.</p>
+                  <div className="flex flex-wrap gap-2">
+                    {mails.map((m) => (
+                      <a key={m.id} href={m.link!} className={buttonClass("secondary", "px-3 text-sm")}>
+                        {m.titel}
+                      </a>
+                    ))}
+                  </div>
+                </>
               )}
             </Abschnitt>
           ) : null}
