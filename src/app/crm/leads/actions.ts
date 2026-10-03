@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { holeProfil } from "@/lib/crm";
+import { istEinwilligungArt } from "@/lib/einwilligung";
 import { PAKETE, istPaket } from "@/lib/pakete";
 import { istLeadStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
@@ -168,6 +169,21 @@ export async function kontaktSpeichern(_v: AktionStatus, fd: FormData): Promise<
   if (error) return { meldung: fehlerText(error.message) };
   revalidatePath(`/crm/leads/${id}`);
   return { ok: true, meldung: "Gespeichert." };
+}
+
+export async function einwilligungSetzen(fd: FormData) {
+  const id = text(fd, "id", 50);
+  const wie = text(fd, "wie", 50);
+  // Leerer Wert = Einwilligung entfernen (z. B. weil der Betrieb sie widerrufen hat)
+  if (wie && !istEinwilligungArt(wie)) return;
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("leads")
+    .update({ einwilligung_wie: wie || null })
+    .eq("id", id);
+  revalidatePath(`/crm/leads/${id}`);
+  revalidatePath("/crm");
+  if (error) redirect(`/crm/leads/${id}?fehler=${encodeURIComponent(fehlerText(error.message))}`);
 }
 
 // ---------------------------------------------------------------------------

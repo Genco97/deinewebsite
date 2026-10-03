@@ -43,7 +43,8 @@ export function RueckrufFormular() {
         <label className="flex min-h-11 items-start gap-3 text-sm text-muted">
           <input type="checkbox" name="datenschutz" className="mt-1 h-5 w-5 shrink-0 accent-brand" />
           <span>
-            Ich bin einverstanden, dass meine Angaben zur Bearbeitung meiner Anfrage verwendet werden. Mehr in der{" "}
+            Ich möchte zurückgerufen werden und bin einverstanden, dass Sie mich dazu anrufen und meine Angaben
+            dafür verwenden. Mehr in der{" "}
             <Link href="/datenschutz" className="text-brand underline">
               Datenschutzerklärung
             </Link>

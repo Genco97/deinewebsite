@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { demoAnfordern, type FormStatus } from "@/app/(public)/actions";
 import { Feld, Hinweis, Input, Textarea, buttonClass } from "@/components/ui";
+import { EINWILLIGUNG_TEXT } from "@/lib/einwilligung";
 import type { PaketId } from "@/lib/pakete";
 import { Honeypot } from "./Honeypot";
 
@@ -71,6 +72,18 @@ export function DemoFormular({ paket, button }: { paket: PaketId; button: string
         </label>
         {f.agb ? <p className="text-sm font-medium text-danger">{f.agb}</p> : null}
       </div>
+
+      <label className="flex min-h-11 items-start gap-3 text-sm text-muted">
+        <input
+          type="checkbox"
+          name="kontakt"
+          defaultChecked={w.kontakt === "on"}
+          className="mt-1 h-5 w-5 shrink-0 accent-brand"
+        />
+        <span>
+          {EINWILLIGUNG_TEXT} <span className="text-muted/80">(freiwillig)</span>
+        </span>
+      </label>
 
       <div className="flex items-center justify-between rounded-lg border border-line bg-bg px-4 py-3">
         <span className="text-sm font-semibold text-ink">Heute fällig</span>

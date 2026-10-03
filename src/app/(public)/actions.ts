@@ -29,6 +29,7 @@ export async function demoAnfordern(_vorher: FormStatus, fd: FormData): Promise<
     telefon: text(fd, "telefon", 50),
     branche: text(fd, "branche"),
     wuensche: text(fd, "wuensche", 4000),
+    kontakt: fd.get("kontakt") === "on" ? "on" : "",
   };
 
   if (istSpam(fd)) redirect(`/danke?art=${art}`);
@@ -55,6 +56,7 @@ export async function demoAnfordern(_vorher: FormStatus, fd: FormData): Promise<
     telefon: werte.telefon || null,
     branche: werte.branche || null,
     wuensche: werte.wuensche || null,
+    einwilligung_kontakt: werte.kontakt === "on",
   });
 
   if (error) {
@@ -96,6 +98,8 @@ export async function rueckrufAnfordern(_vorher: FormStatus, fd: FormData): Prom
     telefon: werte.telefon,
     firma: werte.firma || null,
     wuensche: werte.wuensche || null,
+    // Wer einen Rückruf anfordert, willigt in diesen Anruf ein (Häkchen ist Pflicht)
+    einwilligung_kontakt: true,
   });
 
   if (error) {

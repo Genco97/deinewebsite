@@ -17,6 +17,7 @@ type LeadZeile = {
   branche: string | null;
   status: LeadStatus;
   naechster_rueckruf: string | null;
+  einwilligung_wie: string | null;
 };
 
 function LeadListe({
@@ -41,7 +42,10 @@ function LeadListe({
           >
             <span className="min-w-0">
               <span className="block truncate font-semibold text-ink">{l.firma}</span>
-              <span className="block truncate text-sm text-muted">{l.branche ?? "–"}</span>
+              <span className="block truncate text-sm text-muted">
+                {l.branche ?? "–"}
+                {l.einwilligung_wie ? null : <span className="text-amber-800"> · kein Anruf, nur Besuch/Brief</span>}
+              </span>
             </span>
             <span className="flex shrink-0 flex-col items-end gap-1">
               <span className={`text-sm font-semibold ${rot ? "text-danger" : "text-ink"}`}>{zeit(l)}</span>
@@ -76,13 +80,13 @@ export default async function Heute() {
   const { tagEnde, wocheStart } = wienGrenzen();
   const jetzt = new Date().toISOString();
   const offen = `(${ABGESCHLOSSEN.join(",")})`;
-  const felder = "id, firma, branche, status, naechster_rueckruf";
+  const felder = "id, firma, branche, status, naechster_rueckruf, einwilligung_wie";
 
   const vor7Tagen = new Date(Date.parse(jetzt) - 7 * 86400000).toISOString();
   const [neu, heute, ueberfaellig, angebote, verkaeufe] = await Promise.all([
     supabase
       .from("leads")
-      .select("id, firma, ansprechpartner, branche, telefon, email, status, quelle, created_at")
+      .select("id, firma, ansprechpartner, branche, telefon, email, status, quelle, einwilligung_wie, created_at")
       .like("quelle", "anfrage:%")
       .in("status", ["demo", "interessiert", "rueckruf"])
       .gte("created_at", vor7Tagen)
@@ -129,6 +133,7 @@ export default async function Heute() {
     email: string | null;
     status: LeadStatus;
     quelle: string;
+    einwilligung_wie: string | null;
     created_at: string;
   }[];
   const ART: Record<string, string> = {
@@ -164,9 +169,12 @@ export default async function Heute() {
                   <span className="block truncate text-sm text-muted">
                     {[l.ansprechpartner, l.branche].filter(Boolean).join(" · ") || "–"} · {datumZeit(l.created_at)}
                   </span>
+                  {l.einwilligung_wie ? null : (
+                    <span className="block text-sm text-amber-800">Kein Anruf erlaubt – per E-Mail antworten</span>
+                  )}
                 </Link>
                 <span className="flex shrink-0 gap-2">
-                  {l.telefon ? (
+                  {l.telefon && l.einwilligung_wie ? (
                     <a href={`tel:${l.telefon.replace(/[^+0-9]/g, "")}`} className={buttonClass("primary", "flex-1 sm:flex-none")}>
                       Anrufen
                     </a>

@@ -48,6 +48,13 @@ export async function anfrageUebernehmen(fd: FormData) {
       naechster_rueckruf: new Date(Date.now() + 30 * 60000).toISOString(),
       quelle: `anfrage:${a.art}`,
       besitzer_id: besitzer,
+      // Einwilligung aus dem Formular übernehmen – Zeitpunkt ist der der Anfrage
+      einwilligung_wie: a.einwilligung_kontakt
+        ? a.art === "rueckruf"
+          ? "Website-Formular (Rückruf angefordert)"
+          : "Website-Formular"
+        : null,
+      einwilligung_am: a.einwilligung_kontakt ? a.created_at : null,
     })
     .select("id")
     .single();

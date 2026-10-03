@@ -33,6 +33,7 @@ Migrationen in `supabase/migrations/`:
 - `0005_aktiv_policies.sql` – deaktivierte Partner sehen ihre Leads nicht mehr
 - `0006_anfragen_verteilung.sql` – automatische Verteilung (verworfen)
 - `0007_verteilung_entfernen.sql` – entfernt die automatische Verteilung wieder
+- `0008_einwilligung.sql` – Einwilligung zu Anruf und E-Mail bei Anfragen und Leads
 
 Wichtige Regeln (in der Datenbank erzwungen, nicht nur in der Oberfläche):
 
@@ -54,6 +55,14 @@ Wichtige Regeln (in der Datenbank erzwungen, nicht nur in der Oberfläche):
 ## Anfragen zuteilen
 
 Neue Website-Anfragen landen unter Admin → Anfragen. Ein Gründer teilt jede Anfrage einer Person zu; daraus entsteht ein Lead mit Rückruf in 30 Minuten, der bei der Person unter „Heute“ als neue Website-Anfrage erscheint.
+
+### Einwilligung (Anrufe und E-Mails)
+
+Werbeanrufe und Werbe-E-Mails sind in Österreich nur mit vorheriger Einwilligung erlaubt – auch bei Firmen (§ 174 TKG 2021). Darum gilt im CRM:
+
+- Das Demo-Formular hat ein freiwilliges Häkchen „Sie dürfen mich … kontaktieren“; wer einen Rückruf anfordert, willigt in diesen Anruf ein. Beim Zuteilen wird die Einwilligung samt Zeitpunkt in den Lead übernommen.
+- Leads ohne Einwilligung (z. B. aus dem CSV-Import) sind markiert: nicht anrufen, nur Besuch oder Brief. Der „Anrufen“-Knopf erscheint erst mit Einwilligung.
+- Stimmt ein Betrieb zu (z. B. beim Besuch), trägt man es beim Lead unter „Einwilligung“ ein. Zeitpunkt und Person speichert die Datenbank, jede Änderung steht im Verlauf. „Nicht anrufen“ löscht die Einwilligung.
 
 ## Ersteinrichtung
 
