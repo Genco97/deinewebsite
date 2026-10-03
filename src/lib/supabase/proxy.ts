@@ -23,10 +23,10 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // Wichtig: getUser() prüft das Token beim Auth-Server und frischt die Session auf.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() prüft die Signatur des Tokens lokal (ohne Anfrage an den Auth-Server)
+  // und frischt eine abgelaufene Session vorher auf.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims?.sub ? data.claims : null;
 
   const path = request.nextUrl.pathname;
 
