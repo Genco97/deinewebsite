@@ -74,3 +74,24 @@ export function uhrzeit(iso: string | null) {
 export function euro(betrag: number | string | null) {
   return new Intl.NumberFormat("de-AT", { style: "currency", currency: "EUR" }).format(Number(betrag ?? 0));
 }
+
+/** Heutiges Datum in Wien als „2026-10-03“ */
+export function heuteWien(jetzt = new Date()) {
+  return isoZuWienLokal(jetzt.toISOString()).slice(0, 10);
+}
+
+/** „2026-10-03“ ± Tage */
+export function tagVerschieben(tag: string, tage: number) {
+  return new Date(Date.parse(`${tag}T12:00:00Z`) + tage * 86400000).toISOString().slice(0, 10);
+}
+
+/** „2026-10-03“ → „Sa., 03.10.“ */
+export function tagKurz(tag: string) {
+  return new Intl.DateTimeFormat("de-AT", { timeZone: "UTC", weekday: "short", day: "2-digit", month: "2-digit" }).format(
+    new Date(`${tag}T12:00:00Z`),
+  );
+}
+
+export function istTag(v: unknown): v is string {
+  return typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T12:00:00Z`));
+}

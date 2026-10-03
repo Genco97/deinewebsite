@@ -6,11 +6,13 @@ import { StatusBadge } from "@/components/crm/StatusBadge";
 import { VerkaufFormular } from "@/components/crm/VerkaufFormular";
 import { Hinweis, Karte, Select, Textarea, buttonClass, inputClass } from "@/components/ui";
 import { holeProfil } from "@/lib/crm";
+import { mapsSuche } from "@/lib/besuche";
 import { EINWILLIGUNG_ARTEN } from "@/lib/einwilligung";
 import { PAKET_NAMEN, type PaketId } from "@/lib/pakete";
 import { DEAL_STATUS_LABEL, LEAD_STATUS, STATUS_LABEL, type LeadStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
-import { datumZeit, euro, isoZuWienLokal } from "@/lib/zeit";
+import { datum, datumZeit, euro, heuteWien, isoZuWienLokal } from "@/lib/zeit";
+import { ausRundeEntfernen, besucheEinplanen } from "../../besuche/actions";
 import { einwilligungSetzen, notizHinzufuegen, rueckrufSetzen, statusSetzen } from "../actions";
 
 export const metadata: Metadata = { title: "Lead" };
@@ -45,7 +47,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
 
   const { data: lead } = await supabase
     .from("leads")
-    .select("id, firma, ansprechpartner, branche, telefon, email, adresse, bezirk, status, naechster_rueckruf, quelle, einwilligung_wie, einwilligung_am, created_at")
+    .select("id, firma, ansprechpartner, branche, telefon, email, adresse, bezirk, status, naechster_rueckruf, quelle, einwilligung_wie, einwilligung_am, besuch_geplant, letzter_besuch, created_at")
     .eq("id", id)
     .maybeSingle();
   // RLS: fremde Leads liefern keine Zeile → 404
@@ -226,6 +228,47 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
         </div>
 
         <div className="space-y-6">
+          {!gesperrt && status !== "verkauft" && status !== "kein_interesse" ? (
+            <Abschnitt titel="Besuch vor Ort">
+              <p className="mb-3 text-sm text-muted">
+                {lead.letzter_besuch ? `Zuletzt vor Ort: ${datumZeit(lead.letzter_besuch)}` : "Noch nie besucht."}
+                {lead.adresse ? (
+                  <>
+                    {" "}
+                    <a href={mapsSuche(lead)} target="_blank" rel="noopener noreferrer" className="text-brand underline">
+                      Auf der Karte
+                    </a>
+                  </>
+                ) : null}
+              </p>
+              {lead.besuch_geplant ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold text-ink">Geplant für {datum(`${lead.besuch_geplant}T12:00:00Z`)}</p>
+                  <Link href={`/crm/besuche?tag=${lead.besuch_geplant}`} className={buttonClass("ghost", "px-3 text-sm")}>
+                    Zur Runde
+                  </Link>
+                  <form action={ausRundeEntfernen}>
+                    <input type="hidden" name="id" value={lead.id} />
+                    <input type="hidden" name="zurueck" value={`/crm/leads/${lead.id}`} />
+                    <button className={buttonClass("ghost", "px-3 text-sm text-muted")}>Nicht mehr einplanen</button>
+                  </form>
+                </div>
+              ) : (
+                <form action={besucheEinplanen} className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                  <input type="hidden" name="ids" value={lead.id} />
+                  <input type="hidden" name="zurueck" value={`/crm/leads/${lead.id}`} />
+                  <div className="flex-1">
+                    <label htmlFor="besuch-tag" className="mb-1.5 block text-sm font-semibold text-ink">
+                      Besuchen am
+                    </label>
+                    <input id="besuch-tag" name="tag" type="date" min={heuteWien()} defaultValue={heuteWien()} required className={inputClass} />
+                  </div>
+                  <button className={buttonClass("secondary")}>Einplanen</button>
+                </form>
+              )}
+            </Abschnitt>
+          ) : null}
+
           {!gesperrt ? (
             <Abschnitt titel="Einwilligung zu Anruf und E-Mail">
               {anrufErlaubt ? (
