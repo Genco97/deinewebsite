@@ -2,6 +2,7 @@ import Link from "next/link";
 import { RueckrufFormular } from "@/components/public/RueckrufFormular";
 import { Karte, buttonClass } from "@/components/ui";
 import { Angabe } from "@/components/public/Angabe";
+import { BeispielUmschalter } from "@/components/public/BeispielUmschalter";
 import { FIRMA, preisHinweis } from "@/lib/firma";
 import { PAKETE } from "@/lib/pakete";
 
@@ -181,19 +182,10 @@ export default function Startseite() {
       <Abschnitt
         id="beispiele"
         titel="Beispiele"
-        einleitung="So können Websites für Betriebe wie Ihren aussehen."
+        einleitung="Ein Friseursalon, vier Designs. Wählen Sie ein Design und sehen Sie, was in jedem Paket steckt."
         weiss
       >
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {["[Beispiel 1 – Branche]", "[Beispiel 2 – Branche]", "[Beispiel 3 – Branche]"].map((b) => (
-            <figure key={b} className="overflow-hidden rounded-xl border border-line bg-bg">
-              <div className="flex aspect-[4/3] items-center justify-center border-b border-line text-sm text-muted">
-                [Screenshot folgt]
-              </div>
-              <figcaption className="px-4 py-3 text-sm font-medium text-ink">{b}</figcaption>
-            </figure>
-          ))}
-        </div>
+        <BeispielUmschalter />
       </Abschnitt>
 
       {/* Über uns */}
