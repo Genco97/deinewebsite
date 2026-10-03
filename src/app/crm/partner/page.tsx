@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Kopf } from "@/components/crm/Kopf";
 import { KopierFeld } from "@/components/crm/KopierFeld";
-import { Karte } from "@/components/ui";
+import { Karte, buttonClass } from "@/components/ui";
 import { holeProfil } from "@/lib/crm";
 import { PAKET_NAMEN, type PaketId } from "@/lib/pakete";
 import { DEAL_STATUS_LABEL } from "@/lib/status";
@@ -179,6 +179,17 @@ export default async function Partner() {
             : "Wer sich über diesen Link registriert, kommt in dein Team. Die Person bekommt 20 % auf ihre eigenen Verkäufe – und du zusätzlich 5 % vom Verkaufsbetrag."}
         </p>
         <KopierFeld wert={link} label="Einladungslink" />
+      </Karte>
+
+      <Karte className="mt-6 p-5">
+        <h2 className="font-bold text-ink">Flyer zum Ausdrucken</h2>
+        <p className="mb-3 mt-1 text-sm text-muted">
+          A5, beidseitig, mit QR-Code zur Gratis-Demo. Trag auf der Rückseite deinen Namen und deine Telefonnummer ein
+          und gib den Flyer beim Besuch persönlich ab – ruft der Betrieb dich dann an, ist das erlaubt.
+        </p>
+        <a href="/flyer-ursprung-a5.pdf" download className={buttonClass("secondary")}>
+          Flyer herunterladen (PDF)
+        </a>
       </Karte>
 
       <div className={`mt-8 grid gap-6 ${gruender ? "" : "lg:grid-cols-2"}`}>
