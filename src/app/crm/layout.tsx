@@ -3,7 +3,7 @@ import { Seitenleiste } from "@/components/crm/Seitenleiste";
 import { anzeigename, holeProfil } from "@/lib/crm";
 
 export const metadata: Metadata = {
-  title: { default: "CRM", template: "%s | Sichtbar CRM" },
+  title: { default: "CRM", template: "%s | Ursprung CRM" },
   robots: { index: false },
 };
 

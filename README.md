@@ -1,4 +1,4 @@
-# Sichtbar
+# Ursprung
 
 Öffentliche Seite für Kunden (Gratis-Demo, Rückruf, Pakete) und CRM für Mitarbeiter und Partner.
 
@@ -18,7 +18,7 @@ npm run dev
 | `NEXT_PUBLIC_SUPABASE_URL` | Projekt-URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon-Key (öffentlich) |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Nur serverseitig** (`src/lib/supabase/admin.ts`, `server-only`). Wird aktuell nicht benötigt – alle Admin-Aktionen laufen über RLS. |
-| `NEXT_PUBLIC_SITE_URL` | z. B. `https://sichtbar.at` – für Einladungs- und Bestätigungslinks |
+| `NEXT_PUBLIC_SITE_URL` | z. B. `https://ursprung.at` – für Einladungs- und Bestätigungslinks |
 
 Auf Vercel dieselben Variablen unter *Settings → Environment Variables* setzen.
 
@@ -63,4 +63,4 @@ Neue Website-Anfragen landen unter Admin → Anfragen. Ein Gründer teilt jede A
 
 ## Platzhalter
 
-Alle fehlenden Inhalte stehen in eckigen Klammern, z. B. `[Firmenname]`, `[Adresse]`, `[UID]`, `[inkl./zzgl. USt.]`, `[Betrag]` (Hosting), Beispiele, Über uns sowie Impressum, Datenschutz und AGB.
+Alle fehlenden Inhalte stehen in eckigen Klammern, z. B. `[Rechtsform]`, `[Adresse]`, `[UID]`, `[inkl./zzgl. USt.]`, `[Betrag]` (Hosting), Beispiele, Über uns sowie Impressum, Datenschutz und AGB.

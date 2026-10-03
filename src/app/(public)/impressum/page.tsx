@@ -9,7 +9,7 @@ export default function Impressum() {
       <p>Informationen gemäß § 5 ECG und Offenlegung gemäß § 25 MedienG.</p>
       <h2>Medieninhaber und Betreiber</h2>
       <p>
-        [Firmenname]
+        Ursprung [Rechtsform, z. B. e.U., OG oder GmbH]
         <br />
         [Adresse]
         <br />
