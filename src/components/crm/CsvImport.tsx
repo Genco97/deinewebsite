@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { leadsImportieren } from "@/app/crm/leads/actions";
-import { Hinweis, buttonClass } from "@/components/ui";
+import { Hinweis, Select, buttonClass } from "@/components/ui";
+import type { Person } from "@/lib/crm";
 import { parseCsv } from "@/lib/csv";
 import { csvZuLeads, type ImportZeile } from "@/lib/csv-import";
 
@@ -15,7 +16,8 @@ const VORSCHAU = [
   ["bezirk", "Bezirk"],
 ] as const;
 
-export function CsvImport() {
+export function CsvImport({ personen = [], ichId }: { personen?: Person[]; ichId?: string }) {
+  const [besitzer, setBesitzer] = useState(ichId ?? "");
   const [zeilen, setZeilen] = useState<ImportZeile[]>([]);
   const [dateiname, setDateiname] = useState("");
   const [meldung, setMeldung] = useState<{ art: "ok" | "fehler"; text: string } | null>(null);
@@ -38,7 +40,7 @@ export function CsvImport() {
 
   function importieren() {
     starte(async () => {
-      const r = await leadsImportieren(gueltig);
+      const r = await leadsImportieren(gueltig, besitzer || undefined);
       setMeldung({ art: r.ok ? "ok" : "fehler", text: r.meldung });
       if (r.ok) setZeilen([]);
     });
@@ -100,6 +102,21 @@ export function CsvImport() {
               </table>
             </div>
             {zeilen.length > 20 ? <p className="text-xs text-muted">Vorschau: erste 20 von {zeilen.length} Zeilen.</p> : null}
+            {personen.length > 0 ? (
+              <div className="sm:max-w-xs">
+                <label htmlFor="import-besitzer" className="mb-1.5 block text-sm font-semibold text-ink">
+                  Leads zuteilen an
+                </label>
+                <Select id="import-besitzer" value={besitzer} onChange={(e) => setBesitzer(e.target.value)}>
+                  {personen.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name.trim() || p.email}
+                      {p.id === ichId ? " (ich)" : p.rolle === "admin" ? " (Gründer)" : ""}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            ) : null}
             <div className="flex flex-col gap-2 sm:flex-row">
               <button
                 type="button"

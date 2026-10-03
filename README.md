@@ -56,6 +56,10 @@ Wichtige Regeln (in der Datenbank erzwungen, nicht nur in der Oberfläche):
 
 Neue Website-Anfragen landen unter Admin → Anfragen. Ein Gründer teilt jede Anfrage einer Person zu; daraus entsteht ein Lead mit Rückruf in 30 Minuten, der bei der Person unter „Heute“ als neue Website-Anfrage erscheint.
 
+### Leads verteilen
+
+Partner sehen nur Leads, die ihnen gehören (RLS), Gründer sehen alle. Nur Gründer können Leads einer Person zuteilen: in der Lead-Liste markieren → „Zuteilen an …“, auf der Lead-Seite unter „Zugeteilt an“ oder schon beim CSV-Import („Leads zuteilen an“). Jede Zuteilung steht im Verlauf; geplante Besuche werden dabei zurückgesetzt. Der Filter „Noch nicht verteilt“ zeigt alle Leads, die noch bei Gründern liegen.
+
 ### Einwilligung (Anrufe und E-Mails)
 
 Werbeanrufe und Werbe-E-Mails sind in Österreich nur mit vorheriger Einwilligung erlaubt – auch bei Firmen (§ 174 TKG 2021). Darum gilt im CRM:

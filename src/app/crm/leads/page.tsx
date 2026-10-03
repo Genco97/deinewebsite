@@ -4,8 +4,9 @@ import { Kopf } from "@/components/crm/Kopf";
 import { CsvImport } from "@/components/crm/CsvImport";
 import { LeadAnlegen } from "@/components/crm/LeadAnlegen";
 import { StatusBadge } from "@/components/crm/StatusBadge";
-import { Karte, Select, buttonClass, inputClass } from "@/components/ui";
-import { holeProfil } from "@/lib/crm";
+import { ZuteilenLeiste } from "@/components/crm/ZuteilenLeiste";
+import { Hinweis, Karte, Select, buttonClass, inputClass } from "@/components/ui";
+import { aktivePersonen, holeProfil } from "@/lib/crm";
 import { LEAD_STATUS, STATUS_LABEL, istLeadStatus, type LeadStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
 import { datumZeit } from "@/lib/zeit";
@@ -19,6 +20,18 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
   const sp = await searchParams;
   const q = (typeof sp.q === "string" ? sp.q : "").trim().slice(0, 100);
   const status = typeof sp.status === "string" && istLeadStatus(sp.status) ? sp.status : "";
+  const admin = profil.rolle === "admin";
+  const personen = admin ? await aktivePersonen() : [];
+  const gruender = personen.filter((p) => p.rolle === "admin").map((p) => p.id);
+  // Filter „Zugeteilt an“ (nur Gründer): Person-ID oder „offen“ = liegt noch bei Gründern
+  const besitzer =
+    admin && typeof sp.besitzer === "string" && (sp.besitzer === "offen" || personen.some((p) => p.id === sp.besitzer))
+      ? sp.besitzer
+      : "";
+  const ok = typeof sp.ok === "string" ? sp.ok : null;
+  const fehler = typeof sp.fehler === "string" ? sp.fehler : null;
+  const filter = new URLSearchParams({ ...(q ? { q } : {}), ...(status ? { status } : {}), ...(besitzer ? { besitzer } : {}) });
+  const hier = filter.size ? `/crm/leads?${filter}` : "/crm/leads";
 
   const supabase = await createClient();
   let abfrage = supabase
@@ -30,6 +43,8 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
     .limit(LIMIT);
 
   if (status) abfrage = abfrage.eq("status", status);
+  if (besitzer === "offen") abfrage = abfrage.in("besitzer_id", gruender.length ? gruender : [profil.id]);
+  else if (besitzer) abfrage = abfrage.eq("besitzer_id", besitzer);
   if (q) {
     // Zeichen entfernen, die in PostgREST-Filtern eine Bedeutung haben
     const sicher = q.replace(/[,()%*\\:"]/g, " ").trim();
@@ -51,7 +66,6 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
     einwilligung_wie: string | null;
     besitzer: { name: string } | null;
   }[];
-  const admin = profil.rolle === "admin";
 
   return (
     <>
@@ -59,10 +73,14 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
 
       <div className="mb-6 grid gap-3 md:grid-cols-2">
         <LeadAnlegen />
-        <CsvImport />
+        <CsvImport personen={personen} ichId={profil.id} />
       </div>
 
-      <form method="get" className="mb-4 grid gap-2 sm:grid-cols-[1fr_200px_auto]" role="search">
+      <form
+        method="get"
+        className={`mb-4 grid gap-2 ${admin ? "sm:grid-cols-[1fr_180px_200px_auto]" : "sm:grid-cols-[1fr_200px_auto]"}`}
+        role="search"
+      >
         <label className="sr-only" htmlFor="q">
           Suche
         </label>
@@ -85,9 +103,25 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
             </option>
           ))}
         </Select>
+        {admin ? (
+          <>
+            <label className="sr-only" htmlFor="filter-besitzer">
+              Zugeteilt an
+            </label>
+            <Select id="filter-besitzer" name="besitzer" defaultValue={besitzer}>
+              <option value="">Alle Personen</option>
+              <option value="offen">Noch nicht verteilt</option>
+              {personen.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name.trim() || p.email}
+                </option>
+              ))}
+            </Select>
+          </>
+        ) : null}
         <div className="flex gap-2">
           <button className={buttonClass("primary", "flex-1")}>Filtern</button>
-          {q || status ? (
+          {q || status || besitzer ? (
             <Link href="/crm/leads" className={buttonClass("secondary")}>
               Zurücksetzen
             </Link>
@@ -102,6 +136,18 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
 
       {error ? <p className="text-danger">Die Leads konnten nicht geladen werden.</p> : null}
 
+      {ok ? (
+        <div className="mb-4">
+          <Hinweis art="ok">{ok}</Hinweis>
+        </div>
+      ) : null}
+      {fehler ? (
+        <div className="mb-4">
+          <Hinweis art="fehler">{fehler}</Hinweis>
+        </div>
+      ) : null}
+      {admin && leads.length > 0 ? <ZuteilenLeiste personen={personen} zurueck={hier} /> : null}
+
       <Karte className="overflow-hidden">
         {leads.length === 0 ? (
           <p className="px-5 py-10 text-center text-muted">Keine Leads gefunden.</p>
@@ -110,8 +156,14 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
             {/* Mobil: Liste */}
             <ul className="divide-y divide-line md:hidden">
               {leads.map((l) => (
-                <li key={l.id}>
-                  <Link href={`/crm/leads/${l.id}`} className="block px-4 py-3 hover:bg-bg">
+                <li key={l.id} className="flex items-start">
+                  {admin ? (
+                    <label className="flex min-h-14 items-start py-3 pl-4">
+                      <span className="sr-only">{l.firma} markieren</span>
+                      <input type="checkbox" name="ids" value={l.id} form="zuteilen" className="mt-0.5 h-5 w-5 accent-brand" />
+                    </label>
+                  ) : null}
+                  <Link href={`/crm/leads/${l.id}`} className="block min-w-0 flex-1 px-4 py-3 hover:bg-bg">
                     <span className="flex items-start justify-between gap-2">
                       <span className="min-w-0 font-semibold text-ink">{l.firma}</span>
                       <StatusBadge status={l.status} />
@@ -125,6 +177,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
                     {l.status !== "nicht_anrufen" && !l.einwilligung_wie ? (
                       <span className="mt-0.5 block text-sm text-amber-800">Kein Anruf – nur Besuch oder Brief</span>
                     ) : null}
+                    {admin && l.besitzer ? <span className="mt-0.5 block text-xs text-muted">Bei: {l.besitzer.name}</span> : null}
                   </Link>
                 </li>
               ))}
@@ -134,18 +187,31 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
             <table className="hidden w-full text-left text-sm md:table">
               <thead className="border-b border-line bg-bg text-xs uppercase tracking-wide text-muted">
                 <tr>
+                  {admin ? <th className="w-10 py-3 pl-4"><span className="sr-only">Markieren</span></th> : null}
                   <th className="px-4 py-3 font-semibold">Firma</th>
                   <th className="px-4 py-3 font-semibold">Branche</th>
                   <th className="px-4 py-3 font-semibold">Telefon</th>
                   <th className="px-4 py-3 font-semibold">Bezirk</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
                   <th className="px-4 py-3 font-semibold">Rückruf</th>
-                  {admin ? <th className="px-4 py-3 font-semibold">Partner</th> : null}
+                  {admin ? <th className="px-4 py-3 font-semibold">Zugeteilt an</th> : null}
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {leads.map((l) => (
                   <tr key={l.id} className="hover:bg-bg">
+                    {admin ? (
+                      <td className="py-3 pl-4">
+                        <input
+                          type="checkbox"
+                          name="ids"
+                          value={l.id}
+                          form="zuteilen"
+                          aria-label={`${l.firma} markieren`}
+                          className="h-5 w-5 accent-brand"
+                        />
+                      </td>
+                    ) : null}
                     <td className="px-4 py-3">
                       <Link href={`/crm/leads/${l.id}`} className="font-semibold text-ink hover:text-brand">
                         {l.firma}

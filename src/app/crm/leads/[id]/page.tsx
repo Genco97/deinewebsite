@@ -5,7 +5,7 @@ import { KontaktFormular } from "@/components/crm/KontaktFormular";
 import { StatusBadge } from "@/components/crm/StatusBadge";
 import { VerkaufFormular } from "@/components/crm/VerkaufFormular";
 import { Hinweis, Karte, Select, Textarea, buttonClass, inputClass } from "@/components/ui";
-import { holeProfil } from "@/lib/crm";
+import { aktivePersonen, holeProfil } from "@/lib/crm";
 import { mapsSuche } from "@/lib/besuche";
 import { EINWILLIGUNG_ARTEN } from "@/lib/einwilligung";
 import { PHASE_INFO, type Phase } from "@/lib/projekte";
@@ -15,7 +15,7 @@ import { DEAL_STATUS_LABEL, LEAD_STATUS, STATUS_LABEL, type LeadStatus } from "@
 import { createClient } from "@/lib/supabase/server";
 import { datum, datumZeit, euro, heuteWien, isoZuWienLokal } from "@/lib/zeit";
 import { ausRundeEntfernen, besucheEinplanen } from "../../besuche/actions";
-import { einwilligungSetzen, notizHinzufuegen, rueckrufSetzen, statusSetzen } from "../actions";
+import { einwilligungSetzen, leadsZuteilen, notizHinzufuegen, rueckrufSetzen, statusSetzen } from "../actions";
 
 export const metadata: Metadata = { title: "Lead" };
 
@@ -40,7 +40,7 @@ function Abschnitt({ titel, children }: { titel: string; children: React.ReactNo
 
 export default async function LeadDetail({ params, searchParams }: PageProps<"/crm/leads/[id]">) {
   const { id } = await params;
-  const { fehler } = await searchParams;
+  const { fehler, ok } = await searchParams;
   if (!UUID.test(id)) notFound();
 
   const profil = await holeProfil();
@@ -49,7 +49,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
 
   const { data: lead } = await supabase
     .from("leads")
-    .select("id, firma, ansprechpartner, branche, telefon, email, adresse, bezirk, status, naechster_rueckruf, quelle, einwilligung_wie, einwilligung_am, besuch_geplant, letzter_besuch, created_at")
+    .select("id, firma, ansprechpartner, branche, telefon, email, adresse, bezirk, status, naechster_rueckruf, quelle, einwilligung_wie, einwilligung_am, besuch_geplant, letzter_besuch, besitzer_id, created_at")
     .eq("id", id)
     .maybeSingle();
   // RLS: fremde Leads liefern keine Zeile → 404
@@ -76,6 +76,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
   const kontakt = { ...lead, telefon: gesperrt ? null : lead.telefon };
   const statusButtons = LEAD_STATUS.filter((s) => s !== "verkauft");
   const anrufErlaubt = !gesperrt && !!lead.einwilligung_wie;
+  const personen = admin ? await aktivePersonen() : [];
   const ausAnfrage = lead.quelle.startsWith("anfrage:");
   const site = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
   const website = (deals ?? []).find((d) => d.website_url)?.website_url ?? "[Link einfügen]";
@@ -116,6 +117,11 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
         ) : null}
       </div>
 
+      {typeof ok === "string" ? (
+        <div className="mb-4">
+          <Hinweis art="ok">{ok}</Hinweis>
+        </div>
+      ) : null}
       {typeof fehler === "string" ? (
         <div className="mb-4">
           <Hinweis art="fehler">{fehler}</Hinweis>
@@ -253,6 +259,28 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
         </div>
 
         <div className="space-y-6">
+          {admin ? (
+            <Abschnitt titel="Zugeteilt an">
+              <form action={leadsZuteilen} className="flex flex-col gap-2 sm:flex-row">
+                <input type="hidden" name="ids" value={lead.id} />
+                <input type="hidden" name="zurueck" value={`/crm/leads/${lead.id}`} />
+                <label htmlFor="besitzer" className="sr-only">
+                  Zugeteilt an
+                </label>
+                <Select id="besitzer" name="besitzer" defaultValue={lead.besitzer_id ?? ""} required>
+                  {personen.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name.trim() || p.email}
+                      {p.rolle === "admin" ? " (Gründer)" : ""}
+                    </option>
+                  ))}
+                </Select>
+                <button className={buttonClass("secondary")}>Zuteilen</button>
+              </form>
+              <p className="mt-2 text-xs text-muted">Die Person sieht den Lead danach in ihrer Liste. Geplante Besuche werden zurückgesetzt.</p>
+            </Abschnitt>
+          ) : null}
+
           {!gesperrt && status !== "verkauft" && status !== "kein_interesse" ? (
             <Abschnitt titel="Besuch vor Ort">
               <p className="mb-3 text-sm text-muted">
