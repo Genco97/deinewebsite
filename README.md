@@ -30,7 +30,8 @@ Migrationen in `supabase/migrations/`:
 - `0002_anfragen.sql` – Lead-Status `demo`, Tabelle `anfragen`, Änderungsrunden bei Deals
 - `0003_rechte.sql` – Trigger-Funktionen nicht per API aufrufbar
 - `0004_gruender.sql` – Gründer-Modell (siehe unten)
-- `0005_aktiv_policies.sql` – deaktivierte Partner sehen ihre Leads nicht mehr (**noch nicht eingespielt**, im Supabase SQL-Editor ausführen)
+- `0005_aktiv_policies.sql` – deaktivierte Partner sehen ihre Leads nicht mehr
+- `0006_anfragen_verteilung.sql` – neue Anfragen automatisch reihum verteilen
 
 Wichtige Regeln (in der Datenbank erzwungen, nicht nur in der Oberfläche):
 
@@ -48,6 +49,10 @@ Wichtige Regeln (in der Datenbank erzwungen, nicht nur in der Oberfläche):
 - Fällt eine Ebene auf einen Gründer, entsteht keine Provision – der Betrag bleibt im **Gründer-Topf**.
 - Gründer-Topf = Umsatz voll bezahlter Deals − Partner-Provisionen, gleich verteilt auf alle aktiven Gründer (Admin → Gewinn).
 - Mitgründer: über einen Einladungslink registrieren lassen, dann unter Admin → Team „Zum Gründer machen“.
+
+## Automatische Verteilung
+
+Unter Admin → Team bei jeder Person „Anfragen zuteilen“ einschalten. Neue Website-Anfragen werden per Datenbank-Trigger sofort reihum verteilt (wer am längsten keine bekommen hat, ist dran): es entsteht ein Lead mit Rückruf in 30 Minuten, der bei der Person unter „Heute“ erscheint. Ist niemand eingeteilt, bleibt die Anfrage offen im Admin-Bereich.
 
 ## Ersteinrichtung
 

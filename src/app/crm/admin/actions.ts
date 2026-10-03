@@ -189,3 +189,14 @@ export async function nameSetzen(fd: FormData) {
   revalidatePath("/crm", "layout");
   zurueck("team");
 }
+
+export async function anfragenSetzen(fd: FormData) {
+  await nurAdmin();
+  const id = text(fd, "id", 50);
+  const an = text(fd, "an", 5) === "true";
+  const supabase = await createClient();
+  const { error } = await supabase.from("profiles").update({ bekommt_anfragen: an }).eq("id", id);
+  if (error) zurueck("team", "Konnte nicht gespeichert werden.");
+  revalidatePath("/crm/admin");
+  zurueck("team");
+}
