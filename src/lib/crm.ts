@@ -43,3 +43,12 @@ export async function nurAdmin() {
   if (p.rolle !== "admin") redirect("/crm");
   return p;
 }
+
+export type Person = { id: string; name: string; email: string; rolle: Rolle };
+
+/** Aktive Personen im Team (für Zuteilungen durch Gründer) */
+export const aktivePersonen = cache(async (): Promise<Person[]> => {
+  const supabase = await createClient();
+  const { data } = await supabase.from("profiles").select("id, name, email, rolle").eq("aktiv", true).order("name");
+  return (data ?? []) as Person[];
+});

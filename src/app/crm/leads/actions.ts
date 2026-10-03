@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { holeProfil } from "@/lib/crm";
+import { holeProfil, nurAdmin } from "@/lib/crm";
 import { istEinwilligungArt } from "@/lib/einwilligung";
 import { PAKETE, istPaket } from "@/lib/pakete";
 import { istLeadStatus } from "@/lib/status";
@@ -55,8 +55,19 @@ export async function leadAnlegen(_v: AktionStatus, fd: FormData): Promise<Aktio
 // ---------------------------------------------------------------------------
 export async function leadsImportieren(
   zeilen: ImportZeile[],
+  besitzerId?: string,
 ): Promise<{ ok: boolean; meldung: string; importiert?: number; doppelt?: number }> {
   const profil = await holeProfil();
+  const supabase = await createClient();
+
+  // Nur Gründer dürfen Leads beim Import einer anderen aktiven Person zuteilen
+  let besitzer = profil.id;
+  if (besitzerId && besitzerId !== profil.id) {
+    if (profil.rolle !== "admin") return { ok: false, meldung: "Nur Gründer können Leads anderen zuteilen." };
+    const { data: person } = await supabase.from("profiles").select("id").eq("id", besitzerId).eq("aktiv", true).maybeSingle();
+    if (!person) return { ok: false, meldung: "Die gewählte Person ist nicht aktiv." };
+    besitzer = person.id;
+  }
   if (!Array.isArray(zeilen) || zeilen.length === 0) return { ok: false, meldung: "Keine Zeilen zum Importieren." };
   if (zeilen.length > 2000) return { ok: false, meldung: "Bitte höchstens 2.000 Zeilen pro Import." };
 
@@ -79,8 +90,6 @@ export async function leadsImportieren(
     })
     .filter((z) => z.lead.firma);
 
-  const supabase = await createClient();
-
   // Doppelte Telefonnummern (bei eigenen Leads bzw. als Admin bei allen) überspringen
   const nummern = bereinigt.map((z) => z.lead.telefon).filter((t): t is string => !!t);
   const vorhanden = new Set<string>();
@@ -100,7 +109,7 @@ export async function leadsImportieren(
     const block = neu.slice(i, i + 500);
     const { data, error } = await supabase
       .from("leads")
-      .insert(block.map((z) => ({ ...z.lead, quelle: "csv", besitzer_id: profil.id })))
+      .insert(block.map((z) => ({ ...z.lead, quelle: "csv", besitzer_id: besitzer })))
       .select("id");
     if (error || !data) return { ok: false, meldung: `Import nach ${i} Zeilen abgebrochen. Bitte prüfe die Datei.` };
 
@@ -252,4 +261,46 @@ export async function verkaufMelden(_v: AktionStatus, fd: FormData): Promise<Akt
   revalidatePath(`/crm/leads/${id}`);
   revalidatePath("/crm");
   return { ok: true, meldung: "Verkauf gemeldet. Ein Admin prüft ihn und trägt die Zahlung ein." };
+}
+
+// ---------------------------------------------------------------------------
+// Zuteilen (nur Gründer)
+// ---------------------------------------------------------------------------
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function leadsZuteilen(fd: FormData) {
+  const admin = await nurAdmin();
+  const zurueck = text(fd, "zurueck", 300);
+  const ziel = zurueck.startsWith("/crm") && !zurueck.startsWith("//") ? zurueck : "/crm/leads";
+  const fehler = (m: string) => redirect(`${ziel}${ziel.includes("?") ? "&" : "?"}fehler=${encodeURIComponent(m)}`);
+
+  const ids = [...new Set(fd.getAll("ids").filter((v): v is string => typeof v === "string" && UUID.test(v)))].slice(0, 500);
+  const besitzerId = text(fd, "besitzer", 50);
+  if (ids.length === 0) fehler("Bitte wähle mindestens einen Lead aus.");
+
+  const supabase = await createClient();
+  const { data: person } = await supabase
+    .from("profiles")
+    .select("id, name, email")
+    .eq("id", besitzerId)
+    .eq("aktiv", true)
+    .maybeSingle();
+  if (!person) fehler("Bitte wähle eine aktive Person aus.");
+
+  const { error } = await supabase
+    .from("leads")
+    .update({ besitzer_id: person!.id, besuch_geplant: null })
+    .in("id", ids);
+  if (error) fehler("Das Zuteilen hat nicht geklappt. Bitte versuch es nochmal.");
+
+  const von = admin.name.trim() || admin.email;
+  const an = person!.name.trim() || person!.email;
+  await supabase
+    .from("lead_verlauf")
+    .insert(ids.map((id) => ({ lead_id: id, autor_id: admin.id, art: "system", text: `Zugeteilt an ${an} (von ${von})` })));
+
+  revalidatePath("/crm/leads");
+  revalidatePath("/crm");
+  ids.forEach((id) => revalidatePath(`/crm/leads/${id}`));
+  redirect(`${ziel}${ziel.includes("?") ? "&" : "?"}ok=${encodeURIComponent(`${ids.length} ${ids.length === 1 ? "Lead" : "Leads"} an ${an} zugeteilt.`)}`);
 }
