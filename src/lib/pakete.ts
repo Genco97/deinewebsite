@@ -20,7 +20,7 @@ export const PAKETE: Paket[] = [
     preis: 500,
     preisText: "500 €",
     leistungen: [
-      "1 Seite, optimiert fürs Handy",
+      "Eine Landingpage – alles auf 1 Seite, fürs Handy optimiert",
       "Kontakt, Öffnungszeiten und Karte",
       "Eintrag bei Google (Unternehmensprofil)",
       "Online in 7 Tagen",

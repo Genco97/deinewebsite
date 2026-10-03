@@ -16,8 +16,9 @@ export default function Agb() {
       <h2>1. Leistungen</h2>
       <p>
         Wir erstellen Websites für Betriebe in den Paketen Basic, Business und Pro. Der genaue Leistungsumfang ergibt
-        sich aus der Paketbeschreibung auf unserer Website bzw. aus dem individuellen Angebot (Pro). Zusätzliche
-        Leistungen vereinbaren wir gesondert.
+        sich aus der Paketbeschreibung auf unserer Website bzw. aus dem individuellen Angebot (Pro). Das Paket Basic
+        umfasst genau eine Seite (Landingpage) ohne Unterseiten; Unterseiten sind ab dem Paket Business enthalten.
+        Zusätzliche Leistungen vereinbaren wir gesondert.
       </p>
 
       <h2>2. Gratis-Demo und Vertragsabschluss</h2>
