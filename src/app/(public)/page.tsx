@@ -30,11 +30,6 @@ const FAQ: { frage: string; antwort: React.ReactNode }[] = [
     ),
   },
   {
-    frage: "Was ist eine Landingpage (Paket Basic)?",
-    antwort:
-      "Beim Paket Basic bekommen Sie genau eine Seite: Alles Wichtige über Ihren Betrieb – Angebot, Öffnungszeiten, Kontakt und Karte – übersichtlich auf einer Seite zum Durchscrollen. Weitere Unterseiten (z. B. für Leistungen, Team oder Galerie) gibt es ab dem Paket Business.",
-  },
-  {
     frage: "Wie lange dauert es, bis meine Website online ist?",
     antwort:
       "Beim Paket Basic rund 7 Tage, bei Business rund 10 Tage – gerechnet ab dem Zeitpunkt, an dem wir Ihre Fotos und Infos haben. Bei Pro legen wir den Zeitplan im Erstgespräch fest.",
