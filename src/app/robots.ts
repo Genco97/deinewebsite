@@ -8,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
       // Interne Bereiche nicht in Suchmaschinen
-      disallow: ["/crm", "/login", "/registrieren", "/passwort-vergessen", "/auth", "/danke"],
+      disallow: ["/crm", "/login", "/registrieren", "/passwort-vergessen", "/auth", "/danke", "/beispiele"],
     },
     sitemap: `${SITE}/sitemap.xml`,
   };

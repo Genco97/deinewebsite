@@ -1,0 +1,118 @@
+/* Nur für die Pro-Beispielseite – alle Klassen mit „pro-“ */
+
+.pro-seite {
+  --pro-x: 50%;
+  --pro-y: 30%;
+  background: #07070c;
+  color: #f4f4f8;
+  font-family: var(--font-grotesk), ui-sans-serif, system-ui, sans-serif;
+  overflow-x: clip;
+}
+
+/* Licht, das der Maus folgt */
+.pro-licht {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(600px circle at var(--pro-x) var(--pro-y), rgba(168, 85, 247, 0.13), transparent 60%);
+}
+
+/* Polarlicht im Hero */
+.pro-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(70px);
+  opacity: 0.55;
+  animation: pro-schweben 14s ease-in-out infinite alternate;
+}
+.pro-blob-2 { animation-duration: 18s; animation-delay: -6s; }
+.pro-blob-3 { animation-duration: 22s; animation-delay: -11s; }
+
+@keyframes pro-schweben {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(8vw, -6vh) scale(1.2); }
+  100% { transform: translate(-6vw, 5vh) scale(0.9); }
+}
+
+.pro-verlauf-text {
+  background: linear-gradient(90deg, #f0abfc, #a78bfa, #67e8f9, #f0abfc);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: pro-fliessen 8s linear infinite;
+}
+@keyframes pro-fliessen {
+  to { background-position: 300% 0; }
+}
+
+/* Laufband */
+.pro-band {
+  display: flex;
+  width: max-content;
+  animation: pro-laufen 28s linear infinite;
+}
+@keyframes pro-laufen {
+  to { transform: translateX(-50%); }
+}
+
+/* Einblenden beim Scrollen */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: var(--pro-delay, 0ms);
+}
+[data-reveal].pro-sichtbar {
+  opacity: 1;
+  transform: none;
+}
+
+/* Karten mit leuchtendem Rand */
+.pro-karte {
+  position: relative;
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 0.4s ease, border-color 0.4s ease, background 0.4s ease;
+}
+.pro-karte:hover {
+  transform: translateY(-6px);
+  border-color: rgba(167, 139, 250, 0.6);
+  background: rgba(167, 139, 250, 0.08);
+}
+
+.pro-tippen span {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 2px;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: pro-punkt 1s ease-in-out infinite;
+}
+.pro-tippen span:nth-child(2) { animation-delay: 0.15s; }
+.pro-tippen span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes pro-punkt {
+  0%, 100% { opacity: 0.3; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pro-blob,
+  .pro-verlauf-text,
+  .pro-band,
+  .pro-tippen span {
+    animation: none;
+  }
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .pro-karte,
+  .pro-karte:hover {
+    transform: none;
+  }
+}
