@@ -24,7 +24,7 @@ export default async function DemoSeite({ searchParams }: PageProps<"/demo">) {
           {premium ? "Beratung" : "Gratis-Demo"}
         </p>
         <h1 className="mt-2 font-serif text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-          {premium ? "Beratung für Ihr Premium-Projekt" : "Ihre kostenlose Demo-Website"}
+          {premium ? "Beratung für Ihr Pro-Projekt" : "Ihre kostenlose Demo-Website"}
         </h1>
         <p className="mt-4 text-lg text-muted">
           {premium

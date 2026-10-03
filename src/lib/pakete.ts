@@ -16,7 +16,7 @@ export type Paket = {
 export const PAKETE: Paket[] = [
   {
     id: "basis",
-    name: "Basis",
+    name: "Basic",
     preis: 500,
     preisText: "500 €",
     leistungen: [
@@ -49,7 +49,7 @@ export const PAKETE: Paket[] = [
   },
   {
     id: "premium",
-    name: "Premium",
+    name: "Pro",
     preis: 2000,
     preisText: "2.000 €",
     ab: true,
@@ -67,9 +67,9 @@ export const PAKETE: Paket[] = [
 ];
 
 export const PAKET_NAMEN: Record<PaketId, string> = {
-  basis: "Basis",
+  basis: "Basic",
   business: "Business",
-  premium: "Premium",
+  premium: "Pro",
 };
 
 export function istPaket(wert: unknown): wert is PaketId {

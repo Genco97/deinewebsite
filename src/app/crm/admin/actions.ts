@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { nurAdmin } from "@/lib/crm";
-import { PAKETE, istPaket } from "@/lib/pakete";
+import { PAKETE, PAKET_NAMEN, istPaket, type PaketId } from "@/lib/pakete";
 import { createClient } from "@/lib/supabase/server";
 import { text } from "@/lib/validierung";
 
@@ -62,7 +62,7 @@ export async function anfrageUebernehmen(fd: FormData) {
 
   const artText = { demo: "Gratis-Demo", beratung: "Beratung", rueckruf: "Rückruf" }[a.art as string] ?? a.art;
   const notiz = [
-    `Zugeteilt von ${admin.name.trim() || admin.email} – Anfrage über die Website: ${artText}${a.paket ? ` (Paket ${a.paket})` : ""}`,
+    `Zugeteilt von ${admin.name.trim() || admin.email} – Anfrage über die Website: ${artText}${a.paket ? ` (Paket ${PAKET_NAMEN[a.paket as PaketId] ?? a.paket})` : ""}`,
     a.wuensche ? `Wünsche: ${a.wuensche}` : null,
   ]
     .filter(Boolean)
