@@ -10,6 +10,7 @@ export function Seitenleiste({ name, admin }: { name: string; admin: boolean }) 
   const links = [
     { href: "/crm", label: "Heute", aktiv: pfad === "/crm" },
     { href: "/crm/leads", label: "Leads", aktiv: pfad.startsWith("/crm/leads") },
+    { href: "/crm/besuche", label: "Besuche", aktiv: pfad.startsWith("/crm/besuche") },
     { href: "/crm/partner", label: "Partner & Provision", aktiv: pfad.startsWith("/crm/partner") },
     ...(admin ? [{ href: "/crm/admin", label: "Admin", aktiv: pfad.startsWith("/crm/admin") }] : []),
     { href: "/crm/profil", label: "Mein Profil", aktiv: pfad.startsWith("/crm/profil") },

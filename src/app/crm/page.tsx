@@ -7,7 +7,7 @@ import { holeProfil } from "@/lib/crm";
 import { PAKET_NAMEN, type PaketId } from "@/lib/pakete";
 import { ABGESCHLOSSEN, type LeadStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
-import { datum, datumZeit, euro, uhrzeit, wienGrenzen } from "@/lib/zeit";
+import { datum, datumZeit, euro, heuteWien, uhrzeit, wienGrenzen } from "@/lib/zeit";
 
 export const metadata: Metadata = { title: "Heute" };
 
@@ -83,7 +83,7 @@ export default async function Heute() {
   const felder = "id, firma, branche, status, naechster_rueckruf, einwilligung_wie";
 
   const vor7Tagen = new Date(Date.parse(jetzt) - 7 * 86400000).toISOString();
-  const [neu, heute, ueberfaellig, angebote, verkaeufe] = await Promise.all([
+  const [neu, heute, ueberfaellig, angebote, verkaeufe, besuche] = await Promise.all([
     supabase
       .from("leads")
       .select("id, firma, ansprechpartner, branche, telefon, email, status, quelle, einwilligung_wie, created_at")
@@ -113,6 +113,12 @@ export default async function Heute() {
       .gte("created_at", wocheStart)
       .neq("status", "storniert")
       .order("created_at", { ascending: false }),
+    supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .eq("besitzer_id", profil.id)
+      .lte("besuch_geplant", heuteWien())
+      .not("status", "in", offen),
   ]);
 
   const deals = (verkaeufe.data ?? []) as unknown as {
@@ -145,6 +151,11 @@ export default async function Heute() {
   return (
     <>
       <Kopf titel={vorname ? `Hallo ${vorname}` : "Heute"} text={`Dein Überblick für ${datum(jetzt)}.`}>
+        {besuche.count ? (
+          <Link href="/crm/besuche" className={buttonClass("secondary")}>
+            Besuche heute: {besuche.count}
+          </Link>
+        ) : null}
         <Link href="/crm/leads" className={buttonClass("primary")}>
           Zu den Leads
         </Link>
