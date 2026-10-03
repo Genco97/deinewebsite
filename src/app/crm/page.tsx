@@ -5,9 +5,10 @@ import { StatusBadge } from "@/components/crm/StatusBadge";
 import { Karte, buttonClass } from "@/components/ui";
 import { holeProfil } from "@/lib/crm";
 import { PAKET_NAMEN, type PaketId } from "@/lib/pakete";
+import { PHASE_INFO, type Phase } from "@/lib/projekte";
 import { ABGESCHLOSSEN, type LeadStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
-import { datum, datumZeit, euro, heuteWien, uhrzeit, wienGrenzen } from "@/lib/zeit";
+import { datum, datumZeit, euro, heuteWien, tagVerschieben, uhrzeit, wienGrenzen } from "@/lib/zeit";
 
 export const metadata: Metadata = { title: "Heute" };
 
@@ -83,7 +84,8 @@ export default async function Heute() {
   const felder = "id, firma, branche, status, naechster_rueckruf, einwilligung_wie";
 
   const vor7Tagen = new Date(Date.parse(jetzt) - 7 * 86400000).toISOString();
-  const [neu, heute, ueberfaellig, angebote, verkaeufe, besuche] = await Promise.all([
+  const admin = profil.rolle === "admin";
+  const [neu, heute, ueberfaellig, angebote, verkaeufe, besuche, projekte] = await Promise.all([
     supabase
       .from("leads")
       .select("id, firma, ansprechpartner, branche, telefon, email, status, quelle, einwilligung_wie, created_at")
@@ -119,7 +121,22 @@ export default async function Heute() {
       .eq("besitzer_id", profil.id)
       .lte("besuch_geplant", heuteWien())
       .not("status", "in", offen),
+    admin
+      ? supabase
+          .from("deals")
+          .select("id, projekt_faellig, projekt_phase, leads(firma)")
+          .neq("status", "storniert")
+          .neq("projekt_phase", "online")
+          .lte("projekt_faellig", tagVerschieben(heuteWien(), 2))
+          .order("projekt_faellig")
+      : Promise.resolve({ data: [] }),
   ]);
+  const faelligeProjekte = (projekte.data ?? []) as unknown as {
+    id: string;
+    projekt_faellig: string;
+    projekt_phase: Phase;
+    leads: { firma: string } | null;
+  }[];
 
   const deals = (verkaeufe.data ?? []) as unknown as {
     id: string;
@@ -227,6 +244,35 @@ export default async function Heute() {
             zeit={(l) => (l.naechster_rueckruf ? datum(l.naechster_rueckruf) : "")}
           />
         </Block>
+
+        {admin ? (
+          <Block titel="Projekte fällig" anzahl={faelligeProjekte.length} rot>
+            {faelligeProjekte.length === 0 ? (
+              <p className="px-4 py-6 text-sm text-muted sm:px-5">Keine Projekte in den nächsten zwei Tagen fällig.</p>
+            ) : (
+              <ul className="divide-y divide-line">
+                {faelligeProjekte.map((p) => (
+                  <li key={p.id}>
+                    <Link
+                      href="/crm/projekte"
+                      className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 hover:bg-bg sm:px-5"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate font-semibold text-ink">{p.leads?.firma ?? "–"}</span>
+                        <span className="block text-sm text-muted">{PHASE_INFO[p.projekt_phase].label}</span>
+                      </span>
+                      <span
+                        className={`shrink-0 text-sm font-semibold ${p.projekt_faellig < heuteWien() ? "text-danger" : "text-ink"}`}
+                      >
+                        {datum(`${p.projekt_faellig}T12:00:00Z`)}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Block>
+        ) : null}
 
         <Block titel="Verkäufe dieser Woche" anzahl={deals.length}>
           {deals.length === 0 ? (

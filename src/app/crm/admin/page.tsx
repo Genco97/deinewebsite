@@ -9,6 +9,7 @@ import { DEAL_STATUS_LABEL } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
 import { datum, datumZeit, euro } from "@/lib/zeit";
 import { gewinnProMonat } from "@/lib/gewinn";
+import { PLATZHALTER, type Vorlage } from "@/lib/vorlagen";
 import {
   aktivSetzen,
   anfrageUebernehmen,
@@ -18,6 +19,8 @@ import {
   nameSetzen,
   provisionAusbezahlt,
   rolleSetzen,
+  vorlageLoeschen,
+  vorlageSpeichern,
 } from "./actions";
 
 export const metadata: Metadata = { title: "Admin" };
@@ -28,6 +31,7 @@ const TABS = [
   { id: "provisionen", label: "Provisionen" },
   { id: "gewinn", label: "Gewinn" },
   { id: "team", label: "Team" },
+  { id: "vorlagen", label: "Vorlagen" },
   { id: "export", label: "Export" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
@@ -62,7 +66,7 @@ export default async function Admin({ searchParams }: PageProps<"/crm/admin">) {
 
   return (
     <>
-      <Kopf titel="Admin" text="Anfragen, Deals, Provisionen und Export." />
+      <Kopf titel="Admin" text="Anfragen, Deals, Provisionen, Team und Vorlagen." />
 
       <nav aria-label="Admin-Bereiche" className="mb-6">
         <ul className="flex flex-wrap gap-x-1 border-b border-line">
@@ -93,6 +97,7 @@ export default async function Admin({ searchParams }: PageProps<"/crm/admin">) {
       {tab === "provisionen" ? <Provisionen name={name} /> : null}
       {tab === "gewinn" ? <Gewinn /> : null}
       {tab === "team" ? <Team personen={personen} ichId={admin.id} name={name} /> : null}
+      {tab === "vorlagen" ? <Vorlagen /> : null}
       {tab === "export" ? <Export /> : null}
     </>
   );
@@ -689,6 +694,82 @@ function Export() {
           </a>
         ))}
       </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+async function Vorlagen() {
+  const supabase = await createClient();
+  const { data } = await supabase.from("vorlagen").select("id, titel, betreff, text, reihenfolge").order("reihenfolge");
+  const vorlagen = (data ?? []) as Vorlage[];
+
+  const formular = (v?: Vorlage) => (
+    <form action={vorlageSpeichern} className="space-y-3">
+      {v ? <input type="hidden" name="id" value={v.id} /> : null}
+      <div className="grid gap-3 sm:grid-cols-[1fr_8rem]">
+        <label className="block text-sm font-semibold text-ink">
+          Titel (Knopf beim Lead)
+          <input name="titel" defaultValue={v?.titel} required maxLength={100} className={`${inputClass} mt-1`} />
+        </label>
+        <label className="block text-sm font-semibold text-ink">
+          Reihenfolge
+          <input name="reihenfolge" type="number" defaultValue={v?.reihenfolge ?? 50} className={`${inputClass} mt-1`} />
+        </label>
+      </div>
+      <label className="block text-sm font-semibold text-ink">
+        Betreff
+        <input name="betreff" defaultValue={v?.betreff} required maxLength={200} className={`${inputClass} mt-1`} />
+      </label>
+      <label className="block text-sm font-semibold text-ink">
+        Text
+        <textarea name="text" defaultValue={v?.text} required rows={10} maxLength={4000} className={`${inputClass} mt-1 font-mono text-sm`} />
+      </label>
+      <button className={buttonClass(v ? "secondary" : "primary")}>{v ? "Speichern" : "Vorlage anlegen"}</button>
+    </form>
+  );
+
+  return (
+    <section className="space-y-4">
+      <p className="text-muted">
+        Diese Vorlagen erscheinen bei jedem Lead unter „E-Mail schreiben“ und öffnen das E-Mail-Programm mit fertigem
+        Text. Platzhalter werden automatisch ersetzt:
+      </p>
+      <ul className="flex flex-wrap gap-2 text-sm">
+        {PLATZHALTER.map(([p, erklaerung]) => (
+          <li key={p} className="rounded-lg border border-line bg-surface px-2.5 py-1">
+            <code className="font-semibold text-ink">{p}</code> <span className="text-muted">– {erklaerung}</span>
+          </li>
+        ))}
+      </ul>
+
+      {vorlagen.map((v) => (
+        <Karte key={v.id} className="p-4 sm:p-5">
+          <details>
+            <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-2">
+              <span>
+                <span className="font-semibold text-ink">{v.titel}</span>
+                <span className="block text-sm text-muted">{v.betreff}</span>
+              </span>
+              <span className="text-sm font-semibold text-brand">Bearbeiten</span>
+            </summary>
+            <div className="mt-4 space-y-3">
+              {formular(v)}
+              <form action={vorlageLoeschen}>
+                <input type="hidden" name="id" value={v.id} />
+                <BestaetigenButton frage={`Vorlage „${v.titel}“ löschen?`} variante="danger">
+                  Vorlage löschen
+                </BestaetigenButton>
+              </form>
+            </div>
+          </details>
+        </Karte>
+      ))}
+
+      <Karte className="p-4 sm:p-5">
+        <h2 className="mb-3 font-bold text-ink">Neue Vorlage</h2>
+        {formular()}
+      </Karte>
     </section>
   );
 }
