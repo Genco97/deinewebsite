@@ -6,7 +6,7 @@ export function Footer() {
     <footer className="mt-auto border-t border-line bg-surface">
       <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:grid-cols-3">
         <div className="space-y-2">
-          <p className="flex items-center gap-2 font-bold text-ink">
+          <p className="flex items-center gap-2 font-extrabold tracking-[-0.04em] text-ink">
             <LogoMark className="h-5 w-5" /> Ursprung
           </p>
           <p className="text-sm text-muted">Websites für Betriebe – persönlich aus Wien.</p>
