@@ -23,15 +23,15 @@ export function anzeigename(p: { name?: string | null; email?: string | null }) 
 /** Eingeloggtes Profil – einmal pro Request geladen. Leitet ohne Login auf /login um. */
 export const holeProfil = cache(async (): Promise<Profil> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  // Token-Signatur lokal prüfen statt den Auth-Server zu fragen; die Datenrechte sichert RLS.
+  const { data: auth } = await supabase.auth.getClaims();
+  const userId = auth?.claims?.sub;
+  if (!userId) redirect("/login");
 
   const { data } = await supabase
     .from("profiles")
     .select("id, name, email, rolle, upline_id, einladungscode, aktiv")
-    .eq("id", user.id)
+    .eq("id", userId)
     .single();
   if (!data) redirect("/auth/abmelden?grund=profil");
   if (!data.aktiv) redirect("/auth/abmelden?grund=inaktiv");
