@@ -5,6 +5,7 @@ import { Karte } from "@/components/ui";
 import { holeProfil } from "@/lib/crm";
 import { PAKET_NAMEN, type PaketId } from "@/lib/pakete";
 import { DEAL_STATUS_LABEL } from "@/lib/status";
+import { gewinnProMonat } from "@/lib/gewinn";
 import { createClient } from "@/lib/supabase/server";
 import { datum, euro } from "@/lib/zeit";
 
@@ -63,6 +64,11 @@ export default async function Partner() {
 
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const link = `${site.replace(/\/$/, "")}/registrieren?code=${profil.einladungscode}`;
+  const gruender = profil.rolle === "admin";
+  const gewinn = gruender ? await gewinnProMonat() : null;
+  const anzahlGruender = Math.max(gewinn?.gruender.length ?? 1, 1);
+  const topfGesamt = gewinn?.monate.reduce((s, m) => s + m.topf, 0) ?? 0;
+  const topfMonat = gewinn?.monate[0]?.topf ?? 0;
   const meineDeals = (deals ?? []) as unknown as {
     id: string;
     paket: PaketId;
@@ -75,6 +81,21 @@ export default async function Partner() {
   return (
     <>
       <Kopf titel="Partner & Provision" text="Deine Provisionen, dein Einladungslink und dein Team." />
+
+      {gruender ? (
+        <Karte className="mb-6 border-2 border-brand p-5">
+          <p className="text-sm font-semibold text-muted">Dein Gründer-Anteil</p>
+          <p className="mt-1 font-serif text-3xl font-semibold text-brand">{euro(topfGesamt / anzahlGruender)}</p>
+          <p className="mt-1 text-sm text-muted">
+            Insgesamt, bei {gewinn?.gruender.length ?? 0} Gründern
+            {gewinn?.monate[0] ? ` · ${gewinn.monate[0].label}: ${euro(topfMonat / anzahlGruender)}` : ""}.
+          </p>
+          <p className="mt-3 text-sm text-muted">
+            Als Gründer bekommst du keine persönlichen Provisionen. Alles, was nach den Partner-Provisionen übrig
+            bleibt, wird gleich unter den Gründern aufgeteilt. Details unter Admin → Gewinn.
+          </p>
+        </Karte>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Karte className="p-5">
@@ -109,7 +130,8 @@ export default async function Partner() {
         })}
       </div>
       <p className="mt-3 text-sm text-muted">
-        Provisionen entstehen automatisch, sobald ein Admin den Verkauf als voll bezahlt markiert.
+        Provisionen entstehen automatisch, sobald ein Gründer den Verkauf als voll bezahlt markiert. Ist die Person
+        über dir ein Gründer, bleibt ihr Anteil im Gründer-Topf.
       </p>
 
       <Karte className="mt-8 p-5">
@@ -130,7 +152,7 @@ export default async function Partner() {
               {[...direkt.map((d) => ({ ...d, ebene: 2 })), ...indirekt.map((d) => ({ ...d, ebene: 3 }))].map((t) => (
                 <li key={t.id} className="flex min-h-14 items-center justify-between gap-3 px-5 py-3">
                   <span className="min-w-0">
-                    <span className="block truncate font-semibold text-ink">{t.name || "Ohne Namen"}</span>
+                    <span className="block truncate font-semibold text-ink">{t.name.trim() || "Ohne Namen"}</span>
                     <span className="block text-sm text-muted">
                       {t.ebene === 2 ? "Direkt eingeladen" : `Eingeladen von ${nameVon(t.upline_id)}`} · seit{" "}
                       {datum(t.created_at)}

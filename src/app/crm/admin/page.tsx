@@ -8,7 +8,17 @@ import { PAKETE, PAKET_NAMEN, type PaketId } from "@/lib/pakete";
 import { DEAL_STATUS_LABEL } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
 import { datum, datumZeit, euro } from "@/lib/zeit";
-import { anfrageUebernehmen, dealAktualisieren, dealAnlegen, dealVollBezahlt, provisionAusbezahlt } from "./actions";
+import { gewinnProMonat } from "@/lib/gewinn";
+import {
+  aktivSetzen,
+  anfrageUebernehmen,
+  dealAktualisieren,
+  dealAnlegen,
+  dealVollBezahlt,
+  nameSetzen,
+  provisionAusbezahlt,
+  rolleSetzen,
+} from "./actions";
 
 export const metadata: Metadata = { title: "Admin" };
 
@@ -16,11 +26,21 @@ const TABS = [
   { id: "anfragen", label: "Anfragen" },
   { id: "deals", label: "Deals" },
   { id: "provisionen", label: "Provisionen" },
+  { id: "gewinn", label: "Gewinn" },
+  { id: "team", label: "Team" },
   { id: "export", label: "Export" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
 
-type Person = { id: string; name: string; email: string; rolle: string };
+type Person = {
+  id: string;
+  name: string;
+  email: string;
+  rolle: string;
+  aktiv: boolean;
+  upline_id: string | null;
+  created_at: string;
+};
 
 const ART_LABEL: Record<string, string> = { demo: "Gratis-Demo", rueckruf: "Rückruf", beratung: "Beratung" };
 
@@ -31,12 +51,14 @@ export default async function Admin({ searchParams }: PageProps<"/crm/admin">) {
   const fehler = typeof sp.fehler === "string" ? sp.fehler : "";
 
   const supabase = await createClient();
-  const { data: personenRoh } = await supabase.from("profiles").select("id, name, email, rolle").order("name");
+  const { data: personenRoh } = await supabase.from("profiles").select("id, name, email, rolle, aktiv, upline_id, created_at")
+    .order("name");
   const personen = (personenRoh ?? []) as Person[];
   const name = (id: string | null) => {
     const p = personen.find((x) => x.id === id);
-    return p ? p.name || p.email : "–";
+    return p ? p.name.trim() || p.email : "–";
   };
+  const aktivePersonen = personen.filter((p) => p.aktiv);
 
   return (
     <>
@@ -66,9 +88,11 @@ export default async function Admin({ searchParams }: PageProps<"/crm/admin">) {
         </div>
       ) : null}
 
-      {tab === "anfragen" ? <Anfragen personen={personen} adminId={admin.id} /> : null}
-      {tab === "deals" ? <Deals personen={personen} name={name} /> : null}
+      {tab === "anfragen" ? <Anfragen personen={aktivePersonen} adminId={admin.id} /> : null}
+      {tab === "deals" ? <Deals personen={aktivePersonen} name={name} /> : null}
       {tab === "provisionen" ? <Provisionen name={name} /> : null}
+      {tab === "gewinn" ? <Gewinn /> : null}
+      {tab === "team" ? <Team personen={personen} ichId={admin.id} name={name} /> : null}
       {tab === "export" ? <Export /> : null}
     </>
   );
@@ -130,8 +154,8 @@ async function Anfragen({ personen, adminId }: { personen: Person[]; adminId: st
                       <Select id={`besitzer-${a.id}`} name="besitzer" defaultValue={adminId} className="sm:max-w-xs">
                         {personen.map((p) => (
                           <option key={p.id} value={p.id}>
-                            {p.name || p.email}
-                            {p.rolle === "admin" ? " (Admin)" : ""}
+                            {p.name.trim() || p.email}
+                            {p.rolle === "admin" ? " (Gründer)" : ""}
                           </option>
                         ))}
                       </Select>
@@ -205,7 +229,8 @@ async function Deals({ personen, name }: { personen: Person[]; name: (id: string
               <option value="">Ich selbst</option>
               {personen.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name || p.email}
+                  {p.name.trim() || p.email}
+                  {p.rolle === "admin" ? " (Gründer)" : ""}
                 </option>
               ))}
             </Select>
@@ -430,6 +455,170 @@ async function Provisionen({ name }: { name: (id: string | null) => string }) {
                   </form>
                 )}
               </li>
+            ))}
+          </ul>
+        )}
+      </Karte>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+async function Gewinn() {
+  const { monate, gruender } = await gewinnProMonat();
+  const anzahl = Math.max(gruender.length, 1);
+  const gesamt = monate.reduce(
+    (s, m) => ({ umsatz: s.umsatz + m.umsatz, provisionen: s.provisionen + m.provisionen, topf: s.topf + m.topf }),
+    { umsatz: 0, provisionen: 0, topf: 0 },
+  );
+
+  return (
+    <section className="space-y-6">
+      <p className="text-muted">
+        Gründer-Topf = Umsatz der voll bezahlten Deals minus Partner-Provisionen. Er wird gleich auf alle aktiven
+        Gründer aufgeteilt ({gruender.length}: {gruender.map((g) => g.name.trim() || g.email).join(", ")}).
+      </p>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Karte className="p-5">
+          <p className="text-sm font-semibold text-muted">Umsatz gesamt</p>
+          <p className="mt-1 font-serif text-2xl font-semibold text-ink">{euro(gesamt.umsatz)}</p>
+        </Karte>
+        <Karte className="p-5">
+          <p className="text-sm font-semibold text-muted">Gründer-Topf gesamt</p>
+          <p className="mt-1 font-serif text-2xl font-semibold text-ink">{euro(gesamt.topf)}</p>
+          <p className="text-sm text-muted">nach {euro(gesamt.provisionen)} Provisionen</p>
+        </Karte>
+        <Karte className="border-2 border-brand p-5">
+          <p className="text-sm font-semibold text-muted">Anteil je Gründer</p>
+          <p className="mt-1 font-serif text-2xl font-semibold text-brand">{euro(gesamt.topf / anzahl)}</p>
+          <p className="text-sm text-muted">bei {gruender.length} Gründern</p>
+        </Karte>
+      </div>
+
+      <Karte className="overflow-hidden">
+        <h2 className="border-b border-line px-4 py-3 font-bold text-ink sm:px-5">Nach Monat</h2>
+        {monate.length === 0 ? (
+          <p className="px-5 py-6 text-sm text-muted">Noch keine voll bezahlten Deals.</p>
+        ) : (
+          <ul className="divide-y divide-line">
+            {monate.map((m) => (
+              <li key={m.schluessel} className="grid gap-1 px-4 py-3 sm:grid-cols-[1.2fr_1fr_1fr_1fr_1fr] sm:items-center sm:px-5">
+                <span className="font-semibold text-ink">{m.label}</span>
+                <span className="text-sm text-muted">
+                  {m.deals} {m.deals === 1 ? "Deal" : "Deals"} · {euro(m.umsatz)}
+                </span>
+                <span className="text-sm text-muted">− {euro(m.provisionen)} Provision</span>
+                <span className="text-sm text-ink">Topf {euro(m.topf)}</span>
+                <span className="font-semibold text-brand sm:text-right">{euro(m.topf / anzahl)} je Gründer</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Karte>
+      <p className="text-sm text-muted">
+        Hinweis: Der Anteil wird mit der aktuellen Zahl aktiver Gründer berechnet. Steuern und laufende Kosten sind
+        nicht abgezogen.
+      </p>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+function Team({ personen, ichId, name }: { personen: Person[]; ichId: string; name: (id: string | null) => string }) {
+  const gruender = personen.filter((p) => p.rolle === "admin");
+  const partner = personen.filter((p) => p.rolle !== "admin");
+
+  const Zeile = ({ p }: { p: Person }) => (
+    <li className={`px-4 py-4 sm:px-5 ${p.aktiv ? "" : "opacity-60"}`}>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-semibold text-ink">
+            {p.name.trim() || <span className="text-muted">Ohne Namen</span>}
+            {p.id === ichId ? <span className="ml-2 text-xs font-normal text-muted">(du)</span> : null}
+          </p>
+          <p className="break-all text-sm text-muted">{p.email}</p>
+          <p className="text-sm text-muted">
+            {p.rolle === "admin" ? "Gründer" : `Partner · eingeladen von ${name(p.upline_id)}`} · seit {datum(p.created_at)}
+            {p.aktiv ? "" : " · deaktiviert"}
+          </p>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+        <form action={nameSetzen} className="flex gap-2">
+          <input type="hidden" name="id" value={p.id} />
+          <label className="sr-only" htmlFor={`name-${p.id}`}>
+            Name
+          </label>
+          <input id={`name-${p.id}`} name="name" defaultValue={p.name} placeholder="Name" className={`${inputClass} sm:w-48`} />
+          <button className={buttonClass("secondary", "shrink-0")}>Speichern</button>
+        </form>
+        {p.id !== ichId ? (
+          <>
+            <form action={rolleSetzen}>
+              <input type="hidden" name="id" value={p.id} />
+              <input type="hidden" name="rolle" value={p.rolle === "admin" ? "partner" : "admin"} />
+              <BestaetigenButton
+                frage={
+                  p.rolle === "admin"
+                    ? `${p.name || p.email} zum Partner machen? Er/sie verliert die Admin-Rechte und den Gründer-Anteil.`
+                    : `${p.name || p.email} zum Gründer machen? Volle Admin-Rechte, Anteil am Gründer-Topf, keine persönlichen Provisionen mehr.`
+                }
+                variante="secondary"
+                className="w-full sm:w-auto"
+              >
+                {p.rolle === "admin" ? "Zum Partner machen" : "Zum Gründer machen"}
+              </BestaetigenButton>
+            </form>
+            <form action={aktivSetzen}>
+              <input type="hidden" name="id" value={p.id} />
+              <input type="hidden" name="aktiv" value={p.aktiv ? "false" : "true"} />
+              <BestaetigenButton
+                frage={p.aktiv ? `${p.name || p.email} deaktivieren? Kein Login mehr möglich.` : `${p.name || p.email} wieder aktivieren?`}
+                variante={p.aktiv ? "danger" : "secondary"}
+                className="w-full sm:w-auto"
+              >
+                {p.aktiv ? "Deaktivieren" : "Aktivieren"}
+              </BestaetigenButton>
+            </form>
+          </>
+        ) : null}
+      </div>
+    </li>
+  );
+
+  return (
+    <section className="space-y-6">
+      <Karte className="p-5">
+        <h2 className="font-bold text-ink">So kommen neue Leute ins Team</h2>
+        <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-muted">
+          <li>
+            Unter <Link href="/crm/profil" className="text-brand underline">Mein Profil</Link> deinen Einladungslink kopieren
+            und schicken (WhatsApp, E-Mail …).
+          </li>
+          <li>Die Person registriert sich darüber mit Name, E-Mail und Passwort.</li>
+          <li>Sie ist danach automatisch Partner in deinem Team und kann sich unter /login anmelden.</li>
+          <li>Mitgründer: hier unten bei der Person auf „Zum Gründer machen“ tippen.</li>
+        </ol>
+      </Karte>
+
+      <Karte className="overflow-hidden">
+        <h2 className="border-b border-line px-4 py-3 font-bold text-ink sm:px-5">Gründer ({gruender.length})</h2>
+        <ul className="divide-y divide-line">
+          {gruender.map((p) => (
+            <Zeile key={p.id} p={p} />
+          ))}
+        </ul>
+      </Karte>
+
+      <Karte className="overflow-hidden">
+        <h2 className="border-b border-line px-4 py-3 font-bold text-ink sm:px-5">Partner ({partner.length})</h2>
+        {partner.length === 0 ? (
+          <p className="px-5 py-6 text-sm text-muted">Noch keine Partner. Teile deinen Einladungslink.</p>
+        ) : (
+          <ul className="divide-y divide-line">
+            {partner.map((p) => (
+              <Zeile key={p.id} p={p} />
             ))}
           </ul>
         )}
