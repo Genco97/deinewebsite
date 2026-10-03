@@ -1,22 +1,19 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { leadsImportieren, type ImportZeile } from "@/app/crm/leads/actions";
+import { leadsImportieren } from "@/app/crm/leads/actions";
 import { Hinweis, buttonClass } from "@/components/ui";
 import { parseCsv } from "@/lib/csv";
+import { csvZuLeads, type ImportZeile } from "@/lib/csv-import";
 
-const SPALTEN = ["firma", "branche", "telefon", "adresse", "bezirk"] as const;
-
-function zuZeilen(roh: string[][]): ImportZeile[] {
-  if (roh.length === 0) return [];
-  const kopf = roh[0].map((k) => k.trim().toLowerCase());
-  const hatKopf = kopf.includes("firma");
-  const index = SPALTEN.map((s, i) => (hatKopf ? kopf.indexOf(s) : i));
-  return (hatKopf ? roh.slice(1) : roh).map((z) => {
-    const w = (i: number) => (i >= 0 ? (z[i] ?? "").trim() : "");
-    return { firma: w(index[0]), branche: w(index[1]), telefon: w(index[2]), adresse: w(index[3]), bezirk: w(index[4]) };
-  });
-}
+const VORSCHAU = [
+  ["firma", "Firma"],
+  ["ansprechpartner", "Inhaber/in"],
+  ["telefon", "Telefon"],
+  ["email", "E-Mail"],
+  ["adresse", "Adresse"],
+  ["bezirk", "Bezirk"],
+] as const;
 
 export function CsvImport() {
   const [zeilen, setZeilen] = useState<ImportZeile[]>([]);
@@ -36,7 +33,7 @@ export function CsvImport() {
       return;
     }
     setDateiname(datei.name);
-    setZeilen(zuZeilen(parseCsv(await datei.text())));
+    setZeilen(csvZuLeads(parseCsv(await datei.text())));
   }
 
   function importieren() {
@@ -55,8 +52,11 @@ export function CsvImport() {
       </summary>
       <div className="space-y-3 border-t border-line p-4">
         <p className="text-sm text-muted">
-          Spalten: <code className="rounded bg-bg px-1">firma; branche; telefon; adresse; bezirk</code>. Kopfzeile optional,
-          Trenner Semikolon oder Komma.
+          Erkannte Spalten (Kopfzeile):{" "}
+          <code className="rounded bg-bg px-1">firma; inhaber; branche; telefon; e-mail; adresse; plz; ort; bezirk</code>.
+          Alle weiteren Spalten – z. B. Öffnungszeiten oder Quelle – werden als Notiz beim Lead gespeichert. Ohne
+          Kopfzeile: <code className="rounded bg-bg px-1">firma; branche; telefon; adresse; bezirk</code>. Trenner
+          Semikolon oder Komma.
         </p>
         <label className={buttonClass("secondary", "w-full cursor-pointer sm:w-auto")}>
           Datei wählen
@@ -72,24 +72,28 @@ export function CsvImport() {
               {ohneFirma ? <span className="text-danger"> · {ohneFirma} ohne Firma werden übersprungen</span> : null}
             </p>
             <div className="max-h-64 overflow-auto rounded-lg border border-line">
-              <table className="w-full min-w-[520px] text-left text-xs">
+              <table className="w-full min-w-[640px] text-left text-xs">
                 <thead className="sticky top-0 bg-bg text-muted">
                   <tr>
-                    {SPALTEN.map((s) => (
-                      <th key={s} className="px-2 py-2 font-semibold capitalize">
-                        {s}
+                    {VORSCHAU.map(([s, titel]) => (
+                      <th key={s} className="whitespace-nowrap px-2 py-2 font-semibold">
+                        {titel}
                       </th>
                     ))}
+                    <th className="px-2 py-2 font-semibold">Notiz</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
                   {zeilen.slice(0, 20).map((z, i) => (
                     <tr key={i} className={z.firma ? "" : "bg-danger-light"}>
-                      {SPALTEN.map((s) => (
-                        <td key={s} className="px-2 py-1.5">
+                      {VORSCHAU.map(([s]) => (
+                        <td key={s} className="whitespace-nowrap px-2 py-1.5">
                           {z[s] || "–"}
                         </td>
                       ))}
+                      <td className="px-2 py-1.5" title={z.notiz}>
+                        {z.notiz ? `${z.notiz.split("\n").length} Angaben` : "–"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

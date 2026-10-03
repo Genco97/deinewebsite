@@ -7,6 +7,7 @@ import { istEinwilligungArt } from "@/lib/einwilligung";
 import { PAKETE, istPaket } from "@/lib/pakete";
 import { istLeadStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
+import type { ImportZeile } from "@/lib/csv-import";
 import { istEmail, text } from "@/lib/validierung";
 import { wienZuIso } from "@/lib/zeit";
 
@@ -52,8 +53,6 @@ export async function leadAnlegen(_v: AktionStatus, fd: FormData): Promise<Aktio
 // ---------------------------------------------------------------------------
 // CSV-Import
 // ---------------------------------------------------------------------------
-export type ImportZeile = { firma: string; branche: string; telefon: string; adresse: string; bezirk: string };
-
 export async function leadsImportieren(
   zeilen: ImportZeile[],
 ): Promise<{ ok: boolean; meldung: string; importiert?: number; doppelt?: number }> {
@@ -63,37 +62,54 @@ export async function leadsImportieren(
 
   const s = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "");
   const bereinigt = zeilen
-    .map((z) => ({
-      firma: s(z.firma),
-      branche: s(z.branche) || null,
-      telefon: s(z.telefon, 50) || null,
-      adresse: s(z.adresse) || null,
-      bezirk: s(z.bezirk, 100) || null,
-    }))
-    .filter((z) => z.firma);
+    .map((z) => {
+      const email = s(z.email);
+      return {
+        lead: {
+          firma: s(z.firma),
+          ansprechpartner: s(z.ansprechpartner) || null,
+          branche: s(z.branche) || null,
+          telefon: s(z.telefon, 50) || null,
+          email: email && istEmail(email) ? email : null,
+          adresse: s(z.adresse) || null,
+          bezirk: s(z.bezirk, 100) || null,
+        },
+        notiz: s(z.notiz, 3800),
+      };
+    })
+    .filter((z) => z.lead.firma);
 
   const supabase = await createClient();
 
   // Doppelte Telefonnummern (bei eigenen Leads bzw. als Admin bei allen) überspringen
-  const nummern = bereinigt.map((z) => z.telefon).filter((t): t is string => !!t);
+  const nummern = bereinigt.map((z) => z.lead.telefon).filter((t): t is string => !!t);
   const vorhanden = new Set<string>();
   for (let i = 0; i < nummern.length; i += 300) {
     const { data } = await supabase.from("leads").select("telefon").in("telefon", nummern.slice(i, i + 300));
     data?.forEach((d) => d.telefon && vorhanden.add(d.telefon));
   }
   const gesehen = new Set<string>();
-  const neu = bereinigt.filter((z) => {
-    if (!z.telefon) return true;
-    if (vorhanden.has(z.telefon) || gesehen.has(z.telefon)) return false;
-    gesehen.add(z.telefon);
+  const neu = bereinigt.filter(({ lead }) => {
+    if (!lead.telefon) return true;
+    if (vorhanden.has(lead.telefon) || gesehen.has(lead.telefon)) return false;
+    gesehen.add(lead.telefon);
     return true;
   });
 
   for (let i = 0; i < neu.length; i += 500) {
-    const { error } = await supabase
+    const block = neu.slice(i, i + 500);
+    const { data, error } = await supabase
       .from("leads")
-      .insert(neu.slice(i, i + 500).map((z) => ({ ...z, quelle: "csv", besitzer_id: profil.id })));
-    if (error) return { ok: false, meldung: `Import nach ${i} Zeilen abgebrochen. Bitte prüfe die Datei.` };
+      .insert(block.map((z) => ({ ...z.lead, quelle: "csv", besitzer_id: profil.id })))
+      .select("id");
+    if (error || !data) return { ok: false, meldung: `Import nach ${i} Zeilen abgebrochen. Bitte prüfe die Datei.` };
+
+    // Zusatzinfos aus der Datei als Notiz beim jeweiligen Lead (Reihenfolge wie eingefügt)
+    const notizen = data
+      .map((d, j) => ({ lead_id: d.id as string, notiz: block[j]?.notiz }))
+      .filter((n) => n.notiz)
+      .map((n) => ({ lead_id: n.lead_id, autor_id: profil.id, art: "notiz", text: `Aus dem CSV-Import:\n${n.notiz}` }));
+    if (notizen.length) await supabase.from("lead_verlauf").insert(notizen);
   }
 
   revalidatePath("/crm/leads");
