@@ -23,7 +23,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
   const supabase = await createClient();
   let abfrage = supabase
     .from("leads")
-    .select("id, firma, branche, telefon, bezirk, status, naechster_rueckruf, besitzer:profiles!leads_besitzer_id_fkey(name)", {
+    .select("id, firma, branche, telefon, bezirk, status, naechster_rueckruf, einwilligung_wie, besitzer:profiles!leads_besitzer_id_fkey(name)", {
       count: "exact",
     })
     .order("created_at", { ascending: false })
@@ -48,6 +48,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
     bezirk: string | null;
     status: LeadStatus;
     naechster_rueckruf: string | null;
+    einwilligung_wie: string | null;
     besitzer: { name: string } | null;
   }[];
   const admin = profil.rolle === "admin";
@@ -121,6 +122,9 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
                     {l.naechster_rueckruf ? (
                       <span className="mt-0.5 block text-sm text-ink">Rückruf: {datumZeit(l.naechster_rueckruf)}</span>
                     ) : null}
+                    {l.status !== "nicht_anrufen" && !l.einwilligung_wie ? (
+                      <span className="mt-0.5 block text-sm text-amber-800">Kein Anruf – nur Besuch oder Brief</span>
+                    ) : null}
                   </Link>
                 </li>
               ))}
@@ -149,7 +153,16 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
                     </td>
                     <td className="px-4 py-3 text-muted">{l.branche ?? "–"}</td>
                     <td className="px-4 py-3 text-muted">
-                      {l.status === "nicht_anrufen" ? <span className="text-danger">ausgeblendet</span> : (l.telefon ?? "–")}
+                      {l.status === "nicht_anrufen" ? (
+                        <span className="text-danger">ausgeblendet</span>
+                      ) : (
+                        <>
+                          {l.telefon ?? "–"}
+                          {l.einwilligung_wie ? null : (
+                            <span className="block text-xs text-amber-800">kein Anruf – Besuch/Brief</span>
+                          )}
+                        </>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-muted">{l.bezirk ?? "–"}</td>
                     <td className="px-4 py-3">

@@ -111,7 +111,9 @@ async function Anfragen({
   const supabase = await createClient();
   const { data } = await supabase
     .from("anfragen")
-    .select("id, art, paket, firma, name, email, telefon, branche, wuensche, lead_id, created_at, leads(besitzer_id, quelle)")
+    .select(
+      "id, art, paket, firma, name, email, telefon, branche, wuensche, einwilligung_kontakt, lead_id, created_at, leads(besitzer_id, quelle)",
+    )
     .order("created_at", { ascending: false })
     .limit(200);
   const anfragen = (data ?? []) as unknown as {
@@ -124,6 +126,7 @@ async function Anfragen({
     telefon: string | null;
     branche: string | null;
     wuensche: string | null;
+    einwilligung_kontakt: boolean;
     lead_id: string | null;
     created_at: string;
     leads: { besitzer_id: string | null; quelle: string } | null;
@@ -154,6 +157,15 @@ async function Anfragen({
                         {ART_LABEL[a.art] ?? a.art}
                         {a.paket ? ` · ${PAKET_NAMEN[a.paket as PaketId]}` : ""}
                       </span>
+                      {a.einwilligung_kontakt ? (
+                        <span className="rounded-full bg-ok-light px-2.5 py-0.5 text-xs font-semibold text-ok">
+                          Anruf erlaubt
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
+                          Nur per E-Mail antworten
+                        </span>
+                      )}
                       <span className="text-xs text-muted">{datumZeit(a.created_at)}</span>
                     </p>
                     <p className="mt-2 font-semibold text-ink">{a.firma || a.name}</p>

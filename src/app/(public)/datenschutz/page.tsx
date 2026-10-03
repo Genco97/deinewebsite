@@ -67,8 +67,13 @@ export default function Datenschutz() {
         </li>
       </ul>
       <p>
-        Ein Spam-Schutz im Formular arbeitet ohne Cookies und ohne Dienste Dritter.
+        <strong className="text-ink">Anruf und E-Mail:</strong> Wenn Sie im Formular ausdrücklich zustimmen bzw. einen
+        Rückruf anfordern, dürfen wir Sie telefonisch und per E-Mail kontaktieren (Einwilligung, Art. 6 Abs. 1 lit. a
+        DSGVO und § 174 TKG 2021). Wir speichern, wann und wie Sie eingewilligt haben. Sie können die Einwilligung
+        jederzeit widerrufen – ein kurzes „Bitte nicht mehr anrufen“ per Telefon oder E-Mail genügt. Ohne Einwilligung
+        beantworten wir Ihre Anfrage per E-Mail.
       </p>
+      <p>Ein Spam-Schutz im Formular arbeitet ohne Cookies und ohne Dienste Dritter.</p>
 
       <h2>4. Kunden und Aufträge</h2>
       <p>
@@ -80,10 +85,13 @@ export default function Datenschutz() {
 
       <h2>5. Geschäftskontakte</h2>
       <p>
-        Wir verarbeiten Kontaktdaten von Betrieben (z. B. Firmenname, Adresse, Branche, geschäftliche Telefonnummer),
-        die öffentlich zugänglich sind, etwa aus Branchenverzeichnissen oder von Firmenwebsites, um sie über unser
-        Angebot zu informieren. Rechtsgrundlage ist unser berechtigtes Interesse (Art. 6 Abs. 1 lit. f DSGVO). Sie
-        können dieser Verarbeitung jederzeit widersprechen – wir löschen Ihre Daten dann bzw. vermerken, dass wir Sie
+        Wir verarbeiten Kontaktdaten von Betrieben (z. B. Firmenname, Adresse, Branche), die öffentlich zugänglich sind,
+        etwa aus Branchenverzeichnissen oder von Firmenwebsites, um sie persönlich zu besuchen oder per Brief über
+        unser Angebot zu informieren. Rechtsgrundlage ist unser berechtigtes Interesse (Art. 6 Abs. 1 lit. f DSGVO).
+      </p>
+      <p>
+        Werbeanrufe und Werbe-E-Mails gibt es von uns nur mit Ihrer vorherigen Einwilligung (§ 174 TKG 2021). Sie
+        können der Verarbeitung Ihrer Daten jederzeit widersprechen – wir löschen sie dann bzw. vermerken, dass wir Sie
         nicht mehr kontaktieren.
       </p>
 

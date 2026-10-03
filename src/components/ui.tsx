@@ -67,13 +67,14 @@ export function Hinweis({
   art = "info",
   children,
 }: {
-  art?: "info" | "fehler" | "ok";
+  art?: "info" | "fehler" | "ok" | "warnung";
   children: ReactNode;
 }) {
   const s = {
     info: "border-brand/20 bg-brand-light text-ink",
     fehler: "border-danger/30 bg-danger-light text-danger",
     ok: "border-ok/30 bg-ok-light text-ok",
+    warnung: "border-amber-300 bg-amber-50 text-amber-900",
   }[art];
   return (
     <div role={art === "fehler" ? "alert" : "status"} className={`rounded-lg border px-4 py-3 text-sm ${s}`}>

@@ -4,13 +4,14 @@ import { notFound } from "next/navigation";
 import { KontaktFormular } from "@/components/crm/KontaktFormular";
 import { StatusBadge } from "@/components/crm/StatusBadge";
 import { VerkaufFormular } from "@/components/crm/VerkaufFormular";
-import { Hinweis, Karte, Textarea, buttonClass, inputClass } from "@/components/ui";
+import { Hinweis, Karte, Select, Textarea, buttonClass, inputClass } from "@/components/ui";
 import { holeProfil } from "@/lib/crm";
+import { EINWILLIGUNG_ARTEN } from "@/lib/einwilligung";
 import { PAKET_NAMEN, type PaketId } from "@/lib/pakete";
 import { DEAL_STATUS_LABEL, LEAD_STATUS, STATUS_LABEL, type LeadStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
 import { datumZeit, euro, isoZuWienLokal } from "@/lib/zeit";
-import { notizHinzufuegen, rueckrufSetzen, statusSetzen } from "../actions";
+import { einwilligungSetzen, notizHinzufuegen, rueckrufSetzen, statusSetzen } from "../actions";
 
 export const metadata: Metadata = { title: "Lead" };
 
@@ -44,7 +45,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
 
   const { data: lead } = await supabase
     .from("leads")
-    .select("id, firma, ansprechpartner, branche, telefon, email, adresse, bezirk, status, naechster_rueckruf, quelle, created_at")
+    .select("id, firma, ansprechpartner, branche, telefon, email, adresse, bezirk, status, naechster_rueckruf, quelle, einwilligung_wie, einwilligung_am, created_at")
     .eq("id", id)
     .maybeSingle();
   // RLS: fremde Leads liefern keine Zeile → 404
@@ -65,6 +66,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
   // Telefonnummer bei „nicht anrufen“ gar nicht erst an den Browser schicken
   const kontakt = { ...lead, telefon: gesperrt ? null : lead.telefon };
   const statusButtons = LEAD_STATUS.filter((s) => s !== "verkauft");
+  const anrufErlaubt = !gesperrt && !!lead.einwilligung_wie;
 
   return (
     <>
@@ -80,7 +82,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
             {[lead.branche, lead.bezirk].filter(Boolean).join(" · ")}
           </p>
         </div>
-        {!gesperrt && lead.telefon ? (
+        {anrufErlaubt && lead.telefon ? (
           <a href={`tel:${lead.telefon.replace(/[^+0-9]/g, "")}`} className={buttonClass("primary")}>
             Anrufen: {lead.telefon}
           </a>
@@ -99,6 +101,23 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
             <strong>Nicht anrufen.</strong> Die Telefonnummer ist ausgeblendet.{" "}
             {admin ? "Als Admin kannst du die Sperre aufheben." : "Nur ein Admin kann das zurücksetzen."}
           </Hinweis>
+        </div>
+      ) : null}
+
+      {!gesperrt ? (
+        <div className="mb-4">
+          {anrufErlaubt ? (
+            <Hinweis art="ok">
+              <strong>Anruf und E-Mail erlaubt.</strong> Einwilligung: {lead.einwilligung_wie}
+              {lead.einwilligung_am ? `, ${datumZeit(lead.einwilligung_am)}` : ""}.
+            </Hinweis>
+          ) : (
+            <Hinweis art="warnung">
+              <strong>Keine Einwilligung – nicht anrufen und keine Werbe-E-Mail schicken.</strong> Das ist in Österreich
+              auch bei Firmen verboten (§ 174 TKG). Erlaubt: persönlich vorbeischauen oder einen Brief schicken. Sagt der
+              Betrieb, dass du dich melden darfst, trag es unten bei „Einwilligung“ ein.
+            </Hinweis>
+          )}
         </div>
       ) : null}
 
@@ -138,7 +157,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
           </Abschnitt>
 
           {!gesperrt ? (
-            <Abschnitt titel="Nächster Rückruf">
+            <Abschnitt titel={anrufErlaubt ? "Nächster Rückruf" : "Nächster Termin (Besuch)"}>
               <form action={rueckrufSetzen} className="space-y-3">
                 <input type="hidden" name="id" value={lead.id} />
                 <label htmlFor="rueckruf" className="sr-only">
@@ -207,6 +226,42 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
         </div>
 
         <div className="space-y-6">
+          {!gesperrt ? (
+            <Abschnitt titel="Einwilligung zu Anruf und E-Mail">
+              {anrufErlaubt ? (
+                <form action={einwilligungSetzen} className="space-y-2">
+                  <input type="hidden" name="id" value={lead.id} />
+                  <input type="hidden" name="wie" value="" />
+                  <p className="text-sm text-muted">
+                    Widerruft der Betrieb die Einwilligung, entferne sie hier. Danach nicht mehr anrufen oder mailen.
+                  </p>
+                  <button className={buttonClass("ghost")}>Einwilligung entfernen</button>
+                </form>
+              ) : (
+                <form action={einwilligungSetzen} className="space-y-3">
+                  <input type="hidden" name="id" value={lead.id} />
+                  <p className="text-sm text-muted">
+                    Nur eintragen, wenn der Betrieb wirklich zugestimmt hat. Datum und dein Name werden gespeichert.
+                  </p>
+                  <label htmlFor="wie" className="block text-sm font-semibold text-ink">
+                    Wie hat der Betrieb zugestimmt?
+                  </label>
+                  <Select id="wie" name="wie" required defaultValue="">
+                    <option value="" disabled>
+                      Bitte wählen
+                    </option>
+                    {EINWILLIGUNG_ARTEN.map((a) => (
+                      <option key={a} value={a}>
+                        {a}
+                      </option>
+                    ))}
+                  </Select>
+                  <button className={buttonClass("secondary")}>Einwilligung eintragen</button>
+                </form>
+              )}
+            </Abschnitt>
+          ) : null}
+
           <Abschnitt titel="Kontakt">
             <KontaktFormular lead={kontakt} telefonSperre={gesperrt} />
           </Abschnitt>
