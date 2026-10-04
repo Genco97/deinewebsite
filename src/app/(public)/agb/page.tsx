@@ -83,11 +83,25 @@ export default function Agb() {
         widerspricht.
       </p>
 
-      <h2>8. Hosting und Wartung</h2>
+      <h2>8. Übergabe nach der Fertigstellung</h2>
       <p>
-        Auf Wunsch übernehmen wir Hosting und Wartung der Website um{" "}
-        <Angabe wert={FIRMA.hostingProMonat} platzhalter="Betrag" /> pro Monat bei den Paketen Basic und Business und um{" "}
-        <Angabe wert={FIRMA.hostingProMonatPro} platzhalter="Betrag" /> pro Monat beim Paket Pro. Enthalten sind:
+        Nach Freigabe und vollständiger Bezahlung übergeben wir die Website an den Kunden. Domain und Speicherplatz
+        (Webhosting) werden auf den Namen des Kunden bei einem Anbieter seiner Wahl eingerichtet; den Vertrag mit diesem
+        Anbieter schließt der Kunde selbst ab und zahlt dessen Kosten direkt. Der Kunde erhält alle Zugangsdaten und
+        Dateien der Website. Beim Paket Pro werden Zusatzdienste (z. B. Online-Buchung) ebenfalls über Anbieter
+        eingerichtet, mit denen der Kunde einen eigenen Vertrag hat.
+      </p>
+      <p>
+        Ab der Übergabe ist der Kunde für den Betrieb der Website verantwortlich, insbesondere für die Verlängerung der
+        Domain, die Verträge mit seinen Anbietern und die Aktualität der Inhalte. Änderungen nach der Übergabe führen
+        wir nur nach gesondertem Auftrag durch. Die gesetzliche Gewährleistung (Punkt 10) bleibt davon unberührt.
+      </p>
+
+      <h2>9. Sorglos-Paket (optional)</h2>
+      <p>
+        Statt der Übergabe kann der Kunde das Sorglos-Paket wählen. Dann übernehmen wir Hosting und Wartung der Website
+        um <Angabe wert={FIRMA.hostingProMonat} platzhalter="Betrag" /> pro Monat bei den Paketen Basic und Business
+        und um <Angabe wert={FIRMA.hostingProMonatPro} platzhalter="Betrag" /> pro Monat beim Paket Pro. Enthalten sind:
       </p>
       <ul className="list-disc space-y-1 pl-5">
         <li>Registrierung und Verlängerung einer Domain auf den Namen des Kunden,</li>
@@ -99,13 +113,12 @@ export default function Agb() {
       <p>
         Größere Änderungen erledigen wir nach vorheriger Absprache und gesondertem Angebot. Nicht enthalten sind
         E-Mail-Postfächer, Fotografie und kostenpflichtige Dienste Dritter (z. B. echte KI-Antworten im Chat). Kosten dafür
-        entstehen nur, wenn der Kunde diese Leistungen ausdrücklich beauftragt. Dieser Vertrag läuft auf unbestimmte Zeit und kann
-        von beiden Seiten mit einer
-        Frist von einem Monat zum Monatsende gekündigt werden. Bei Kündigung übergeben wir dem Kunden auf Wunsch alle
-        Dateien der Website; die Domain bleibt beim Kunden.
+        entstehen nur, wenn der Kunde diese Leistungen ausdrücklich beauftragt. Das Sorglos-Paket läuft auf unbestimmte
+        Zeit und kann von beiden Seiten mit einer Frist von einem Monat zum Monatsende gekündigt werden. Bei Kündigung
+        übergeben wir die Website wie in Punkt 8 beschrieben; die Domain bleibt beim Kunden.
       </p>
 
-      <h2>9. Gewährleistung und Haftung</h2>
+      <h2>10. Gewährleistung und Haftung</h2>
       <p>
         Es gelten die gesetzlichen Gewährleistungsbestimmungen. Wir haften – außer bei Personenschäden – nur für
         Vorsatz und grobe Fahrlässigkeit. Eine bestimmte Platzierung in Suchmaschinen (z. B. bei Google) können wir
@@ -113,14 +126,14 @@ export default function Agb() {
         soweit das Konsumentenschutzgesetz dies zulässt.
       </p>
 
-      <h2>10. Verbraucher</h2>
+      <h2>11. Verbraucher</h2>
       <p>
         Unser Angebot richtet sich in erster Linie an Unternehmer. Ist der Kunde Verbraucher und wird der Vertrag
         ausschließlich über Fernkommunikationsmittel (z. B. Telefon, E-Mail) geschlossen, steht ihm ein gesetzliches
         Rücktrittsrecht von 14 Tagen nach dem Fern- und Auswärtsgeschäfte-Gesetz (FAGG) zu.
       </p>
 
-      <h2>11. Schlussbestimmungen</h2>
+      <h2>12. Schlussbestimmungen</h2>
       <p>
         Es gilt österreichisches Recht unter Ausschluss des UN-Kaufrechts. Gerichtsstand für Unternehmer ist{" "}
         {FIRMA.ort}. Sollte eine Bestimmung unwirksam sein, bleiben die übrigen Bestimmungen wirksam.
