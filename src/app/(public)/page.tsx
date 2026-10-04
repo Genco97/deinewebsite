@@ -26,10 +26,10 @@ const FAQ: { frage: string; antwort: React.ReactNode }[] = [
     frage: "Gibt es versteckte Kosten?",
     antwort: (
       <>
-        Nein. Sie zahlen den vereinbarten Fixpreis und für Hosting und Wartung {hosting} pro Monat (beim Paket Pro{" "}
-        {hostingPro}). Darin sind Domain, Hosting, SSL-Verschlüsselung, Updates und kleine Änderungen enthalten. Der
-        Hosting-Vertrag ist monatlich kündbar. Extra kostet nur, was Sie ausdrücklich möchten – etwa ein eigenes
-        E-Mail-Postfach bei Ihrem Anbieter.
+        Nein. Sie zahlen einmal den vereinbarten Fixpreis. Danach haben Sie zwei Möglichkeiten: Sie übernehmen die
+        Website ganz und zahlen Domain und Speicherplatz direkt bei Ihrem eigenen Anbieter (meist wenige Euro im
+        Monat). Oder Sie wählen unser Sorglos-Paket um {hosting} pro Monat (beim Paket Pro {hostingPro}) – dann kümmern
+        wir uns um Domain, Hosting, Updates und kleine Änderungen, monatlich kündbar.
       </>
     ),
   },
@@ -44,6 +44,17 @@ const FAQ: { frage: string; antwort: React.ReactNode }[] = [
       "Ihnen. Texte, Fotos und Domain gehören Ihrem Betrieb. Nach der Bezahlung dürfen Sie die Website uneingeschränkt nutzen und ändern.",
   },
   {
+    frage: "Was passiert, wenn die Website fertig ist?",
+    antwort: (
+      <>
+        Sobald Sie die Website freigegeben und bezahlt haben, übergeben wir sie Ihnen: Domain und Speicherplatz laufen
+        auf Ihren Namen, Sie bekommen alle Zugänge und Dateien. Ab dann gehört die Website ganz Ihnen. Spätere
+        Änderungen machen wir gerne als neuen Auftrag. Wer sich um nichts kümmern möchte, wählt stattdessen das
+        Sorglos-Paket um {hosting} pro Monat.
+      </>
+    ),
+  },
+  {
     frage: "Was ist eine Änderungsrunde?",
     antwort:
       "Sie sehen sich die fertige Website an und schicken uns alle Änderungswünsche gesammelt auf einmal. Wir setzen sie um. Wie viele Runden enthalten sind, steht beim jeweiligen Paket.",
@@ -51,7 +62,7 @@ const FAQ: { frage: string; antwort: React.ReactNode }[] = [
   {
     frage: "Brauche ich schon eine eigene Domain?",
     antwort:
-      "Nein. Wenn Sie noch keine haben, kümmern wir uns darum – registriert wird sie auf Ihren Namen, die Kosten sind in der monatlichen Hosting-Pauschale enthalten. Eine bestehende Domain übernehmen wir gerne.",
+      "Nein. Wenn Sie noch keine haben, kümmern wir uns darum – registriert wird sie auf Ihren Namen. Bei der Übergabe zahlen Sie sie direkt bei Ihrem Anbieter, im Sorglos-Paket ist sie enthalten. Eine bestehende Domain übernehmen wir gerne.",
   },
   {
     frage: "Was muss ich selbst tun?",
@@ -177,8 +188,9 @@ export default function Startseite() {
           })}
         </div>
         <p className="mt-6 text-sm text-muted">
-          Dazu Hosting und Wartung: {hosting} pro Monat, bei Pro {hostingPro} – inklusive Domain, SSL, Updates und kleiner
-          Änderungen, monatlich kündbar. Keine Werbe- oder Google-Ads-Pakete.
+          Nach der Fertigstellung gehört die Website Ihnen: Wir übergeben sie samt Domain auf Ihren Namen – kein Abo
+          nötig. Optional: Sorglos-Paket um {hosting} pro Monat (Pro {hostingPro}) mit Hosting, Domain, Updates und
+          kleinen Änderungen, monatlich kündbar. Keine Werbe- oder Google-Ads-Pakete.
         </p>
       </Abschnitt>
 
