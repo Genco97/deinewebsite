@@ -3,13 +3,14 @@ import Link from "next/link";
 import { Kopf } from "@/components/crm/Kopf";
 import { CsvImport } from "@/components/crm/CsvImport";
 import { LeadAnlegen } from "@/components/crm/LeadAnlegen";
-import { StatusBadge } from "@/components/crm/StatusBadge";
+import { StatusSchnell } from "@/components/crm/StatusSchnell";
 import { ZuteilenLeiste } from "@/components/crm/ZuteilenLeiste";
 import { Hinweis, Karte, Select, buttonClass, inputClass } from "@/components/ui";
 import { aktivePersonen, holeProfil } from "@/lib/crm";
+import { AKTIV, liegtSeit, schrittVorgabe } from "@/lib/schritt";
 import { LEAD_STATUS, STATUS_LABEL, istLeadStatus, type LeadStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
-import { datumZeit } from "@/lib/zeit";
+import { datum, datumZeit, heuteWien } from "@/lib/zeit";
 
 export const metadata: Metadata = { title: "Leads" };
 
@@ -36,7 +37,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
   const supabase = await createClient();
   let abfrage = supabase
     .from("leads")
-    .select("id, firma, branche, telefon, bezirk, status, naechster_rueckruf, einwilligung_wie, besitzer:profiles!leads_besitzer_id_fkey(name)", {
+    .select("id, firma, branche, telefon, bezirk, status, status_seit, naechster_rueckruf, besuch_geplant, einwilligung_wie, besitzer:profiles!leads_besitzer_id_fkey(name)", {
       count: "exact",
     })
     .order("created_at", { ascending: false })
@@ -50,7 +51,24 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
     const sicher = q.replace(/[,()%*\\:"]/g, " ").trim();
     if (sicher) {
       const m = `%${sicher}%`;
-      abfrage = abfrage.or(`firma.ilike.${m},branche.ilike.${m},telefon.ilike.${m},bezirk.ilike.${m},adresse.ilike.${m}`);
+      // Auch in Notizen suchen (RLS: nur Notizen zu sichtbaren Leads)
+      const { data: treffer } = await supabase.from("lead_verlauf").select("lead_id").ilike("text", m).limit(200);
+      const ids = [...new Set((treffer ?? []).map((t) => t.lead_id as string))];
+      const nummer = sicher.replace(/\D/g, "");
+      abfrage = abfrage.or(
+        [
+          `firma.ilike.${m}`,
+          `ansprechpartner.ilike.${m}`,
+          `branche.ilike.${m}`,
+          `email.ilike.${m}`,
+          `telefon.ilike.${m}`,
+          // Nummer auch ohne Leerzeichen/Schrägstriche finden: „0664 123“ findet „0664/123…“
+          ...(nummer.length >= 4 ? [`telefon.ilike.*${nummer.split("").join("*")}*`] : []),
+          `bezirk.ilike.${m}`,
+          `adresse.ilike.${m}`,
+          ...(ids.length ? [`id.in.(${ids.join(",")})`] : []),
+        ].join(","),
+      );
     }
   }
 
@@ -62,10 +80,33 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
     telefon: string | null;
     bezirk: string | null;
     status: LeadStatus;
+    status_seit: string;
     naechster_rueckruf: string | null;
+    besuch_geplant: string | null;
     einwilligung_wie: string | null;
     besitzer: { name: string } | null;
   }[];
+  const heute = heuteWien();
+  const jetztIso = new Date().toISOString();
+  const jetzt = Date.parse(jetztIso);
+  type Zeile = (typeof leads)[number];
+  const schritt = (l: Zeile) => {
+    if (l.naechster_rueckruf)
+      return { text: `${l.einwilligung_wie ? "Anruf" : "Erinnerung"} ${datumZeit(l.naechster_rueckruf)}`, rot: l.naechster_rueckruf < jetztIso };
+    if (l.besuch_geplant) return { text: `Besuch ${datum(`${l.besuch_geplant}T12:00:00Z`)}`, rot: l.besuch_geplant < heute };
+    if (AKTIV.includes(l.status)) return { text: "fehlt", rot: true };
+    return null;
+  };
+  const schnell = (l: Zeile) => (
+    <StatusSchnell
+      id={l.id}
+      firma={l.firma}
+      status={l.status}
+      anrufOk={!!l.einwilligung_wie}
+      vorgabe={schrittVorgabe(l)}
+      zurueck={hier}
+    />
+  );
 
   return (
     <>
@@ -89,7 +130,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
           name="q"
           type="search"
           defaultValue={q}
-          placeholder="Firma, Branche, Telefon, Bezirk …"
+          placeholder="Firma, Person, Telefon, Adresse, Notiz …"
           className={inputClass}
         />
         <label className="sr-only" htmlFor="status">
@@ -163,22 +204,27 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
                       <input type="checkbox" name="ids" value={l.id} form="zuteilen" className="mt-0.5 h-5 w-5 accent-brand" />
                     </label>
                   ) : null}
-                  <Link href={`/crm/leads/${l.id}`} className="block min-w-0 flex-1 px-4 py-3 hover:bg-bg">
-                    <span className="flex items-start justify-between gap-2">
-                      <span className="min-w-0 font-semibold text-ink">{l.firma}</span>
-                      <StatusBadge status={l.status} />
-                    </span>
+                  <div className="min-w-0 flex-1">
+                  <Link href={`/crm/leads/${l.id}`} className="block px-4 pb-1 pt-3 hover:bg-bg">
+                    <span className="block font-semibold text-ink">{l.firma}</span>
                     <span className="mt-0.5 block text-sm text-muted">
                       {[l.branche, l.bezirk].filter(Boolean).join(" · ") || "–"}
                     </span>
-                    {l.naechster_rueckruf ? (
-                      <span className="mt-0.5 block text-sm text-ink">Rückruf: {datumZeit(l.naechster_rueckruf)}</span>
+                    {schritt(l) ? (
+                      <span className={`mt-0.5 block text-sm ${schritt(l)!.rot ? "font-semibold text-danger" : "text-ink"}`}>
+                        Nächster Schritt: {schritt(l)!.text}
+                      </span>
+                    ) : null}
+                    {liegtSeit(l.status, l.status_seit, jetzt) ? (
+                      <span className="mt-0.5 block text-sm text-danger">Liegt seit {liegtSeit(l.status, l.status_seit, jetzt)} Tagen</span>
                     ) : null}
                     {l.status !== "nicht_anrufen" && !l.einwilligung_wie ? (
                       <span className="mt-0.5 block text-sm text-amber-800">Kein Anruf – nur Besuch oder Brief</span>
                     ) : null}
                     {admin && l.besitzer ? <span className="mt-0.5 block text-xs text-muted">Bei: {l.besitzer.name}</span> : null}
                   </Link>
+                  <div className="px-3 pb-2">{schnell(l)}</div>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -193,7 +239,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
                   <th className="px-4 py-3 font-semibold">Telefon</th>
                   <th className="px-4 py-3 font-semibold">Bezirk</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
-                  <th className="px-4 py-3 font-semibold">Rückruf</th>
+                  <th className="px-4 py-3 font-semibold">Nächster Schritt</th>
                   {admin ? <th className="px-4 py-3 font-semibold">Zugeteilt an</th> : null}
                 </tr>
               </thead>
@@ -231,10 +277,13 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
                       )}
                     </td>
                     <td className="px-4 py-3 text-muted">{l.bezirk ?? "–"}</td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={l.status} />
+                    <td className="px-4 py-2 align-top">
+                      {schnell(l)}
+                      {liegtSeit(l.status, l.status_seit, jetzt) ? (
+                        <span className="block px-1 text-xs text-danger">seit {liegtSeit(l.status, l.status_seit, jetzt)} Tagen</span>
+                      ) : null}
                     </td>
-                    <td className="px-4 py-3 text-muted">{datumZeit(l.naechster_rueckruf)}</td>
+                    <td className={`px-4 py-3 ${schritt(l)?.rot ? "font-semibold text-danger" : "text-muted"}`}>{schritt(l)?.text ?? "–"}</td>
                     {admin ? <td className="px-4 py-3 text-muted">{l.besitzer?.name ?? "–"}</td> : null}
                   </tr>
                 ))}

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Kopf } from "@/components/crm/Kopf";
 import { StatusBadge } from "@/components/crm/StatusBadge";
 import { Hinweis, Karte, Select, buttonClass, inputClass } from "@/components/ui";
+import { NaechsterSchritt } from "@/components/crm/NaechsterSchritt";
 import { BESUCH_ERGEBNISSE, adresseText, mapsRoute, mapsSuche, type BesuchErgebnis } from "@/lib/besuche";
 import { holeProfil } from "@/lib/crm";
 import { ABGESCHLOSSEN, type LeadStatus } from "@/lib/status";
@@ -173,12 +174,19 @@ export default async function Besuche({ searchParams }: PageProps<"/crm/besuche"
                             <span>Betrieb ist einverstanden, dass wir anrufen und mailen</span>
                           </label>
                         )}
+                        <NaechsterSchritt
+                          vorgabe={{ art: "besuch", tag: tagVerschieben(heute, 7), zeit: "10:00" }}
+                          anrufOk={!!s.einwilligung_wie}
+                          idPrefix={`schritt-${s.id}`}
+                        />
+                        <p className="text-sm font-semibold text-ink">Ergebnis speichern</p>
                         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                           {(Object.keys(BESUCH_ERGEBNISSE) as BesuchErgebnis[]).map((e) => (
                             <button
                               key={e}
                               name="ergebnis"
                               value={e}
+                              formNoValidate={e === "kein_interesse"}
                               className={`min-h-11 rounded-lg border bg-surface px-3 text-sm font-semibold ${ERGEBNIS_KNOPF[e]}`}
                             >
                               {BESUCH_ERGEBNISSE[e].label}

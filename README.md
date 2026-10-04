@@ -34,6 +34,10 @@ Migrationen in `supabase/migrations/`:
 - `0006_anfragen_verteilung.sql` – automatische Verteilung (verworfen)
 - `0007_verteilung_entfernen.sql` – entfernt die automatische Verteilung wieder
 - `0008_einwilligung.sql` – Einwilligung zu Anruf und E-Mail bei Anfragen und Leads
+- `0009_besuche.sql` – Besuchsplanung (`besuch_geplant`, `letzter_besuch`)
+- `0010_projekte.sql` – Projekt-Phasen nach dem Verkauf
+- `0011_vorlagen.sql` – E-Mail-Vorlagen
+- `0012_crm_stufe1.sql` – `status_seit`, Position für die Karte (`lat`, `lng`, `geo_status`), Duplikat-Suche `lead_duplikate()`, Kalender-Abo (`kalender_abos`, `kalender_eintraege()`)
 
 Wichtige Regeln (in der Datenbank erzwungen, nicht nur in der Oberfläche):
 
@@ -59,6 +63,18 @@ Neue Website-Anfragen landen unter Admin → Anfragen. Ein Gründer teilt jede A
 ### Leads verteilen
 
 Partner sehen nur Leads, die ihnen gehören (RLS), Gründer sehen alle. Nur Gründer können Leads einer Person zuteilen: in der Lead-Liste markieren → „Zuteilen an …“, auf der Lead-Seite unter „Zugeteilt an“ oder schon beim CSV-Import („Leads zuteilen an“). Jede Zuteilung steht im Verlauf; geplante Besuche werden dabei zurückgesetzt. Der Filter „Noch nicht verteilt“ zeigt alle Leads, die noch bei Gründern liegen.
+
+### Nächster Schritt
+
+Jeder aktive Lead braucht einen nächsten Schritt: vorbeischauen (Tag) oder anrufen bzw. erinnern (Tag + Uhrzeit, anrufen nur mit Einwilligung). Beim Statuswechsel – auf der Lead-Seite, direkt in der Lead-Liste oder nach einem Besuch – muss er angegeben werden; nur „Kein Interesse“ und „Nicht anrufen“ beenden ihn. „Heute“ zeigt aktive Leads ohne Schritt, die Liste markiert Leads, die seit 14 Tagen im selben Status liegen.
+
+### Karte
+
+Unter „Karte“ stehen alle Leads mit Adresse als Pins (Farbe = Status). Pins antippen → „Zur Runde“ → Besuche einplanen oder Route in Google Maps öffnen. Die Position wird einmal aus der Adresse gesucht (OpenStreetMap Nominatim, 1 Anfrage/Sekunde) und bei einer Adressänderung neu bestimmt. Grundkarte: basemap.at. Für Tests kann `NOMINATIM_URL` auf einen eigenen Server zeigen.
+
+### Kalender-Abo
+
+Unter „Mein Profil“ erzeugt jede Person einen privaten Kalender-Link (`/kalender/<token>.ics`). Rückrufe und geplante Besuche erscheinen dann im Handy-Kalender. Wer den Link hat, sieht die Termine – „Neuen Link erzeugen“ macht den alten ungültig.
 
 ### Einwilligung (Anrufe und E-Mails)
 

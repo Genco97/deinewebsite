@@ -50,3 +50,16 @@ export const DEAL_STATUS_LABEL: Record<string, string> = {
   voll_bezahlt: "Voll bezahlt",
   storniert: "Storniert",
 };
+
+/** Pin-Farben auf der Karte (gut unterscheidbar, mit weißem Rand) */
+export const STATUS_PIN: Record<LeadStatus, string> = {
+  neu: "#2f6db5",
+  nicht_erreicht: "#78716c",
+  rueckruf: "#d97706",
+  interessiert: "#7c3aed",
+  demo: "#0891b2",
+  angebot: "#db2777",
+  verkauft: "#16a34a",
+  kein_interesse: "#d6d3d1",
+  nicht_anrufen: "#b42318",
+};

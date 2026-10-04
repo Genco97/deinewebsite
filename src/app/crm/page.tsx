@@ -6,6 +6,7 @@ import { Karte, buttonClass } from "@/components/ui";
 import { holeProfil } from "@/lib/crm";
 import { PAKET_NAMEN, type PaketId } from "@/lib/pakete";
 import { PHASE_INFO, type Phase } from "@/lib/projekte";
+import { AKTIV } from "@/lib/schritt";
 import { ABGESCHLOSSEN, type LeadStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
 import { datum, datumZeit, euro, heuteWien, tagVerschieben, uhrzeit, wienGrenzen } from "@/lib/zeit";
@@ -85,7 +86,7 @@ export default async function Heute() {
 
   const vor7Tagen = new Date(Date.parse(jetzt) - 7 * 86400000).toISOString();
   const admin = profil.rolle === "admin";
-  const [neu, heute, ueberfaellig, angebote, verkaeufe, besuche, projekte] = await Promise.all([
+  const [neu, heute, ueberfaellig, angebote, verkaeufe, besuche, projekte, ohneSchritt] = await Promise.all([
     supabase
       .from("leads")
       .select("id, firma, ansprechpartner, branche, telefon, email, status, quelle, einwilligung_wie, created_at")
@@ -130,6 +131,14 @@ export default async function Heute() {
           .lte("projekt_faellig", tagVerschieben(heuteWien(), 2))
           .order("projekt_faellig")
       : Promise.resolve({ data: [] }),
+    supabase
+      .from("leads")
+      .select(felder, { count: "exact" })
+      .in("status", AKTIV)
+      .is("naechster_rueckruf", null)
+      .is("besuch_geplant", null)
+      .order("status_seit")
+      .limit(20),
   ]);
   const faelligeProjekte = (projekte.data ?? []) as unknown as {
     id: string;
@@ -234,6 +243,15 @@ export default async function Heute() {
             leads={(heute.data ?? []) as LeadZeile[]}
             leer="Für heute sind keine weiteren Rückrufe geplant."
             zeit={(l) => uhrzeit(l.naechster_rueckruf)}
+          />
+        </Block>
+
+        <Block titel="Ohne nächsten Schritt" anzahl={ohneSchritt.count ?? 0} rot>
+          <LeadListe
+            leads={(ohneSchritt.data ?? []) as LeadZeile[]}
+            leer="Jeder aktive Lead hat einen nächsten Schritt."
+            zeit={() => "planen"}
+            rot
           />
         </Block>
 

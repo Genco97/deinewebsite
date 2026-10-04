@@ -2,20 +2,22 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { KontaktFormular } from "@/components/crm/KontaktFormular";
+import { NaechsterSchritt } from "@/components/crm/NaechsterSchritt";
 import { StatusBadge } from "@/components/crm/StatusBadge";
 import { VerkaufFormular } from "@/components/crm/VerkaufFormular";
-import { Hinweis, Karte, Select, Textarea, buttonClass, inputClass } from "@/components/ui";
+import { Hinweis, Karte, Select, Textarea, buttonClass } from "@/components/ui";
 import { aktivePersonen, holeProfil } from "@/lib/crm";
 import { mapsSuche } from "@/lib/besuche";
 import { EINWILLIGUNG_ARTEN } from "@/lib/einwilligung";
+import { OHNE_SCHRITT, liegtSeit, schrittVorgabe } from "@/lib/schritt";
 import { PHASE_INFO, type Phase } from "@/lib/projekte";
 import { mailtoLink, vorlageFuellen, type Vorlage } from "@/lib/vorlagen";
 import { PAKET_NAMEN, type PaketId } from "@/lib/pakete";
 import { DEAL_STATUS_LABEL, LEAD_STATUS, STATUS_LABEL, type LeadStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
-import { datum, datumZeit, euro, heuteWien, isoZuWienLokal } from "@/lib/zeit";
-import { ausRundeEntfernen, besucheEinplanen } from "../../besuche/actions";
-import { einwilligungSetzen, leadsZuteilen, notizHinzufuegen, rueckrufSetzen, statusSetzen } from "../actions";
+import { datum, datumZeit, euro, heuteWien } from "@/lib/zeit";
+import { ausRundeEntfernen } from "../../besuche/actions";
+import { einwilligungSetzen, leadsZuteilen, notizHinzufuegen, statusSetzen } from "../actions";
 
 export const metadata: Metadata = { title: "Lead" };
 
@@ -49,7 +51,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
 
   const { data: lead } = await supabase
     .from("leads")
-    .select("id, firma, ansprechpartner, branche, telefon, email, adresse, bezirk, status, naechster_rueckruf, quelle, einwilligung_wie, einwilligung_am, besuch_geplant, letzter_besuch, besitzer_id, created_at")
+    .select("id, firma, ansprechpartner, branche, telefon, email, adresse, bezirk, status, naechster_rueckruf, quelle, einwilligung_wie, einwilligung_am, besuch_geplant, letzter_besuch, besitzer_id, status_seit, created_at")
     .eq("id", id)
     .maybeSingle();
   // RLS: fremde Leads liefern keine Zeile → 404
@@ -76,6 +78,14 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
   const kontakt = { ...lead, telefon: gesperrt ? null : lead.telefon };
   const statusButtons = LEAD_STATUS.filter((s) => s !== "verkauft");
   const anrufErlaubt = !gesperrt && !!lead.einwilligung_wie;
+  const heute = heuteWien();
+  const schrittText =
+    lead.naechster_rueckruf
+      ? `Nächster Schritt: ${anrufErlaubt ? "anrufen" : "Erinnerung"} am ${datumZeit(lead.naechster_rueckruf)}`
+      : lead.besuch_geplant
+        ? `Nächster Schritt: vorbeischauen am ${datum(`${lead.besuch_geplant}T12:00:00Z`)}${lead.besuch_geplant < heute ? " (überfällig)" : ""}`
+        : null;
+  const liegt = liegtSeit(status, lead.status_seit);
   const personen = admin ? await aktivePersonen() : [];
   const ausAnfrage = lead.quelle.startsWith("anfrage:");
   const site = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
@@ -156,70 +166,54 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-6">
-          <Abschnitt titel="Status">
+          <Abschnitt titel="Status und nächster Schritt">
             {gesperrt && !admin ? (
               <p className="text-sm text-muted">Der Status ist gesperrt.</p>
             ) : gesperrt && admin ? (
               <form action={statusSetzen}>
                 <input type="hidden" name="id" value={lead.id} />
-                <input type="hidden" name="status" value="neu" />
+                <input type="hidden" name="entsperren" value="1" />
                 <button className={buttonClass("danger")}>Sperre aufheben (Status „Neu“)</button>
               </form>
             ) : (
-              <div className="flex flex-wrap gap-2">
-                {statusButtons.map((s) => (
-                  <form key={s} action={statusSetzen}>
-                    <input type="hidden" name="id" value={lead.id} />
-                    <input type="hidden" name="status" value={s} />
-                    <button
-                      aria-pressed={s === status}
-                      className={`min-h-11 rounded-lg border px-3 text-sm font-semibold ${
-                        s === status
-                          ? "border-brand bg-brand text-white"
-                          : s === "nicht_anrufen"
-                            ? "border-danger/30 text-danger hover:bg-danger-light"
-                            : "border-line text-ink hover:border-brand hover:text-brand"
-                      }`}
-                    >
-                      {STATUS_LABEL[s]}
-                    </button>
-                  </form>
-                ))}
-              </div>
+              <form action={statusSetzen} className="space-y-4">
+                <input type="hidden" name="id" value={lead.id} />
+                <p className={`rounded-lg px-3 py-2 text-sm ${schrittText ? "bg-bg text-ink" : "bg-amber-50 font-semibold text-amber-900"}`}>
+                  {schrittText ?? "Kein nächster Schritt geplant – leg fest, wie es weitergeht."}
+                  {liegt ? <span className="block font-normal text-danger">Liegt seit {liegt} Tagen im Status „{STATUS_LABEL[status]}“.</span> : null}
+                </p>
+                <NaechsterSchritt vorgabe={schrittVorgabe(lead)} anrufOk={anrufErlaubt} idPrefix="detail" />
+                <div>
+                  <p className="mb-2 text-sm font-semibold text-ink">Status setzen und speichern</p>
+                  <div className="flex flex-wrap gap-2">
+                    {statusButtons.map((s) => (
+                      <button
+                        key={s}
+                        name="status"
+                        value={s}
+                        formNoValidate={OHNE_SCHRITT.includes(s)}
+                        aria-pressed={s === status}
+                        className={`min-h-11 rounded-lg border px-3 text-sm font-semibold ${
+                          s === status
+                            ? "border-brand bg-brand text-white"
+                            : s === "nicht_anrufen"
+                              ? "border-danger/30 text-danger hover:bg-danger-light"
+                              : "border-line text-ink hover:border-brand hover:text-brand"
+                        }`}
+                      >
+                        {STATUS_LABEL[s]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {!OHNE_SCHRITT.includes(status) ? (
+                  <button name="status" value="" className={buttonClass("secondary", "w-full sm:w-auto")}>
+                    Nur nächsten Schritt speichern
+                  </button>
+                ) : null}
+              </form>
             )}
           </Abschnitt>
-
-          {!gesperrt ? (
-            <Abschnitt titel={anrufErlaubt ? "Nächster Rückruf" : "Nächster Termin (Besuch)"}>
-              <form action={rueckrufSetzen} className="space-y-3">
-                <input type="hidden" name="id" value={lead.id} />
-                <label htmlFor="rueckruf" className="sr-only">
-                  Datum und Uhrzeit
-                </label>
-                <input
-                  id="rueckruf"
-                  name="rueckruf"
-                  type="datetime-local"
-                  defaultValue={isoZuWienLokal(lead.naechster_rueckruf)}
-                  className={inputClass}
-                />
-                <label className="flex min-h-11 items-center gap-3 text-sm text-muted">
-                  <input type="checkbox" name="als_rueckruf" defaultChecked className="h-5 w-5 accent-brand" />
-                  Status auf „Rückruf“ setzen
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  <button className={buttonClass("primary")}>Rückruf speichern</button>
-                </div>
-              </form>
-              {lead.naechster_rueckruf ? (
-                <form action={rueckrufSetzen} className="mt-2">
-                  <input type="hidden" name="id" value={lead.id} />
-                  <input type="hidden" name="rueckruf" value="" />
-                  <button className={buttonClass("ghost")}>Rückruf entfernen</button>
-                </form>
-              ) : null}
-            </Abschnitt>
-          ) : null}
 
           <Abschnitt titel="Notizen und Verlauf">
             <form action={notizHinzufuegen} className="space-y-2">
@@ -307,17 +301,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
                   </form>
                 </div>
               ) : (
-                <form action={besucheEinplanen} className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                  <input type="hidden" name="ids" value={lead.id} />
-                  <input type="hidden" name="zurueck" value={`/crm/leads/${lead.id}`} />
-                  <div className="flex-1">
-                    <label htmlFor="besuch-tag" className="mb-1.5 block text-sm font-semibold text-ink">
-                      Besuchen am
-                    </label>
-                    <input id="besuch-tag" name="tag" type="date" min={heuteWien()} defaultValue={heuteWien()} required className={inputClass} />
-                  </div>
-                  <button className={buttonClass("secondary")}>Einplanen</button>
-                </form>
+                <p className="text-sm text-muted">Einen Besuch planst du oben bei „Wie geht es weiter?“ → Vorbeischauen.</p>
               )}
             </Abschnitt>
           ) : null}
