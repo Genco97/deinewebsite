@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Kopf } from "@/components/crm/Kopf";
 import { Hinweis, Karte, buttonClass, inputClass } from "@/components/ui";
+import { BETREUUNG, BETREUUNG_LABEL, sorglosStandard, type Betreuung } from "@/lib/betreuung";
 import { holeProfil } from "@/lib/crm";
 import { PAKET_NAMEN, type PaketId } from "@/lib/pakete";
 import { PHASEN, PHASE_INFO, type Phase } from "@/lib/projekte";
 import { DEAL_STATUS_LABEL } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
 import { datum, euro, heuteWien, tagVerschieben } from "@/lib/zeit";
-import { phaseSetzen, projektSpeichern } from "./actions";
+import { betreuungSpeichern, phaseSetzen, projektSpeichern } from "./actions";
 
 export const metadata: Metadata = { title: "Projekte" };
 
@@ -24,6 +25,9 @@ type Projekt = {
   aenderungsrunden_genutzt: number;
   lead_id: string | null;
   created_at: string;
+  betreuung: Betreuung;
+  sorglos_monat: number | null;
+  betreuung_seit: string | null;
   leads: { firma: string } | null;
   partner: { name: string } | null;
 };
@@ -62,7 +66,7 @@ export default async function Projekte({ searchParams }: PageProps<"/crm/projekt
   const { data } = await supabase
     .from("deals")
     .select(
-      "id, paket, betrag, status, projekt_phase, projekt_faellig, website_url, aenderungsrunden_inkl, aenderungsrunden_genutzt, lead_id, created_at, leads(firma), partner:profiles!deals_partner_id_fkey(name)",
+      "id, paket, betrag, status, projekt_phase, projekt_faellig, website_url, aenderungsrunden_inkl, aenderungsrunden_genutzt, betreuung, sorglos_monat, betreuung_seit, lead_id, created_at, leads(firma), partner:profiles!deals_partner_id_fkey(name)",
     )
     .neq("status", "storniert")
     .order("projekt_faellig", { ascending: true, nullsFirst: false })
@@ -70,6 +74,8 @@ export default async function Projekte({ searchParams }: PageProps<"/crm/projekt
     .limit(300);
   const projekte = (data ?? []) as unknown as Projekt[];
   const nachPhase = (p: Phase) => projekte.filter((x) => x.projekt_phase === p);
+  const sorglos = projekte.filter((x) => x.betreuung === "sorglos");
+  const sorglosSumme = sorglos.reduce((s, x) => s + Number(x.sorglos_monat ?? 0), 0);
   const ueberfaellig = projekte.filter((x) => x.projekt_phase !== "online" && x.projekt_faellig && x.projekt_faellig < heute);
 
   return (
@@ -96,6 +102,12 @@ export default async function Projekte({ searchParams }: PageProps<"/crm/projekt
             {ueberfaellig.map((x) => x.leads?.firma ?? "–").join(", ")}
           </Hinweis>
         </div>
+      ) : null}
+
+      {projekte.length > 0 ? (
+        <p className="mb-4 text-sm text-muted">
+          Sorglos-Pakete: <strong className="text-ink">{sorglos.length}</strong> · {euro(sorglosSumme)} pro Monat
+        </p>
       ) : null}
 
       {projekte.length === 0 ? (
@@ -141,6 +153,17 @@ export default async function Projekte({ searchParams }: PageProps<"/crm/projekt
                         <span className="rounded-full bg-bg px-2 py-0.5 text-xs text-muted">
                           Änderungen {x.aenderungsrunden_genutzt}/{x.aenderungsrunden_inkl}
                         </span>
+                        {x.betreuung === "sorglos" ? (
+                          <span className="rounded-full bg-ok-light px-2 py-0.5 text-xs font-semibold text-ok">
+                            Sorglos · {euro(x.sorglos_monat ?? 0)}/Monat
+                          </span>
+                        ) : x.betreuung === "uebergabe" ? (
+                          <span className="rounded-full bg-bg px-2 py-0.5 text-xs text-muted">Übergabe</span>
+                        ) : p === "freigabe" || p === "online" ? (
+                          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-900">
+                            Übergabe oder Sorglos klären
+                          </span>
+                        ) : null}
                       </div>
                       {x.website_url ? (
                         <a
@@ -206,6 +229,43 @@ export default async function Projekte({ searchParams }: PageProps<"/crm/projekt
                                   min={0}
                                   max={20}
                                   defaultValue={x.aenderungsrunden_genutzt}
+                                  className={`${inputClass} mt-1`}
+                                />
+                              </label>
+                              <button className={buttonClass("secondary", "w-full")}>Speichern</button>
+                            </form>
+                          </details>
+                          <details className="mt-1">
+                            <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold text-brand">
+                              Nach der Fertigstellung
+                            </summary>
+                            <form action={betreuungSpeichern} className="space-y-2 pt-1">
+                              <input type="hidden" name="id" value={x.id} />
+                              <label className="block text-xs font-semibold text-ink">
+                                Was passiert danach?
+                                <select name="betreuung" defaultValue={x.betreuung} className={`${inputClass} mt-1`}>
+                                  {BETREUUNG.map((b) => (
+                                    <option key={b} value={b}>
+                                      {BETREUUNG_LABEL[b]}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label className="block text-xs font-semibold text-ink">
+                                Monatsbetrag in € (nur Sorglos-Paket)
+                                <input
+                                  name="sorglos_monat"
+                                  inputMode="decimal"
+                                  defaultValue={String(x.sorglos_monat ?? sorglosStandard(x.paket)).replace(".", ",")}
+                                  className={`${inputClass} mt-1`}
+                                />
+                              </label>
+                              <label className="block text-xs font-semibold text-ink">
+                                Gilt ab
+                                <input
+                                  name="betreuung_seit"
+                                  type="date"
+                                  defaultValue={x.betreuung_seit ?? heute}
                                   className={`${inputClass} mt-1`}
                                 />
                               </label>

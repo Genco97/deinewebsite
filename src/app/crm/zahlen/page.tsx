@@ -49,10 +49,11 @@ export default async function Zahlen() {
     .limit(5000);
   if (!admin) besuche = besuche.eq("autor_id", profil.id);
 
-  const [dealsRes, besucheRes, personenRes, ...statusRes] = await Promise.all([
+  const [dealsRes, besucheRes, personenRes, sorglosRes, ...statusRes] = await Promise.all([
     supabase.from("deals").select("betrag, created_at, partner_id").neq("status", "storniert").gte("created_at", seit).limit(5000),
     besuche,
     admin ? supabase.from("profiles").select("id, name, email, rolle, aktiv").eq("aktiv", true) : Promise.resolve({ data: [] }),
+    supabase.from("deals").select("sorglos_monat").eq("betreuung", "sorglos").neq("status", "storniert").limit(5000),
     ...TRICHTER.map((s) => supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", s)),
   ]);
 
@@ -72,6 +73,9 @@ export default async function Zahlen() {
     })
     .reduce((s, d) => s + Number(d.betrag), 0);
   const verkaeufeJetzt = anzahl(dieserMonat);
+
+  const sorglos = (sorglosRes.data ?? []) as { sorglos_monat: number | null }[];
+  const sorglosMonat = sorglos.reduce((s, d) => s + Number(d.sorglos_monat ?? 0), 0);
 
   const zaehler = Object.fromEntries(TRICHTER.map((s, i) => [s, statusRes[i].count ?? 0])) as Record<LeadStatus, number>;
   const entschieden = zaehler.verkauft + zaehler.kein_interesse;
@@ -100,7 +104,7 @@ export default async function Zahlen() {
     <>
       <Kopf titel="Zahlen" text={admin ? "Wie läuft es im ganzen Team?" : "Wie läuft es bei dir?"} />
 
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Kennzahl
           titel={`Umsatz im ${monatName}`}
           wert={euro(umsatzJetzt)}
@@ -118,6 +122,11 @@ export default async function Zahlen() {
           zusatz={entschieden > 0 ? `${zaehler.verkauft} von ${entschieden} entschiedenen Leads` : "noch keine Ergebnisse"}
         />
         <Kennzahl titel="Besuche diese Woche" wert={String(besucheWoche)} zusatz={admin ? "im ganzen Team" : "von dir"} />
+        <Kennzahl
+          titel="Sorglos-Pakete"
+          wert={`${euro(sorglosMonat)}`}
+          zusatz={`pro Monat · ${sorglos.length} ${sorglos.length === 1 ? "Kunde" : "Kunden"}`}
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">

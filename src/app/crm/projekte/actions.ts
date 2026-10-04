@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { istBetreuung } from "@/lib/betreuung";
 import { nurAdmin } from "@/lib/crm";
 import { istPhase } from "@/lib/projekte";
 import { createClient } from "@/lib/supabase/server";
@@ -42,5 +43,31 @@ export async function projektSpeichern(fd: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.from("deals").update(update).eq("id", id);
   if (error) zurueck("Das Projekt konnte nicht gespeichert werden.");
+  zurueck();
+}
+
+/** Nach der Fertigstellung: Übergabe oder Sorglos-Paket */
+export async function betreuungSpeichern(fd: FormData) {
+  await nurAdmin();
+  const id = text(fd, "id", 50);
+  const betreuung = text(fd, "betreuung", 20);
+  if (!istBetreuung(betreuung)) zurueck("Bitte wähle Übergabe oder Sorglos-Paket.");
+  const seit = text(fd, "betreuung_seit", 10);
+  if (seit && !istTag(seit)) zurueck("Bitte ein gültiges Datum eingeben.");
+
+  const update: Record<string, unknown> = { betreuung, betreuung_seit: betreuung === "offen" ? null : seit || null };
+  if (betreuung === "sorglos") {
+    const monat = Number(text(fd, "sorglos_monat", 12).replace(",", "."));
+    if (!Number.isFinite(monat) || monat < 0 || monat > 10000) zurueck("Bitte einen gültigen Monatsbetrag eingeben.");
+    update.sorglos_monat = Math.round(monat * 100) / 100;
+  } else {
+    update.sorglos_monat = null;
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("deals").update(update).eq("id", id).select("lead_id").single();
+  if (error) zurueck("Das konnte nicht gespeichert werden.");
+  if (data?.lead_id) revalidatePath(`/crm/leads/${data.lead_id}`);
+  revalidatePath("/crm/zahlen");
   zurueck();
 }

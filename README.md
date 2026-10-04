@@ -38,6 +38,7 @@ Migrationen in `supabase/migrations/`:
 - `0010_projekte.sql` – Projekt-Phasen nach dem Verkauf
 - `0011_vorlagen.sql` – E-Mail-Vorlagen
 - `0012_crm_stufe1.sql` – `status_seit`, Position für die Karte (`lat`, `lng`, `geo_status`), Duplikat-Suche `lead_duplikate()`, Kalender-Abo (`kalender_abos`, `kalender_eintraege()`)
+- `0013_betreuung.sql` – nach der Fertigstellung: Übergabe oder Sorglos-Paket (`deals.betreuung`, `sorglos_monat`, `betreuung_seit`)
 
 Wichtige Regeln (in der Datenbank erzwungen, nicht nur in der Oberfläche):
 
