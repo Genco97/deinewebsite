@@ -7,7 +7,7 @@ import { STATUS_LABEL, type LeadStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
 import { euro, heuteWien, isoZuWienLokal, wienGrenzen, wienZuIso } from "@/lib/zeit";
 
-export const metadata: Metadata = { title: "Zahlen" };
+export const metadata: Metadata = { title: "Dashboard" };
 
 const TRICHTER: LeadStatus[] = ["neu", "nicht_erreicht", "rueckruf", "interessiert", "demo", "angebot", "verkauft", "kein_interesse"];
 const MONAT = new Intl.DateTimeFormat("de-AT", { month: "short", timeZone: "UTC" });
@@ -102,7 +102,7 @@ export default async function Zahlen() {
 
   return (
     <>
-      <Kopf titel="Zahlen" text={admin ? "Wie läuft es im ganzen Team?" : "Wie läuft es bei dir?"} />
+      <Kopf titel="Dashboard" text={admin ? "Wie läuft es im ganzen Team?" : "Wie läuft es bei dir?"} />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Kennzahl
