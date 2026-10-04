@@ -5,13 +5,14 @@ import { redirect } from "next/navigation";
 import { holeProfil, nurAdmin } from "@/lib/crm";
 import { istEinwilligungArt } from "@/lib/einwilligung";
 import { PAKETE, istPaket } from "@/lib/pakete";
-import { istLeadStatus } from "@/lib/status";
+import { OHNE_SCHRITT, schrittAusFormular } from "@/lib/schritt";
+import { istLeadStatus, type LeadStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
 import type { ImportZeile } from "@/lib/csv-import";
 import { istEmail, text } from "@/lib/validierung";
-import { wienZuIso } from "@/lib/zeit";
 
-export type AktionStatus = { meldung?: string; ok?: boolean };
+export type Duplikat = { id: string | null; firma: string; adresse: string | null; bei_mir: boolean; besitzer: string };
+export type AktionStatus = { meldung?: string; ok?: boolean; duplikate?: Duplikat[]; werte?: Record<string, string> };
 
 function fehlerText(msg: string | undefined) {
   if (!msg) return "Das hat nicht geklappt. Bitte versuch es nochmal.";
@@ -26,17 +27,34 @@ export async function leadAnlegen(_v: AktionStatus, fd: FormData): Promise<Aktio
   const profil = await holeProfil();
   const firma = text(fd, "firma");
   const email = text(fd, "email");
-  if (!firma) return { meldung: "Bitte gib den Namen der Firma ein." };
-  if (email && !istEmail(email)) return { meldung: "Die E-Mail-Adresse sieht nicht gültig aus." };
+  // Eingaben zurückgeben, damit das Formular bei einem Hinweis nicht leer ist
+  const werte = Object.fromEntries(
+    ["firma", "ansprechpartner", "branche", "telefon", "email", "adresse", "bezirk"].map((k) => [k, text(fd, k)]),
+  );
+  if (!firma) return { meldung: "Bitte gib den Namen der Firma ein.", werte };
+  if (email && !istEmail(email)) return { meldung: "Die E-Mail-Adresse sieht nicht gültig aus.", werte };
+  const telefon = text(fd, "telefon", 50);
 
   const supabase = await createClient();
+  // Gibt es den Betrieb schon (gleiche Nummer oder gleicher Name)? Prüft im ganzen Team.
+  if (fd.get("trotzdem") !== "1") {
+    const { data: doppelt } = await supabase.rpc("lead_duplikate", { p_telefon: telefon, p_firma: firma });
+    if (doppelt && doppelt.length > 0) {
+      return {
+        meldung: doppelt.length === 1 ? "Diesen Betrieb gibt es vielleicht schon:" : "Diese Betriebe gibt es vielleicht schon:",
+        duplikate: doppelt as Duplikat[],
+        werte,
+      };
+    }
+  }
+
   const { data, error } = await supabase
     .from("leads")
     .insert({
       firma,
       ansprechpartner: text(fd, "ansprechpartner") || null,
       branche: text(fd, "branche") || null,
-      telefon: text(fd, "telefon", 50) || null,
+      telefon: telefon || null,
       email: email || null,
       adresse: text(fd, "adresse") || null,
       bezirk: text(fd, "bezirk", 100) || null,
@@ -45,7 +63,7 @@ export async function leadAnlegen(_v: AktionStatus, fd: FormData): Promise<Aktio
     .select("id")
     .single();
 
-  if (error || !data) return { meldung: fehlerText(error?.message) };
+  if (error || !data) return { meldung: fehlerText(error?.message), werte };
   revalidatePath("/crm/leads");
   redirect(`/crm/leads/${data.id}`);
 }
@@ -134,31 +152,45 @@ export async function leadsImportieren(
 // ---------------------------------------------------------------------------
 // Status, Rückruf, Notiz, Kontakt
 // ---------------------------------------------------------------------------
+/** Rücksprung nach einer Aktion – nur interne CRM-Pfade */
+function zielPfad(fd: FormData, standard: string) {
+  const z = text(fd, "zurueck", 300);
+  return z.startsWith("/crm") && !z.startsWith("//") ? z : standard;
+}
+
+const mitParam = (ziel: string, k: string, v: string) => `${ziel}${ziel.includes("?") ? "&" : "?"}${k}=${encodeURIComponent(v)}`;
+
+/**
+ * Status ändern und dabei den nächsten Schritt festlegen.
+ * Ohne Status (Knopf „Nur nächsten Schritt speichern“) wird nur der Schritt gespeichert.
+ * „Kein Interesse“ und „Nicht anrufen“ brauchen keinen Schritt – geplante Termine werden gelöscht.
+ */
 export async function statusSetzen(fd: FormData) {
   const id = text(fd, "id", 50);
   const status = text(fd, "status", 30);
-  if (!istLeadStatus(status)) return;
+  const ziel = zielPfad(fd, `/crm/leads/${id}`);
+  if (status && !istLeadStatus(status)) return;
   const supabase = await createClient();
-  const update: Record<string, unknown> = { status };
-  if (status === "kein_interesse" || status === "nicht_anrufen" || status === "verkauft") {
-    update.naechster_rueckruf = null;
-  }
-  const { error } = await supabase.from("leads").update(update).eq("id", id);
-  revalidatePath(`/crm/leads/${id}`);
-  if (error) redirect(`/crm/leads/${id}?fehler=${encodeURIComponent(fehlerText(error.message))}`);
-}
 
-export async function rueckrufSetzen(fd: FormData) {
-  const id = text(fd, "id", 50);
-  const wert = text(fd, "rueckruf", 20);
-  const iso = wert ? wienZuIso(wert) : null;
-  const supabase = await createClient();
-  const update: Record<string, unknown> = { naechster_rueckruf: iso };
-  if (iso && fd.get("als_rueckruf") === "on") update.status = "rueckruf";
+  let update: Record<string, unknown>;
+  if (fd.get("entsperren") === "1") {
+    // Admin hebt „Nicht anrufen“ auf
+    update = { status: "neu" };
+  } else if (status && OHNE_SCHRITT.includes(status as LeadStatus)) {
+    update = { status, naechster_rueckruf: null, besuch_geplant: null };
+  } else {
+    const schritt = schrittAusFormular(fd);
+    if (!schritt.ok) redirect(mitParam(ziel, "fehler", schritt.meldung));
+    update = { ...(status ? { status } : {}), ...schritt.update };
+  }
+
   const { error } = await supabase.from("leads").update(update).eq("id", id);
   revalidatePath(`/crm/leads/${id}`);
+  revalidatePath("/crm/leads");
+  revalidatePath("/crm/besuche");
   revalidatePath("/crm");
-  if (error) redirect(`/crm/leads/${id}?fehler=${encodeURIComponent(fehlerText(error.message))}`);
+  if (error) redirect(mitParam(ziel, "fehler", fehlerText(error.message)));
+  if (ziel !== `/crm/leads/${id}`) redirect(ziel);
 }
 
 export async function notizHinzufuegen(fd: FormData) {

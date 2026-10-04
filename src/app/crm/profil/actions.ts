@@ -36,3 +36,11 @@ export async function passwortAendern(_v: ProfilStatus, fd: FormData): Promise<P
   }
   return { ok: true, meldung: "Passwort geändert." };
 }
+
+/** Neuen privaten Kalender-Link erzeugen – der alte funktioniert danach nicht mehr. */
+export async function kalenderLinkNeu() {
+  await holeProfil();
+  const supabase = await createClient();
+  await supabase.rpc("kalender_link_neu");
+  revalidatePath("/crm/profil");
+}

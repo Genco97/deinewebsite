@@ -11,6 +11,7 @@ export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin
     { href: "/crm", label: "Heute", aktiv: pfad === "/crm", zahl: faellig },
     { href: "/crm/leads", label: "Leads", aktiv: pfad.startsWith("/crm/leads") },
     { href: "/crm/besuche", label: "Besuche", aktiv: pfad.startsWith("/crm/besuche") },
+    { href: "/crm/karte", label: "Karte", aktiv: pfad.startsWith("/crm/karte") },
     { href: "/crm/projekte", label: "Projekte", aktiv: pfad.startsWith("/crm/projekte") },
     { href: "/crm/zahlen", label: "Zahlen", aktiv: pfad.startsWith("/crm/zahlen") },
     { href: "/crm/partner", label: "Partner & Provision", aktiv: pfad.startsWith("/crm/partner") },

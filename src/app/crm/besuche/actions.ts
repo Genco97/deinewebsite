@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { BESUCH_ERGEBNISSE, istBesuchErgebnis } from "@/lib/besuche";
 import { holeProfil } from "@/lib/crm";
+import { schrittAusFormular } from "@/lib/schritt";
 import { createClient } from "@/lib/supabase/server";
 import { text } from "@/lib/validierung";
 import { istTag } from "@/lib/zeit";
@@ -61,7 +62,14 @@ export async function besuchErfassen(fd: FormData) {
 
   const update: Record<string, unknown> = { letzter_besuch: new Date().toISOString(), besuch_geplant: null };
   if (e.status && lead.status !== "verkauft" && lead.status !== "nicht_anrufen") update.status = e.status;
-  if (e.status === "kein_interesse") update.naechster_rueckruf = null;
+  if (e.status === "kein_interesse") {
+    update.naechster_rueckruf = null;
+  } else if (lead.status !== "verkauft" && lead.status !== "nicht_anrufen") {
+    // Pflicht: wie geht es weiter?
+    const schritt = schrittAusFormular(fd);
+    if (!schritt.ok) zurueck(z, schritt.meldung);
+    Object.assign(update, schritt.update);
+  }
   const einwilligung = fd.get("einwilligung") === "on" && ergebnis !== "nicht_angetroffen";
   if (einwilligung && !lead.einwilligung_wie && lead.status !== "nicht_anrufen") {
     update.einwilligung_wie = "Persönlich beim Besuch";
