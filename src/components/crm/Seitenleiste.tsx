@@ -25,9 +25,6 @@ export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin
         <Link href="/crm" className="inline-flex min-h-11 items-center gap-2.5 font-extrabold tracking-[-0.04em]">
           <LogoMark className="h-6 w-6" />
           Ursprung
-          <span className="rounded bg-white/10 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white/70">
-            CRM
-          </span>
         </Link>
         <form action={abmelden} className="md:hidden">
           <button className="inline-flex min-h-11 items-center px-2 text-sm text-white/70 hover:text-white">Abmelden</button>

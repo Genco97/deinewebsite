@@ -32,7 +32,7 @@ async function faelligZaehlen(id: string, admin: boolean) {
 }
 
 export const metadata: Metadata = {
-  title: { default: "CRM", template: "%s | Ursprung CRM" },
+  title: { default: "Ursprung", template: "%s | Ursprung" },
   robots: { index: false },
 };
 
