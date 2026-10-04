@@ -14,6 +14,7 @@ const VERTRAUEN = [
 ];
 
 const hosting = <Angabe wert={FIRMA.hostingProMonat} platzhalter="Betrag" />;
+const hostingPro = <Angabe wert={FIRMA.hostingProMonatPro} platzhalter="Betrag" />;
 
 const FAQ: { frage: string; antwort: React.ReactNode }[] = [
   {
@@ -25,8 +26,10 @@ const FAQ: { frage: string; antwort: React.ReactNode }[] = [
     frage: "Gibt es versteckte Kosten?",
     antwort: (
       <>
-        Nein. Sie zahlen den vereinbarten Fixpreis. Für Hosting und Wartung fallen laufend {hosting} pro Monat an –
-        das sagen wir Ihnen vorher. Der Hosting-Vertrag ist monatlich kündbar.
+        Nein. Sie zahlen den vereinbarten Fixpreis und für Hosting und Wartung {hosting} pro Monat (beim Paket Pro{" "}
+        {hostingPro}). Darin sind Domain, Hosting, SSL-Verschlüsselung, Updates und kleine Änderungen enthalten. Der
+        Hosting-Vertrag ist monatlich kündbar. Extra kostet nur, was Sie ausdrücklich möchten – etwa ein eigenes
+        E-Mail-Postfach bei Ihrem Anbieter.
       </>
     ),
   },
@@ -48,7 +51,7 @@ const FAQ: { frage: string; antwort: React.ReactNode }[] = [
   {
     frage: "Brauche ich schon eine eigene Domain?",
     antwort:
-      "Nein. Wenn Sie noch keine haben, kümmern wir uns darum – registriert wird sie auf Ihren Namen. Eine bestehende Domain übernehmen wir gerne.",
+      "Nein. Wenn Sie noch keine haben, kümmern wir uns darum – registriert wird sie auf Ihren Namen, die Kosten sind in der monatlichen Hosting-Pauschale enthalten. Eine bestehende Domain übernehmen wir gerne.",
   },
   {
     frage: "Was muss ich selbst tun?",
@@ -174,7 +177,8 @@ export default function Startseite() {
           })}
         </div>
         <p className="mt-6 text-sm text-muted">
-          Hosting und Wartung: {hosting} pro Monat, monatlich kündbar. Keine Werbe- oder Google-Ads-Pakete.
+          Dazu Hosting und Wartung: {hosting} pro Monat, bei Pro {hostingPro} – inklusive Domain, SSL, Updates und kleiner
+          Änderungen, monatlich kündbar. Keine Werbe- oder Google-Ads-Pakete.
         </p>
       </Abschnitt>
 

@@ -86,9 +86,23 @@ export default function Agb() {
       <h2>8. Hosting und Wartung</h2>
       <p>
         Auf Wunsch übernehmen wir Hosting und Wartung der Website um{" "}
-        <Angabe wert={FIRMA.hostingProMonat} platzhalter="Betrag" /> pro Monat. Dieser Vertrag läuft auf unbestimmte
-        Zeit und kann von beiden Seiten mit einer Frist von einem Monat zum Monatsende gekündigt werden. Bei
-        Kündigung übergeben wir dem Kunden auf Wunsch alle Dateien der Website.
+        <Angabe wert={FIRMA.hostingProMonat} platzhalter="Betrag" /> pro Monat bei den Paketen Basic und Business und um{" "}
+        <Angabe wert={FIRMA.hostingProMonatPro} platzhalter="Betrag" /> pro Monat beim Paket Pro. Enthalten sind:
+      </p>
+      <ul className="list-disc space-y-1 pl-5">
+        <li>Registrierung und Verlängerung einer Domain auf den Namen des Kunden,</li>
+        <li>Hosting der Website samt SSL-Verschlüsselung (https),</li>
+        <li>technische und sicherheitsrelevante Updates,</li>
+        <li>kleine inhaltliche Änderungen (z. B. Öffnungszeiten, Preise, Texte) im Umfang von bis zu 15 Minuten pro Monat,</li>
+        <li>beim Paket Pro zusätzlich der Betrieb des Online-Buchungssystems.</li>
+      </ul>
+      <p>
+        Größere Änderungen erledigen wir nach vorheriger Absprache und gesondertem Angebot. Nicht enthalten sind
+        E-Mail-Postfächer, Fotografie und kostenpflichtige Dienste Dritter (z. B. echte KI-Antworten im Chat). Kosten dafür
+        entstehen nur, wenn der Kunde diese Leistungen ausdrücklich beauftragt. Dieser Vertrag läuft auf unbestimmte Zeit und kann
+        von beiden Seiten mit einer
+        Frist von einem Monat zum Monatsende gekündigt werden. Bei Kündigung übergeben wir dem Kunden auf Wunsch alle
+        Dateien der Website; die Domain bleibt beim Kunden.
       </p>
 
       <h2>9. Gewährleistung und Haftung</h2>
