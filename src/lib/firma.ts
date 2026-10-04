@@ -25,8 +25,10 @@ export const FIRMA = {
   kammer: "Wirtschaftskammer Wien",
   /** true = Kleinunternehmer (keine USt.), false = Preise mit USt., null = noch offen */
   kleinunternehmer: null as boolean | null,
-  /** Hosting & Wartung pro Monat, z. B. "19 €" */
-  hostingProMonat: null as string | null,
+  /** Hosting & Wartung pro Monat bei Basic und Business (inkl. Domain) */
+  hostingProMonat: "19 €" as string | null,
+  /** Hosting & Wartung pro Monat bei Pro (inkl. Buchungssystem) */
+  hostingProMonatPro: "39 €" as string | null,
 };
 
 export function firmenname() {
