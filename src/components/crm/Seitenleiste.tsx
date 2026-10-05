@@ -13,6 +13,7 @@ export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin
     { href: "/crm/leads", label: "Leads", aktiv: pfad.startsWith("/crm/leads") },
     { href: "/crm/besuche", label: "Besuche", aktiv: pfad.startsWith("/crm/besuche") },
     { href: "/crm/karte", label: "Karte", aktiv: pfad.startsWith("/crm/karte") },
+    { href: "/crm/postkarten", label: "Postkarten", aktiv: pfad.startsWith("/crm/postkarten") },
     { href: "/crm/projekte", label: "Projekte", aktiv: pfad.startsWith("/crm/projekte") },
     { href: "/crm/partner", label: "Partner & Provision", aktiv: pfad.startsWith("/crm/partner") },
     ...(admin ? [{ href: "/crm/admin", label: "Admin", aktiv: pfad.startsWith("/crm/admin") }] : []),
@@ -20,7 +21,7 @@ export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin
   ];
 
   return (
-    <aside className="bg-sidebar text-white md:fixed md:inset-y-0 md:left-0 md:flex md:w-60 md:flex-col">
+    <aside className="bg-sidebar text-white print:hidden md:fixed md:inset-y-0 md:left-0 md:flex md:w-60 md:flex-col">
       <div className="flex h-14 items-center justify-between gap-2 px-4 md:h-16">
         <Link href="/crm" className="inline-flex min-h-11 items-center gap-2.5 font-extrabold tracking-[-0.04em]">
           <LogoMark className="h-6 w-6" />
