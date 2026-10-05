@@ -16,6 +16,10 @@ const TEXTE: Record<string, { titel: string; text: string }> = {
     titel: "Danke für Ihre Anfrage.",
     text: "Wir melden uns bei Ihnen, um einen Termin für das Erstgespräch zu vereinbaren.",
   },
+  karte: {
+    titel: "Danke! Wir rufen Sie an.",
+    text: "Wir melden uns in den nächsten Tagen telefonisch bei Ihnen – gerne zur Zeit, die Sie angegeben haben. Das Gespräch ist unverbindlich.",
+  },
   rueckruf: {
     titel: "Danke! Wir rufen Sie zurück.",
     text: "Wir melden uns so bald wie möglich telefonisch bei Ihnen.",

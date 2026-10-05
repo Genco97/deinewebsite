@@ -112,3 +112,49 @@ export async function rueckrufAnfordern(_vorher: FormStatus, fd: FormData): Prom
 
   redirect("/danke?art=rueckruf");
 }
+
+/** Rückmeldekarte (Postkarte mit QR-Code): Der Betrieb bittet selbst um einen Anruf. */
+export async function karteBestaetigen(_vorher: FormStatus, fd: FormData): Promise<FormStatus> {
+  const werte = {
+    code: text(fd, "code", 20),
+    name: text(fd, "name", 100),
+    telefon: text(fd, "telefon", 50),
+    zeit: text(fd, "zeit", 100),
+  };
+
+  if (istSpam(fd)) redirect("/danke?art=karte");
+
+  const fehler: Fehler = {};
+  if (!werte.name) fehler.name = "Bitte geben Sie Ihren Namen an.";
+  if (werte.telefon && !istTelefon(werte.telefon)) fehler.telefon = "Bitte prüfen Sie die Telefonnummer.";
+  if (fd.get("einwilligung") !== "on")
+    fehler.einwilligung = "Bitte bestätigen Sie, dass wir Sie anrufen dürfen.";
+
+  if (Object.keys(fehler).length > 0) {
+    return { fehler, werte, meldung: "Bitte prüfen Sie die markierten Felder." };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("karte_einwilligen", {
+    p_code: werte.code,
+    p_name: werte.name,
+    p_telefon: werte.telefon,
+    p_zeit: werte.zeit,
+  });
+
+  if (error) {
+    console.error("Rückmeldekarte konnte nicht gespeichert werden", error.message);
+    return {
+      werte,
+      meldung: "Ihre Rückmeldung konnte gerade nicht gesendet werden. Bitte versuchen Sie es noch einmal.",
+    };
+  }
+  if (!data) {
+    return {
+      werte,
+      meldung: "Diesen Karten-Code kennen wir nicht. Bitte prüfen Sie den Code auf der Karte.",
+    };
+  }
+
+  redirect("/danke?art=karte");
+}

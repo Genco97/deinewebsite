@@ -3,17 +3,18 @@ import Link from "next/link";
 /**
  * Bildmarke „Der Sprung“: Ein Punkt – der Ursprung – springt in einem Bogen nach oben.
  * Mehrere Logos auf einer Seite teilen dieselbe Verlaufs-ID; die Definition ist identisch.
+ * Ausnahme Druck: Ist das erste Logo ausgeblendet (z. B. Seitenleiste), braucht das gedruckte eine eigene ID.
  */
-export function LogoMark({ className = "h-7 w-7" }: { className?: string }) {
+export function LogoMark({ className = "h-7 w-7", verlaufId = "ursprung-verlauf" }: { className?: string; verlaufId?: string }) {
   return (
     <svg viewBox="0 0 32 32" aria-hidden className={`shrink-0 ${className}`}>
       <defs>
-        <linearGradient id="ursprung-verlauf" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id={verlaufId} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#3D7FD0" />
           <stop offset="1" stopColor="#173F70" />
         </linearGradient>
       </defs>
-      <rect width="32" height="32" rx="9" fill="url(#ursprung-verlauf)" />
+      <rect width="32" height="32" rx="9" fill={`url(#${verlaufId})`} />
       <path
         d="M8.5 23.5C10 14 16 9.5 23.5 9"
         fill="none"
