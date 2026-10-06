@@ -40,7 +40,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   const profil = await holeProfil();
   const faellig = await faelligZaehlen(profil.id, profil.rolle === "admin");
   return (
-    <div className="flex min-h-full flex-1 flex-col md:pl-60 print:pl-0">
+    <div className="flex min-h-full flex-1 flex-col md:pl-64 print:pl-0">
       <Seitenleiste name={anzeigename(profil)} admin={profil.rolle === "admin"} faellig={faellig} />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-8 print:max-w-none print:p-0">{children}</main>
     </div>
