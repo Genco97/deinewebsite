@@ -126,7 +126,7 @@ export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin
                     href={l.href}
                     onClick={() => setOffen(false)}
                     aria-current={l.aktiv ? "page" : undefined}
-                    className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition-colors ${
+                    className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-medium origin-left transition-[transform,background-color,color] duration-150 ease-out hover:scale-[1.04] active:scale-[0.97] motion-reduce:transform-none motion-reduce:transition-none ${
                       l.aktiv
                         ? "bg-brand text-white shadow-sm ring-1 ring-white/10"
                         : "text-white/75 hover:bg-white/5 hover:text-white"
@@ -150,7 +150,7 @@ export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin
         ))}
 
         <form action={abmelden} className="mt-4">
-          <button className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-[15px] font-medium text-red-300 hover:bg-white/5 hover:text-red-200">
+          <button className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-[15px] font-medium text-red-300 origin-left transition-[transform,background-color,color] duration-150 ease-out hover:scale-[1.04] active:scale-[0.97] motion-reduce:transform-none motion-reduce:transition-none hover:bg-white/5 hover:text-red-200">
             <Icon name="abmelden" />
             Abmelden
           </button>
