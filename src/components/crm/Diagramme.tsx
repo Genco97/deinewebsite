@@ -1,22 +1,45 @@
 import type { ReactNode } from "react";
 import { Karte } from "@/components/ui";
 
-/** Kennzahl-Kachel: eine Zahl, groß – mit optionaler Zusatzzeile */
+/** Mini-Verlaufslinie: zeigt nur die Richtung, die genauen Werte stehen im Diagramm darunter */
+function Verlauf({ werte, beschreibung }: { werte: number[]; beschreibung: string }) {
+  if (werte.length < 2) return null;
+  const B = 120;
+  const H = 28;
+  const max = Math.max(...werte);
+  const min = Math.min(...werte);
+  const spanne = max - min || 1;
+  const pkt = werte.map((w, i) => [(i / (werte.length - 1)) * B, H - 3 - ((w - min) / spanne) * (H - 6)] as const);
+  const linie = pkt.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+  return (
+    <svg viewBox={`0 0 ${B} ${H}`} preserveAspectRatio="none" role="img" aria-label={beschreibung} className="mt-3 h-7 w-full overflow-visible">
+      <polygon points={`0,${H} ${linie} ${B},${H}`} fill="var(--color-brand)" opacity="0.08" />
+      <polyline points={linie} fill="none" stroke="var(--color-brand)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
+
+/** Kennzahl-Kachel: eine Zahl, groß – mit optionaler Zusatzzeile und Mini-Verlauf */
 export function Kennzahl({
   titel,
   wert,
   zusatz,
   trend,
+  verlauf,
+  verlaufText,
 }: {
   titel: string;
   wert: string;
   zusatz?: ReactNode;
   trend?: { text: string; gut: boolean } | null;
+  verlauf?: number[];
+  verlaufText?: string;
 }) {
   return (
-    <Karte className="p-4 sm:p-5">
+    <Karte className="p-4 transition-[transform,box-shadow] duration-150 ease-out hover:scale-[1.03] hover:shadow-lg motion-reduce:transform-none motion-reduce:transition-none sm:p-5">
       <p className="text-sm text-muted">{titel}</p>
       <p className="mt-1 font-serif text-3xl font-semibold tracking-tight text-ink">{wert}</p>
+      {verlauf ? <Verlauf werte={verlauf} beschreibung={verlaufText ?? `Verlauf ${titel}`} /> : null}
       {trend || zusatz ? (
         <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted">
           {trend ? (

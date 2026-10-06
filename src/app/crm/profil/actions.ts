@@ -18,6 +18,17 @@ export async function nameSpeichern(_v: ProfilStatus, fd: FormData): Promise<Pro
   return { ok: true, meldung: "Name gespeichert." };
 }
 
+export async function tageszielSpeichern(_v: ProfilStatus, fd: FormData): Promise<ProfilStatus> {
+  const profil = await holeProfil();
+  const ziel = Number(text(fd, "tagesziel", 5));
+  if (!Number.isInteger(ziel) || ziel < 1 || ziel > 500) return { meldung: "Bitte gib eine Zahl zwischen 1 und 500 ein." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("profiles").update({ tagesziel: ziel }).eq("id", profil.id);
+  if (error) return { meldung: "Das Tagesziel konnte nicht gespeichert werden." };
+  revalidatePath("/crm", "layout");
+  return { ok: true, meldung: `Tagesziel gespeichert: ${ziel} Kontakte pro Tag.` };
+}
+
 export async function passwortAendern(_v: ProfilStatus, fd: FormData): Promise<ProfilStatus> {
   await holeProfil();
   const pw = typeof fd.get("passwort") === "string" ? (fd.get("passwort") as string) : "";

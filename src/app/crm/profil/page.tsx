@@ -6,7 +6,7 @@ import { Hinweis, Karte, buttonClass } from "@/components/ui";
 import { holeProfil } from "@/lib/crm";
 import { createClient } from "@/lib/supabase/server";
 import { kalenderLinkNeu } from "./actions";
-import { NameFormular, PasswortFormular } from "./ProfilFormulare";
+import { NameFormular, PasswortFormular, TageszielFormular } from "./ProfilFormulare";
 
 export const metadata: Metadata = { title: "Mein Profil" };
 
@@ -40,6 +40,9 @@ export default async function Profil({ searchParams }: PageProps<"/crm/profil">)
         <Karte className="p-5">
           <h2 className="mb-4 font-bold text-ink">Name</h2>
           <NameFormular name={profil.name} />
+          <h2 className="mb-1 mt-6 font-bold text-ink">Dein Tagesziel</h2>
+          <p className="mb-3 text-sm text-muted">Der Ring auf deinem Dashboard zeigt, wie weit du heute bist.</p>
+          <TageszielFormular ziel={profil.tagesziel} />
         </Karte>
 
         <Karte className="p-5">

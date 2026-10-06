@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { nameSpeichern, passwortAendern, type ProfilStatus } from "./actions";
+import { nameSpeichern, passwortAendern, tageszielSpeichern, type ProfilStatus } from "./actions";
 import { Feld, Hinweis, Input, buttonClass } from "@/components/ui";
 
 export function NameFormular({ name }: { name: string }) {
@@ -14,6 +14,25 @@ export function NameFormular({ name }: { name: string }) {
       </Feld>
       <button disabled={laeuft} className={buttonClass("primary", "w-full sm:w-auto")}>
         {laeuft ? "Speichert …" : "Name speichern"}
+      </button>
+    </form>
+  );
+}
+
+export function TageszielFormular({ ziel }: { ziel: number }) {
+  const [s, aktion, laeuft] = useActionState<ProfilStatus, FormData>(tageszielSpeichern, {});
+  return (
+    <form action={aktion} className="space-y-3">
+      {s.meldung ? <Hinweis art={s.ok ? "ok" : "fehler"}>{s.meldung}</Hinweis> : null}
+      <Feld
+        label="Kontakte pro Tag"
+        name="tagesziel"
+        hinweis="Zählt jeden Lead, bei dem du heute etwas einträgst: Notiz, Status, Rückruf, Besuch oder Verkauf."
+      >
+        <Input name="tagesziel" type="number" inputMode="numeric" min={1} max={500} defaultValue={ziel} required />
+      </Feld>
+      <button disabled={laeuft} className={buttonClass("secondary", "w-full sm:w-auto")}>
+        {laeuft ? "Speichert …" : "Tagesziel speichern"}
       </button>
     </form>
   );

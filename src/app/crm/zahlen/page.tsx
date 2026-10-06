@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Balken, Kennzahl, Saeulen } from "@/components/crm/Diagramme";
-import { Kopf } from "@/components/crm/Kopf";
+import { HeuteErledigt, TagesRing, type TagEintrag } from "@/components/crm/MeinTag";
 import { Karte } from "@/components/ui";
 import { anzeigename, holeProfil } from "@/lib/crm";
-import { STATUS_LABEL, type LeadStatus } from "@/lib/status";
+import { ABGESCHLOSSEN, STATUS_LABEL, type LeadStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
-import { euro, heuteWien, isoZuWienLokal, wienGrenzen, wienZuIso } from "@/lib/zeit";
+import { datum, euro, heuteWien, isoZuWienLokal, uhrzeit, wienGrenzen, wienZuIso } from "@/lib/zeit";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -30,6 +30,18 @@ function trend(jetzt: number, vorher: number) {
 
 type Deal = { betrag: number; created_at: string; partner_id: string | null };
 
+/** Einträge, die als „Kontakt“ zählen (nicht: Zuteilung durch Gründer, Import-Notizen sind Notizen und zählen) */
+const KONTAKT_ARTEN = ["notiz", "status", "rueckruf", "besuch", "verkauf"];
+
+function gruss(jetzt = new Date()) {
+  const stunde = Number(isoZuWienLokal(jetzt.toISOString()).slice(11, 13));
+  if (stunde < 11) return "Guten Morgen";
+  if (stunde < 18) return "Guten Tag";
+  return "Guten Abend";
+}
+
+const TAG_LANG = new Intl.DateTimeFormat("de-AT", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Vienna" });
+
 export default async function Zahlen() {
   const profil = await holeProfil();
   const admin = profil.rolle === "admin";
@@ -39,15 +51,64 @@ export default async function Zahlen() {
   const monate = Array.from({ length: 6 }, (_, i) => monatPlus(dieserMonat, i - 5));
   const seit = wienZuIso(`${monate[0]}-01T00:00`)!;
   const monatStart = wienZuIso(`${dieserMonat}-01T00:00`)!;
-  const { wocheStart } = wienGrenzen();
+  const { wocheStart, tagStart, tagEnde } = wienGrenzen();
+  const heute = heuteWien();
+  // Wochenanfänge der letzten 6 Wochen (für den Besuchs-Verlauf)
+  const wochen = Array.from({ length: 6 }, (_, i) => new Date(Date.parse(wocheStart) - (5 - i) * 7 * 86400000).toISOString());
+  const besucheSeit = monatStart < wochen[0] ? monatStart : wochen[0];
 
   let besuche = supabase
     .from("lead_verlauf")
     .select("autor_id, created_at")
     .eq("art", "besuch")
-    .gte("created_at", monatStart < wocheStart ? monatStart : wocheStart)
+    .gte("created_at", besucheSeit)
     .limit(5000);
   if (!admin) besuche = besuche.eq("autor_id", profil.id);
+
+  const offen = `(${ABGESCHLOSSEN.join(",")})`;
+  const [heuteRes, faelligRes] = await Promise.all([
+    supabase
+      .from("lead_verlauf")
+      .select("lead_id, art, created_at, leads(firma)")
+      .eq("autor_id", profil.id)
+      .in("art", KONTAKT_ARTEN)
+      .gte("created_at", tagStart)
+      .order("created_at", { ascending: false })
+      .limit(1000),
+    supabase
+      .from("leads")
+      .select("id, firma, naechster_rueckruf, besuch_geplant")
+      .eq("besitzer_id", profil.id)
+      .not("status", "in", offen)
+      .or(`naechster_rueckruf.lt.${tagEnde},besuch_geplant.lte.${heute}`)
+      .order("naechster_rueckruf", { ascending: true, nullsFirst: false })
+      .limit(100),
+  ]);
+
+  // Mein Tag: Kontakte heute (je Lead einmal) und was noch offen ist
+  type HeuteZeile = { lead_id: string; art: string; created_at: string; leads: { firma: string } | { firma: string }[] | null };
+  const erledigt = new Map<string, { firma: string; zeit: string }>();
+  for (const z of (heuteRes.data ?? []) as HeuteZeile[]) {
+    if (erledigt.has(z.lead_id)) continue;
+    const lead = Array.isArray(z.leads) ? z.leads[0] : z.leads;
+    erledigt.set(z.lead_id, { firma: lead?.firma ?? "Lead", zeit: z.created_at });
+  }
+  type Faellig = { id: string; firma: string; naechster_rueckruf: string | null; besuch_geplant: string | null };
+  const offenListe = ((faelligRes.data ?? []) as Faellig[]).filter((l) => !erledigt.has(l.id));
+  const offenInfo = (l: Faellig) => {
+    if (l.besuch_geplant && l.besuch_geplant <= heute) return l.besuch_geplant < heute ? `Besuch überfällig seit ${datum(l.besuch_geplant)}` : "Besuch heute";
+    if (l.naechster_rueckruf && l.naechster_rueckruf < tagStart) return `Rückruf überfällig seit ${datum(l.naechster_rueckruf)}`;
+    return `Rückruf heute ${uhrzeit(l.naechster_rueckruf)}`;
+  };
+  const tagEintraege: TagEintrag[] = [
+    ...offenListe.slice(0, 5).map((l) => ({ id: l.id, firma: l.firma, erledigt: false, info: offenInfo(l) })),
+    ...[...erledigt].slice(0, 8 - Math.min(5, offenListe.length)).map(([id, e]) => ({
+      id,
+      firma: e.firma,
+      erledigt: true,
+      info: `erledigt um ${uhrzeit(e.zeit)}`,
+    })),
+  ];
 
   const [dealsRes, besucheRes, personenRes, sorglosRes, ...statusRes] = await Promise.all([
     supabase.from("deals").select("betrag, created_at, partner_id").neq("status", "storniert").gte("created_at", seit).limit(5000),
@@ -83,6 +144,10 @@ export default async function Zahlen() {
 
   const besuchListe = (besucheRes.data ?? []) as { autor_id: string | null; created_at: string }[];
   const besucheWoche = besuchListe.filter((b) => b.created_at >= wocheStart).length;
+  const besucheProWoche = wochen.map((w, i) => {
+    const bis = wochen[i + 1] ?? "9999";
+    return besuchListe.filter((b) => b.created_at >= w && b.created_at < bis).length;
+  });
 
   const rangliste = admin
     ? ((personenRes.data ?? []) as { id: string; name: string; email: string; rolle: string }[])
@@ -102,7 +167,18 @@ export default async function Zahlen() {
 
   return (
     <>
-      <Kopf titel="Dashboard" text={admin ? "Wie läuft es im ganzen Team?" : "Wie läuft es bei dir?"} />
+      <div className="mb-6">
+        <p className="text-sm font-semibold uppercase tracking-wide text-brand">{TAG_LANG.format(new Date())}</p>
+        <h1 className="mt-1 font-serif text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+          {gruss()}, {anzeigename(profil).split(" ")[0]}
+        </h1>
+        <p className="mt-1 text-muted">{admin ? "Dein Tag und wie es im ganzen Team läuft." : "Dein Tag und wie es bei dir läuft."}</p>
+      </div>
+
+      <div className="mb-6 grid items-start gap-4 lg:grid-cols-2">
+        <TagesRing kontakte={erledigt.size} ziel={profil.tagesziel} />
+        <HeuteErledigt eintraege={tagEintraege} gesamtOffen={offenListe.length} gesamtErledigt={erledigt.size} />
+      </div>
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Kennzahl
@@ -110,18 +186,28 @@ export default async function Zahlen() {
           wert={euro(umsatzJetzt)}
           trend={trend(umsatzJetzt, umsatzVorher)}
           zusatz={`Vormonat bis heute: ${euro(umsatzVorher)}`}
+          verlauf={monate.map(umsatz)}
+          verlaufText="Umsatz der letzten 6 Monate"
         />
         <Kennzahl
           titel={`Verkäufe im ${monatName}`}
           wert={String(verkaeufeJetzt)}
           zusatz={verkaeufeJetzt > 0 ? `Ø ${euro(umsatzJetzt / verkaeufeJetzt)}` : "noch keine"}
+          verlauf={monate.map(anzahl)}
+          verlaufText="Verkäufe der letzten 6 Monate"
         />
         <Kennzahl
           titel="Abschlussquote"
           wert={quote === null ? "–" : `${quote} %`}
           zusatz={entschieden > 0 ? `${zaehler.verkauft} von ${entschieden} entschiedenen Leads` : "noch keine Ergebnisse"}
         />
-        <Kennzahl titel="Besuche diese Woche" wert={String(besucheWoche)} zusatz={admin ? "im ganzen Team" : "von dir"} />
+        <Kennzahl
+          titel="Besuche diese Woche"
+          wert={String(besucheWoche)}
+          zusatz={admin ? "im ganzen Team" : "von dir"}
+          verlauf={besucheProWoche}
+          verlaufText="Besuche der letzten 6 Wochen"
+        />
         <Kennzahl
           titel="Sorglos-Pakete"
           wert={`${euro(sorglosMonat)}`}

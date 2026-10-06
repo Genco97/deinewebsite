@@ -13,6 +13,8 @@ export type Profil = {
   upline_id: string | null;
   einladungscode: string;
   aktiv: boolean;
+  /** Kontakte pro Tag, die sich die Person vornimmt */
+  tagesziel: number;
 };
 
 /** Anzeigename: Name, sonst E-Mail */
@@ -30,7 +32,7 @@ export const holeProfil = cache(async (): Promise<Profil> => {
 
   const { data } = await supabase
     .from("profiles")
-    .select("id, name, email, rolle, upline_id, einladungscode, aktiv")
+    .select("id, name, email, rolle, upline_id, einladungscode, aktiv, tagesziel")
     .eq("id", userId)
     .single();
   if (!data) redirect("/auth/abmelden?grund=profil");
