@@ -149,7 +149,8 @@ export function KarteAnsicht({ leads }: { leads: KartenLead[] }) {
         })}
       </div>
 
-      <div className="relative overflow-hidden rounded-xl border border-line">
+      {/* isolate: Leaflet-Ebenen (z-index 400–1000) bleiben in der Karte und liegen nicht über dem Handy-Menü */}
+      <div className="relative isolate overflow-hidden rounded-xl border border-line">
         <div ref={box} className="h-[60vh] min-h-80 w-full bg-bg" />
         <button
           type="button"
