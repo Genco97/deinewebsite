@@ -20,6 +20,8 @@ const PFADE = {
   profil: "M20 21v-1a5 5 0 0 0-5-5H9a5 5 0 0 0-5 5v1M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
   abmelden: "M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11",
   menue: "M4 7h16M4 12h16M4 17h16",
+  anrufen: "M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z",
+  team: "M6 20V10M12 20V4M18 20v-7",
   schliessen: "M6 6l12 12M18 6L6 18",
 } as const;
 
@@ -52,11 +54,13 @@ export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin
       eintraege: [
         { href: "/crm/zahlen", label: "Dashboard", icon: "dashboard", aktiv: pfad.startsWith("/crm/zahlen") },
         { href: "/crm", label: "Heute", icon: "heute", aktiv: pfad === "/crm", zahl: faellig },
+        { href: "/crm/team", label: "Team", icon: "team", aktiv: pfad.startsWith("/crm/team") },
       ],
     },
     {
       titel: "Vertrieb",
       eintraege: [
+        { href: "/crm/anrufen", label: "Anruf-Modus", icon: "anrufen", aktiv: pfad.startsWith("/crm/anrufen") },
         { href: "/crm/leads", label: "Leads", icon: "leads", aktiv: pfad.startsWith("/crm/leads") },
         { href: "/crm/besuche", label: "Besuche", icon: "besuche", aktiv: pfad.startsWith("/crm/besuche") },
         { href: "/crm/karte", label: "Karte", icon: "karte", aktiv: pfad.startsWith("/crm/karte") },

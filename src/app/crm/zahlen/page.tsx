@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Balken, Kennzahl, Saeulen } from "@/components/crm/Diagramme";
+import { TeamFeed, TeamTabelle } from "@/components/crm/Team";
 import { HeuteErledigt, TagesRing, type TagEintrag } from "@/components/crm/MeinTag";
 import { Karte } from "@/components/ui";
 import { anzeigename, holeProfil } from "@/lib/crm";
 import { ABGESCHLOSSEN, STATUS_LABEL, type LeadStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
+import { sortiere, teamFeed, teamWoche } from "@/lib/team";
 import { datum, euro, heuteWien, isoZuWienLokal, uhrzeit, wienGrenzen, wienZuIso } from "@/lib/zeit";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -111,6 +114,9 @@ export default async function Zahlen() {
     })),
   ];
 
+  const naechsteWoche = new Date(Date.parse(wocheStart) + 7 * 86400000 + 12 * 3600000);
+  const [team, feed] = await Promise.all([teamWoche(wocheStart, wienGrenzen(naechsteWoche).wocheStart), teamFeed(7)]);
+
   const [dealsRes, besucheRes, personenRes, sorglosRes, ...statusRes] = await Promise.all([
     supabase.from("deals").select("betrag, created_at, partner_id").neq("status", "storniert").gte("created_at", seit).limit(5000),
     besuche,
@@ -214,6 +220,19 @@ export default async function Zahlen() {
           wert={`${euro(sorglosMonat)}`}
           zusatz={`pro Monat · ${sorglos.length} ${sorglos.length === 1 ? "Kunde" : "Kunden"}`}
         />
+      </div>
+
+      <div className="mb-6 grid items-start gap-6 lg:grid-cols-[1fr_1.4fr]">
+        <TeamFeed eintraege={feed} max={6} />
+        <Karte className="overflow-hidden">
+          <div className="flex items-baseline justify-between gap-3 border-b border-line px-4 py-3">
+            <h2 className="font-bold text-ink">Team diese Woche</h2>
+            <Link href="/crm/team" className="text-sm font-semibold text-brand hover:underline">
+              Alle Zahlen
+            </Link>
+          </div>
+          <TeamTabelle zeilen={sortiere(team, "kontakte")} sortiert="kontakte" />
+        </Karte>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">

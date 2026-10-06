@@ -3,10 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { KontaktFormular } from "@/components/crm/KontaktFormular";
 import { NaechsterSchritt } from "@/components/crm/NaechsterSchritt";
+import { Gespraechshilfe } from "@/components/crm/Gespraechshilfe";
 import { StatusBadge } from "@/components/crm/StatusBadge";
 import { VerkaufFormular } from "@/components/crm/VerkaufFormular";
 import { Hinweis, Karte, Select, Textarea, buttonClass } from "@/components/ui";
-import { aktivePersonen, holeProfil } from "@/lib/crm";
+import { aktivePersonen, anzeigename, holeProfil } from "@/lib/crm";
 import { mapsSuche } from "@/lib/besuche";
 import { EINWILLIGUNG_ARTEN } from "@/lib/einwilligung";
 import { OHNE_SCHRITT, liegtSeit, schrittVorgabe } from "@/lib/schritt";
@@ -253,6 +254,15 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
         </div>
 
         <div className="space-y-6">
+          {!gesperrt ? (
+            <Gespraechshilfe
+              firma={lead.firma}
+              ansprechpartner={lead.ansprechpartner}
+              branche={lead.branche}
+              meinName={anzeigename(profil)}
+              offen={anrufErlaubt}
+            />
+          ) : null}
           {admin ? (
             <Abschnitt titel="Zugeteilt an">
               <form action={leadsZuteilen} className="flex flex-col gap-2 sm:flex-row">
