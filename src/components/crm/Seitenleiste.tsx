@@ -108,7 +108,7 @@ export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin
             type="button"
             onClick={() => setOffen(false)}
             aria-label="Menü schließen"
-            className="-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-white/70 hover:bg-white/5 hover:text-white"
+            className="-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-muted hover:bg-brand-light hover:text-brand"
           >
             <Icon name="schliessen" className="h-6 w-6" />
           </button>
@@ -118,7 +118,7 @@ export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin
       <nav aria-label="CRM-Navigation" className="flex-1 overflow-y-auto px-3 pb-4">
         {gruppen.map((g) => (
           <div key={g.titel} className="mt-4 first:mt-2">
-            <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">{g.titel}</p>
+            <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted/80">{g.titel}</p>
             <ul className="space-y-1">
               {g.eintraege.map((l) => (
                 <li key={l.href}>
@@ -126,10 +126,10 @@ export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin
                     href={l.href}
                     onClick={() => setOffen(false)}
                     aria-current={l.aktiv ? "page" : undefined}
-                    className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-medium origin-left transition-[transform,background-color,color] duration-150 ease-out hover:scale-[1.04] active:scale-[0.97] motion-reduce:transform-none motion-reduce:transition-none ${
+                    className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-medium origin-left transition-[transform,background-color,color,box-shadow] duration-150 ease-out hover:scale-[1.05] hover:shadow-md active:scale-95 motion-reduce:transform-none motion-reduce:transition-none ${
                       l.aktiv
-                        ? "bg-brand text-white shadow-sm ring-1 ring-white/10"
-                        : "text-white/75 hover:bg-white/5 hover:text-white"
+                        ? "bg-brand text-white shadow-sm"
+                        : "text-muted hover:bg-brand-light hover:text-brand"
                     }`}
                   >
                     <Icon name={l.icon} />
@@ -150,7 +150,7 @@ export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin
         ))}
 
         <form action={abmelden} className="mt-4">
-          <button className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-[15px] font-medium text-red-300 origin-left transition-[transform,background-color,color] duration-150 ease-out hover:scale-[1.04] active:scale-[0.97] motion-reduce:transform-none motion-reduce:transition-none hover:bg-white/5 hover:text-red-200">
+          <button className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-[15px] font-medium text-danger origin-left transition-[transform,background-color,color,box-shadow] duration-150 ease-out hover:scale-[1.05] hover:shadow-md active:scale-95 motion-reduce:transform-none motion-reduce:transition-none hover:bg-danger-light">
             <Icon name="abmelden" />
             Abmelden
           </button>
@@ -161,14 +161,14 @@ export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin
         <Link
           href="/crm/profil"
           onClick={() => setOffen(false)}
-          className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 hover:bg-white/10"
+          className="flex items-center gap-3 rounded-xl border border-line bg-bg p-3 hover:bg-brand-light"
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-sm font-bold text-white">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#3d7fd0] to-brand text-sm font-bold text-white">
             {initialen(name)}
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold">{name}</span>
-            <span className="block text-xs text-white/60">{admin ? "Gründer · Admin" : "Partner"}</span>
+            <span className="block truncate text-sm font-semibold text-ink">{name}</span>
+            <span className="block text-xs text-muted">{admin ? "Gründer · Admin" : "Partner"}</span>
           </span>
         </Link>
       </div>
@@ -178,7 +178,7 @@ export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin
   return (
     <div className="print:hidden">
       {/* Handy & Tablet hochkant: Kopfzeile mit Menü-Knopf */}
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 bg-sidebar px-2 text-white md:hidden">
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-line bg-surface px-2 text-ink md:hidden">
         <button
           ref={menueRef}
           type="button"
@@ -186,10 +186,10 @@ export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin
           aria-label="Menü öffnen"
           aria-expanded={offen}
           aria-controls="crm-menue"
-          className="relative inline-flex h-11 w-11 items-center justify-center rounded-lg hover:bg-white/5"
+          className="relative inline-flex h-11 w-11 items-center justify-center rounded-lg text-brand transition-transform hover:bg-brand-light active:scale-90"
         >
           <Icon name="menue" className="h-6 w-6" />
-          {faellig > 0 && <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-danger ring-2 ring-sidebar" aria-hidden />}
+          {faellig > 0 && <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-danger ring-2 ring-surface" aria-hidden />}
         </button>
         <Link href="/crm" className="inline-flex min-h-11 items-center gap-2 font-extrabold tracking-[-0.04em]">
           <LogoMark className="h-6 w-6" verlaufId="verlauf-kopf" />
@@ -198,7 +198,7 @@ export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin
         {faellig > 0 && (
           <Link
             href="/crm"
-            className="ml-auto inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm text-white/80 hover:text-white"
+            className="ml-auto inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-brand hover:bg-brand-light"
           >
             Heute
             <span className="rounded-full bg-danger px-1.5 py-0.5 text-[11px] font-bold leading-none text-white">
@@ -220,7 +220,7 @@ export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin
         aria-modal="true"
         aria-label="Menü"
         inert={!offen}
-        className={`fixed inset-y-0 left-0 z-50 flex w-[85vw] max-w-xs flex-col bg-sidebar text-white transition-transform duration-200 md:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[85vw] max-w-xs flex-col border-r border-line bg-surface text-ink transition-transform duration-200 md:hidden ${
           offen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
         }`}
       >
@@ -228,7 +228,7 @@ export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin
       </aside>
 
       {/* Ab Tablet quer / Desktop: feste Seitenleiste */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-sidebar text-white md:flex">{inhalt("desktop")}</aside>
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-surface text-ink md:flex">{inhalt("desktop")}</aside>
     </div>
   );
 }
