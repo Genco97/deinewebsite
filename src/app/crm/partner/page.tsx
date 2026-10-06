@@ -54,7 +54,7 @@ export default async function Partner() {
   const offen = summe((p) => !p.ausbezahlt);
   const ausbezahlt = summe((p) => p.ausbezahlt);
 
-  // Team: direkt eingeladen (Ebene 2) und deren Eingeladene (Ebene 3).
+  // Team: direkt eingeladen (bringt dir Provision der Ebene 2) und deren Eingeladene (Ebene 3).
   // Admins sehen per RLS alle Profile – hier zählt aber nur das eigene Team.
   const alle = (team ?? []) as TeamMitglied[];
   const direkt = alle.filter((t) => t.upline_id === profil.id);
@@ -209,7 +209,7 @@ export default async function Partner() {
                     </span>
                   </span>
                   <span className="shrink-0 rounded-full bg-brand-light px-2.5 py-0.5 text-xs font-semibold text-brand">
-                    Ebene {t.ebene}
+                    {t.ebene === 2 ? "Direkt" : "Indirekt"} · {t.ebene === 2 ? 5 : 2} %{gruender ? " → Gründer-Topf" : " für dich"}
                   </span>
                 </li>
               ))}
