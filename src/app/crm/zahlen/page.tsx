@@ -30,7 +30,7 @@ function trend(jetzt: number, vorher: number) {
 
 type Deal = { betrag: number; created_at: string; partner_id: string | null };
 
-/** Einträge, die als „Kontakt“ zählen (nicht: Zuteilung durch Gründer, Import-Notizen sind Notizen und zählen) */
+/** Einträge, die als „Kontakt“ zählen – nicht: Zuteilung durch Gründer (system) und die automatische Notiz beim CSV-Import */
 const KONTAKT_ARTEN = ["notiz", "status", "rueckruf", "besuch", "verkauf"];
 
 function gruss(jetzt = new Date()) {
@@ -72,6 +72,7 @@ export default async function Zahlen() {
       .select("lead_id, art, created_at, leads(firma)")
       .eq("autor_id", profil.id)
       .in("art", KONTAKT_ARTEN)
+      .not("text", "like", "Aus dem CSV-Import%") // automatische Import-Notizen sind keine Kontakte
       .gte("created_at", tagStart)
       .order("created_at", { ascending: false })
       .limit(1000),
