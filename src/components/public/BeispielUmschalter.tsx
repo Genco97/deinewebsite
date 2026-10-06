@@ -1,127 +1,117 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { buttonClass } from "@/components/ui";
-import { THEMEN, THEMA_INFO, type Thema } from "@/lib/beispiele";
+import { BRANCHEN, BRANCHE_INFO, THEMEN, THEMA_INFO, betriebFuer, type BrancheId, type Thema } from "@/lib/beispiele";
 import { PAKET_NAMEN } from "@/lib/pakete";
+import { DesktopRahmen, HandyRahmen } from "./Geraete";
+import { demoLink, vorschauLink } from "./VorschauGenerator";
 
-/** Breite, in der die Beispielseite „gedacht“ ist – am Handy die Handy-Ansicht. */
-const breiteFuer = (w: number) => (w < 640 ? 390 : 1280);
-
+/** C3: Branche und Design frei kombinieren – Computer und Handy nebeneinander */
 export function BeispielUmschalter() {
-  const [thema, setThema] = useState<Thema>("ursprung");
-  const [geladen, setGeladen] = useState<Thema[]>(["ursprung"]);
-  const [breite, setBreite] = useState<number | null>(null);
-  const rahmen = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = rahmen.current;
-    if (!el) return;
-    const ro = new ResizeObserver(([e]) => setBreite(Math.round(e.contentRect.width)));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  function waehlen(t: Thema) {
-    setThema(t);
-    setGeladen((g) => (g.includes(t) ? g : [...g, t]));
-  }
+  const [thema, setThema] = useState<Thema>("business");
+  const [branche, setBranche] = useState<BrancheId>("friseur");
 
   function pfeil(e: React.KeyboardEvent, i: number) {
     const n = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
     if (!n) return;
     e.preventDefault();
     const t = THEMEN[(i + n + THEMEN.length) % THEMEN.length];
-    waehlen(t);
+    setThema(t);
     document.getElementById(`thema-${t}`)?.focus();
   }
 
-  const handy = breite !== null && breite < 640;
-  const logisch = breite ? breiteFuer(breite) : 1280;
-  const massstab = breite ? breite / logisch : 1;
-  const hoehe = handy ? 540 : Math.min(620, Math.round((breite ?? 1000) * 0.6));
   const info = THEMA_INFO[thema];
+  const betrieb = betriebFuer(branche);
+  const src = vorschauLink(thema, branche, "");
 
   return (
     <div>
-      <div role="tablist" aria-label="Design auswählen" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {THEMEN.map((t, i) => {
-          const aktiv = t === thema;
-          return (
-            <button
-              key={t}
-              id={`thema-${t}`}
-              role="tab"
-              aria-selected={aktiv}
-              aria-controls="thema-vorschau"
-              tabIndex={aktiv ? 0 : -1}
-              onClick={() => waehlen(t)}
-              onKeyDown={(e) => pfeil(e, i)}
-              className={`min-h-11 rounded-xl border px-4 py-3 text-left transition-colors ${
-                aktiv ? "border-brand bg-brand text-white" : "border-line bg-surface text-ink hover:border-brand"
-              }`}
-            >
-              <span className="block font-semibold">{THEMA_INFO[t].label}</span>
-              <span className={`block text-sm ${aktiv ? "text-white/80" : "text-muted"}`}>{THEMA_INFO[t].kurz}</span>
-            </button>
-          );
-        })}
+      <div className="grid gap-5 lg:grid-cols-[auto_1fr] lg:items-start">
+        <fieldset>
+          <legend className="mb-2 text-sm font-semibold uppercase tracking-wide text-brand">1 · Ihre Branche</legend>
+          <div className="flex flex-wrap gap-2">
+            {BRANCHEN.map((b) => {
+              const aktiv = b === branche;
+              return (
+                <button
+                  key={b}
+                  type="button"
+                  aria-pressed={aktiv}
+                  onClick={() => setBranche(b)}
+                  className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-[15px] font-medium transition-[transform,background-color,color] duration-150 hover:scale-[1.04] active:scale-95 motion-reduce:transform-none ${
+                    aktiv ? "border-brand bg-brand text-white" : "border-line bg-surface text-ink hover:border-brand hover:text-brand"
+                  }`}
+                >
+                  <span aria-hidden>{BRANCHE_INFO[b].symbol}</span>
+                  {BRANCHE_INFO[b].label}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        <div>
+          <p id="design-titel" className="mb-2 text-sm font-semibold uppercase tracking-wide text-brand">
+            2 · Ihr Design
+          </p>
+          <div role="tablist" aria-labelledby="design-titel" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {THEMEN.map((t, i) => {
+              const aktiv = t === thema;
+              return (
+                <button
+                  key={t}
+                  id={`thema-${t}`}
+                  role="tab"
+                  aria-selected={aktiv}
+                  aria-controls="thema-vorschau"
+                  tabIndex={aktiv ? 0 : -1}
+                  onClick={() => setThema(t)}
+                  onKeyDown={(e) => pfeil(e, i)}
+                  className={`min-h-11 rounded-xl border px-4 py-2.5 text-left transition-[transform,background-color,border-color] duration-150 hover:scale-[1.03] active:scale-95 motion-reduce:transform-none ${
+                    aktiv ? "border-brand bg-brand text-white" : "border-line bg-surface text-ink hover:border-brand"
+                  }`}
+                >
+                  <span className="block font-semibold">{THEMA_INFO[t].label}</span>
+                  <span className={`block text-sm ${aktiv ? "text-white/80" : "text-muted"}`}>{THEMA_INFO[t].kurz}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
-      <div id="thema-vorschau" role="tabpanel" aria-labelledby={`thema-${thema}`} className="mt-6">
-        <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
-          <div className="flex items-center gap-2 border-b border-line bg-bg px-4 py-2.5">
-            <span aria-hidden className="flex gap-1.5">
-              <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
-              <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
-              <span className="h-3 w-3 rounded-full bg-[#28c840]" />
-            </span>
-            <span className="ml-2 min-w-0 flex-1 truncate rounded-md bg-surface px-3 py-1 text-center text-xs text-muted">
-              Beispiel: Salon Mila · {info.label}
-            </span>
+      <div id="thema-vorschau" role="tabpanel" aria-labelledby={`thema-${thema}`} className="mt-8">
+        <div className="flex items-end gap-6">
+          <div className="hidden min-w-0 flex-1 lg:block">
+            <p className="mb-2 text-sm font-medium text-muted">Am Computer</p>
+            <DesktopRahmen
+              src={src}
+              titel={`${betrieb.name} im Design ${info.label} am Computer`}
+              adresse={`${betrieb.name.toLowerCase().replace(/[^a-z0-9äöüß]+/g, "-")}.at`}
+              hoehe={540}
+            />
           </div>
-          <div ref={rahmen} className="relative bg-bg" style={{ height: hoehe }}>
-            {breite
-              ? geladen.map((t) => (
-                  <iframe
-                    key={t}
-                    src={`/beispiele/${t}`}
-                    title={`Beispiel-Website im Design ${THEMA_INFO[t].label}`}
-                    tabIndex={t === thema && !handy ? 0 : -1}
-                    aria-hidden={t !== thema}
-                    className="absolute left-0 top-0 origin-top-left border-0"
-                    style={{
-                      width: logisch,
-                      height: hoehe / massstab,
-                      transform: `scale(${massstab})`,
-                      visibility: t === thema ? "visible" : "hidden",
-                      pointerEvents: handy ? "none" : undefined,
-                    }}
-                  />
-                ))
-              : null}
-            {handy ? (
-              <Link
-                href={`/beispiele/${thema}`}
-                className="absolute inset-x-0 bottom-0 flex h-28 items-end justify-center bg-gradient-to-t from-black/50 to-transparent pb-4"
-              >
-                <span className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-ink shadow">Antippen und ganz ansehen</span>
-              </Link>
-            ) : null}
+          <div className="mx-auto lg:mx-0">
+            <p className="mb-2 text-center text-sm font-medium text-muted lg:text-left">Am Handy</p>
+            <HandyRahmen src={src} titel={`${betrieb.name} im Design ${info.label} am Handy`} breite={280} />
           </div>
         </div>
 
-        <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-2xl text-muted">
-            <strong className="text-ink">{info.paket ? `Paket ${PAKET_NAMEN[info.paket]}` : "Unser Stil"}:</strong> {info.text}
+            <strong className="text-ink">
+              {BRANCHE_INFO[branche].label} · {info.paket ? `Paket ${PAKET_NAMEN[info.paket]}` : "Unser Stil"}:
+            </strong>{" "}
+            {info.text}
           </p>
           <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
-            <Link href={`/beispiele/${thema}`} className={buttonClass("secondary")}>
+            <Link href={src} className={buttonClass("secondary")}>
               Ganz ansehen
             </Link>
-            <Link href={`/demo?paket=${info.paket ?? "business"}`} className={buttonClass("primary")}>
-              {info.paket ? `${PAKET_NAMEN[info.paket]} anfragen` : "Gratis-Demo anfordern"}
+            <Link href={demoLink(info.paket ?? "business", branche, "", info.label)} className={buttonClass("primary")}>
+              {info.paket === "premium" ? "Pro anfragen" : "So eine Demo gratis"}
             </Link>
           </div>
         </div>

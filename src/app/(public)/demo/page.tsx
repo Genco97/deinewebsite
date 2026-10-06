@@ -16,6 +16,13 @@ export default async function DemoSeite({ searchParams }: PageProps<"/demo">) {
   const paketId = istPaket(roh) ? roh : "business";
   const paket = PAKETE.find((p) => p.id === paketId)!;
   const premium = paket.id === "premium";
+  // Aus der Vorschau auf der Startseite vorbefüllt
+  const text = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string).slice(0, 60) : "");
+  const vorgabe = {
+    firma: text("firma"),
+    branche: text("branche"),
+    wuensche: text("design") ? `Design wie im Beispiel „${text("design")}“.` : "",
+  };
 
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:py-16 lg:grid-cols-[1fr_1.3fr]">
@@ -68,7 +75,7 @@ export default async function DemoSeite({ searchParams }: PageProps<"/demo">) {
       </div>
 
       <Karte className="p-5 sm:p-8">
-        <DemoFormular key={paket.id} paket={paket.id} button={premium ? "Beratung anfragen" : "Gratis-Demo anfordern"} />
+        <DemoFormular key={paket.id} paket={paket.id} button={premium ? "Beratung anfragen" : "Gratis-Demo anfordern"} vorgabe={vorgabe} />
       </Karte>
     </div>
   );

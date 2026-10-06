@@ -3,12 +3,12 @@
 import { useState } from "react";
 
 /** Anfrage-Formular für die Beispiel-Website – sendet nichts. */
-export function DemoFormular({ knopf, feld, akzent }: { knopf: string; feld: string; akzent: string }) {
+export function DemoFormular({ knopf, feld, akzent, wunsch }: { knopf: string; feld: string; akzent: string; wunsch: string }) {
   const [gesendet, setGesendet] = useState(false);
   if (gesendet) {
     return (
       <p role="status" className="rounded-xl p-5 font-semibold" style={{ background: `${akzent}14`, color: akzent }}>
-        Danke! Auf einer echten Website kommt Ihre Anfrage jetzt per E-Mail beim Salon an. In diesem Beispiel wird nichts gesendet.
+        Danke! Auf einer echten Website kommt Ihre Anfrage jetzt per E-Mail beim Betrieb an. In diesem Beispiel wird nichts gesendet.
       </p>
     );
   }
@@ -30,7 +30,7 @@ export function DemoFormular({ knopf, feld, akzent }: { knopf: string; feld: str
       </label>
       <label className="block text-sm font-semibold">
         Ihr Wunsch
-        <textarea rows={3} className={feld} placeholder="z. B. Balayage, am liebsten Samstag" />
+        <textarea rows={3} className={feld} placeholder={wunsch} />
       </label>
       <button className="min-h-11 w-full rounded-full px-6 font-semibold text-white" style={{ background: akzent }}>
         {knopf}

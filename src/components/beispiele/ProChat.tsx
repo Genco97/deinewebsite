@@ -1,47 +1,50 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { SALON, euroGanz } from "@/lib/beispiele";
+import { abPreis, type Betrieb } from "@/lib/beispiele";
 
 type Nachricht = { von: "ki" | "ich"; text: string };
 
-const VORSCHLAEGE = ["Was kostet Färben?", "Wann habt ihr offen?", "Wo seid ihr?", "Termin buchen"];
-
-const preis = (id: string) => {
-  const l = SALON.leistungen.find((x) => x.id === id)!;
-  return `${l.name} kostet ab ${euroGanz(l.preis)} und dauert ca. ${l.dauer} Minuten.`;
-};
+const klein = (t: string) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
 // Vorbereitete Antworten – im Beispiel ohne echte KI, damit nichts kostet.
-const REGELN: { muster: RegExp; antwort: () => string }[] = [
-  { muster: /balayage|str[äa]hn/i, antwort: () => `${preis("straehnen")} Wir beraten Sie vorher gratis, welcher Ton zu Ihnen passt.` },
-  { muster: /f[äa]rb|farbe|ansatz/i, antwort: () => `${preis("farbe")} Wir arbeiten mit ammoniakfreien Farben.` },
-  { muster: /herren|mann|bart/i, antwort: () => `${preis("herren")} Bei Jonas sind Sie dafür genau richtig.` },
-  { muster: /kind/i, antwort: () => preis("kinder") },
-  { muster: /hochzeit|hochsteck|ball|fest/i, antwort: () => `${preis("styling")} Selin kommt auf Wunsch auch zu Ihnen nach Hause.` },
-  { muster: /preis|kost|schnitt|damen|teuer/i, antwort: () => `${preis("damen")} Eine Übersicht aller Preise finden Sie weiter oben bei „Leistungen“.` },
-  {
-    muster: /offen|öffnung|oeffnung|zeit|wann|samstag|montag|heute|morgen/i,
-    antwort: () => `Wir haben ${SALON.oeffnungszeiten.filter((o) => o.zeit !== "geschlossen").map((o) => `${o.tage} ${o.zeit}`).join(" und ")} offen. Montag und Sonntag ist geschlossen.`,
-  },
-  { muster: /\bwo\b|adresse|anfahrt|u-?bahn|parken/i, antwort: () => `Sie finden uns in der ${SALON.strasse}, ${SALON.plz} ${SALON.ort} – 3 Minuten von der U3 Neubaugasse.` },
-  { muster: /termin|buch|reserv|frei/i, antwort: () => "Gern! Scrollen Sie zu „Termin buchen“ – dort sehen Sie alle freien Zeiten und buchen in 20 Sekunden. Oder rufen Sie uns an: " + SALON.telefon },
-  { muster: /karte|zahl|bar|bankomat/i, antwort: () => "Sie können bar, mit Bankomat-, Kreditkarte oder mit dem Handy zahlen." },
-  { muster: /\b(hallo|hi|servus)\b|grüß|gruess/i, antwort: () => "Servus! 👋 Wie kann ich Ihnen helfen?" },
-  { muster: /danke/i, antwort: () => "Sehr gern! Wir freuen uns auf Ihren Besuch. ✂️" },
-];
+function antwortFuer(b: Betrieb, frage: string) {
+  const f = klein(frage);
+  const preis = (l: Betrieb["leistungen"][number]) =>
+    `${l.name}: ${abPreis(l.preis)}${l.dauer ? `, Dauer ca. ${l.dauer} Minuten` : ""}.`;
 
-function antwortFuer(frage: string) {
-  return (
-    REGELN.find((r) => r.muster.test(frage))?.antwort() ??
-    `Gute Frage! Das beantwortet Ihnen Mila am besten persönlich unter ${SALON.telefon}. Ich kann Ihnen sonst bei Preisen, Öffnungszeiten, Anfahrt und Terminen helfen.`
+  // Eine Leistung beim Namen genannt? (z. B. „Fade“, „Kebap“, „Küche“)
+  const treffer = b.leistungen.find((l) =>
+    klein(l.name)
+      .split(/[^a-z0-9]+/)
+      .some((w) => w.length > 3 && f.includes(w.slice(0, Math.max(4, w.length - 2)))),
   );
+  if (treffer) return `${preis(treffer)} ${treffer.text}.`;
+
+  if (/offen|offnung|oeffnung|zeit|wann|samstag|sonntag|montag|heute|morgen/.test(f)) {
+    const offen = b.oeffnungszeiten.filter((o) => o.zeit !== "geschlossen").map((o) => `${o.tage} ${o.zeit}`);
+    const zu = b.oeffnungszeiten.filter((o) => o.zeit === "geschlossen").map((o) => o.tage);
+    return `Wir haben ${offen.join(" und ")} offen.${zu.length ? ` ${zu.join(" und ")} ist geschlossen.` : ""}`;
+  }
+  if (/\bwo\b|adresse|anfahrt|bahn|parken/.test(f)) return `Sie finden uns in der ${b.strasse}, ${b.plz} ${b.ort}.`;
+  for (const q of b.fragen) {
+    const kern = klein(q.f).split(/[^a-z0-9]+/).filter((w) => w.length > 4 && !["kostet", "konnen", "machen"].includes(w));
+    if (kern.some((w) => f.includes(w.slice(0, 6)))) return q.a;
+  }
+  if (/termin|buch|reserv|bestell|frei|tisch/.test(f))
+    return `Gern! Scrollen Sie zu „${b.buchung.titel.replace(".", "")}“ – dort geht es in 20 Sekunden. Oder rufen Sie uns an: ${b.telefon}`;
+  if (/preis|kost|teuer|was kostet/.test(f))
+    return `Zum Beispiel: ${b.leistungen.slice(0, 3).map((l) => `${l.name} ${abPreis(l.preis)}`).join(", ")}. Alle Preise finden Sie weiter oben.`;
+  if (/karte|zahl|bar|bankomat/.test(f)) return "Sie können bar, mit Bankomat-, Kreditkarte oder mit dem Handy zahlen.";
+  if (/\b(hallo|hi|servus)\b|gruss|gruess/.test(f)) return "Servus! 👋 Wie kann ich Ihnen helfen?";
+  if (/danke/.test(f)) return "Sehr gern! Wir freuen uns auf Ihren Besuch.";
+  return `Gute Frage! Das beantworten wir Ihnen am besten persönlich unter ${b.telefon}. Ich kann Ihnen sonst bei Preisen, Öffnungszeiten, Anfahrt und ${b.aktionKurz === "Termin" ? "Terminen" : "Reservierungen"} helfen.`;
 }
 
-export function ProChat() {
+export function ProChat({ betrieb }: { betrieb: Betrieb }) {
   const [offen, setOffen] = useState(false);
   const [verlauf, setVerlauf] = useState<Nachricht[]>([
-    { von: "ki", text: `Hallo! Ich bin der KI-Assistent von ${SALON.name}. Fragen Sie mich nach Preisen, Öffnungszeiten oder einem Termin.` },
+    { von: "ki", text: `Hallo! Ich bin der KI-Assistent von ${betrieb.name}. Fragen Sie mich nach Preisen, Öffnungszeiten oder einem Termin.` },
   ]);
   const [tippt, setTippt] = useState(false);
   const [eingabe, setEingabe] = useState("");
@@ -60,7 +63,7 @@ export function ProChat() {
     setEingabe("");
     setTippt(true);
     timer.current = setTimeout(() => {
-      setVerlauf((v) => [...v, { von: "ki", text: antwortFuer(frage) }]);
+      setVerlauf((v) => [...v, { von: "ki", text: antwortFuer(betrieb, frage) }]);
       setTippt(false);
     }, 700 + Math.min(1200, frage.length * 25));
   }
@@ -77,7 +80,7 @@ export function ProChat() {
             <div className="flex items-center gap-3">
               <span aria-hidden className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-fuchsia-500 to-cyan-400 text-lg">✦</span>
               <div>
-                <p className="font-bold leading-tight">Mila KI</p>
+                <p className="font-bold leading-tight">{betrieb.marke.charAt(0) + betrieb.marke.slice(1).toLowerCase()} KI</p>
                 <p className="text-xs text-emerald-300">● online · antwortet sofort</p>
               </div>
             </div>
@@ -107,7 +110,7 @@ export function ProChat() {
           </div>
 
           <div className="flex gap-2 overflow-x-auto px-4 pb-2">
-            {VORSCHLAEGE.map((v) => (
+            {betrieb.chat.map((v) => (
               <button
                 key={v}
                 onClick={() => senden(v)}

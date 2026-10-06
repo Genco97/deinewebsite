@@ -8,9 +8,9 @@ import { EINWILLIGUNG_TEXT } from "@/lib/einwilligung";
 import type { PaketId } from "@/lib/pakete";
 import { Honeypot } from "./Honeypot";
 
-export function DemoFormular({ paket, button }: { paket: PaketId; button: string }) {
+export function DemoFormular({ paket, button, vorgabe }: { paket: PaketId; button: string; vorgabe?: Record<string, string> }) {
   const [status, aktion, laeuft] = useActionState<FormStatus, FormData>(demoAnfordern, {});
-  const w = status.werte ?? {};
+  const w = status.werte ?? vorgabe ?? {};
   const f = status.fehler ?? {};
 
   return (

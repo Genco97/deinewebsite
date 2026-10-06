@@ -3,6 +3,8 @@ import { RueckrufFormular } from "@/components/public/RueckrufFormular";
 import { Karte, buttonClass } from "@/components/ui";
 import { Angabe } from "@/components/public/Angabe";
 import { BeispielUmschalter } from "@/components/public/BeispielUmschalter";
+import { PaketQuiz } from "@/components/public/PaketQuiz";
+import { VorschauGenerator } from "@/components/public/VorschauGenerator";
 import { FIRMA, preisHinweis } from "@/lib/firma";
 import { PAKETE } from "@/lib/pakete";
 
@@ -11,6 +13,13 @@ const VERTRAUEN = [
   { titel: "Fixpreis", text: "Der Preis steht vorher fest. Keine Stundenabrechnung." },
   { titel: "Persönlich aus Wien", text: "Ein fixer Ansprechpartner, der Ihren Betrieb kennt." },
   { titel: "Die Website gehört Ihnen", text: "Inhalte und Domain gehören Ihnen – ohne Knebelvertrag." },
+];
+
+const ABLAUF = [
+  { titel: "Anfrage", text: "Sie schicken uns zwei Minuten lang ein paar Infos – oder wir telefonieren kurz.", dauer: "2 Minuten" },
+  { titel: "Demo in 48 h", text: "Wir bauen Ihre Website als Demo. Kostenlos und unverbindlich.", dauer: "2 Tage" },
+  { titel: "Ihre Wünsche", text: "Sie sagen uns, was anders sein soll. Wir passen alles an.", dauer: "nach Ihrem Tempo" },
+  { titel: "Online", text: "Sie geben frei, die Seite geht online. Erst jetzt zahlen Sie.", dauer: "Fixpreis" },
 ];
 
 const hosting = <Angabe wert={FIRMA.hostingProMonat} platzhalter="Betrag" />;
@@ -105,24 +114,19 @@ function Abschnitt({
 export default function Startseite() {
   return (
     <>
-      {/* Hero */}
-      <section className="mx-auto w-full max-w-6xl px-4 pb-14 pt-14 sm:pb-20 sm:pt-24">
-        <div className="max-w-3xl">
-          <h1 className="font-serif text-4xl font-semibold leading-tight tracking-tight text-ink sm:text-6xl">
-            Eine Website für Ihren Betrieb. Erst ansehen, dann zahlen.
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted sm:text-xl">
-            Wir erstellen Ihnen eine kostenlose Demo Ihrer neuen Website. Wenn sie Ihnen gefällt, zahlen Sie einen
-            fixen Preis. Wenn nicht, zahlen Sie nichts.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href="/demo?paket=business" className={buttonClass("primary", "sm:px-7")}>
-              Gratis-Demo anfordern
-            </Link>
-            <Link href="#pakete" className={buttonClass("secondary", "sm:px-7")}>
-              Pakete ansehen
-            </Link>
-          </div>
+      {/* Hero mit Live-Vorschau (A2) */}
+      <section className="relative isolate overflow-hidden">
+        <div aria-hidden className="absolute inset-x-0 top-0 -z-10 h-[520px] bg-gradient-to-b from-brand-light to-transparent" />
+        <div className="mx-auto w-full max-w-6xl px-4 pb-14 pt-12 sm:pb-20 sm:pt-16">
+          <VorschauGenerator>
+            <h1 className="font-serif text-4xl font-semibold leading-tight tracking-tight text-ink sm:text-5xl xl:text-6xl">
+              Eine Website für Ihren Betrieb. Erst ansehen, dann zahlen.
+            </h1>
+            <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted sm:text-xl">
+              Wir erstellen Ihnen eine kostenlose Demo Ihrer neuen Website. Wenn sie Ihnen gefällt, zahlen Sie einen
+              fixen Preis. Wenn nicht, zahlen Sie nichts.
+            </p>
+          </VorschauGenerator>
         </div>
       </section>
 
@@ -140,6 +144,50 @@ export default function Startseite() {
           ))}
         </ul>
       </section>
+
+      {/* So läuft es ab (D1) */}
+      <Abschnitt id="ablauf" titel="So läuft es ab" einleitung="Vier Schritte, ein fixer Ansprechpartner. Und Sie zahlen erst ganz am Schluss.">
+        <ol className="grid gap-4 md:grid-cols-4">
+          {ABLAUF.map((s, i) => {
+            const letzter = i === ABLAUF.length - 1;
+            return (
+              <li
+                key={s.titel}
+                className={`relative rounded-2xl border p-5 ${letzter ? "border-2 border-brand bg-brand-light" : "border-line bg-surface"}`}
+              >
+                <span
+                  aria-hidden
+                  className={`flex h-10 w-10 items-center justify-center rounded-full text-lg font-bold ${letzter ? "bg-brand text-white" : "bg-brand-light text-brand"}`}
+                >
+                  {i + 1}
+                </span>
+                <p className="mt-4 text-lg font-bold text-ink">{s.titel}</p>
+                <p className="mt-1 text-muted">{s.text}</p>
+                <p className="mt-3 text-sm font-semibold text-brand">{s.dauer}</p>
+                {i < ABLAUF.length - 1 ? (
+                  <span aria-hidden className="absolute -right-3 top-9 z-10 hidden h-6 w-6 items-center justify-center rounded-full border border-line bg-surface text-sm text-brand md:flex">
+                    →
+                  </span>
+                ) : null}
+              </li>
+            );
+          })}
+        </ol>
+        <p className="mt-6 inline-flex flex-wrap items-center gap-2 rounded-full bg-ok-light px-4 py-2 font-semibold text-ok">
+          <span aria-hidden>✓</span> Sie zahlen erst bei Schritt 4.
+          <span className="font-normal text-muted">Beim Paket Pro gibt es nach dem Erstgespräch eine Anzahlung von 30 %.</span>
+        </p>
+      </Abschnitt>
+
+      {/* Beispiele (C3) */}
+      <Abschnitt
+        id="beispiele"
+        titel="Ihre Branche, Ihr Design"
+        einleitung="Wählen Sie Ihre Branche und ein Design. Sie sehen sofort, wie die Seite am Computer und am Handy aussieht."
+        weiss
+      >
+        <BeispielUmschalter />
+      </Abschnitt>
 
       {/* Pakete */}
       <Abschnitt
@@ -194,14 +242,9 @@ export default function Startseite() {
         </p>
       </Abschnitt>
 
-      {/* Beispiele */}
-      <Abschnitt
-        id="beispiele"
-        titel="Beispiele"
-        einleitung="Ein Friseursalon, vier Designs. Wählen Sie ein Design und sehen Sie, was in jedem Paket steckt."
-        weiss
-      >
-        <BeispielUmschalter />
+      {/* Paket-Quiz (B2) */}
+      <Abschnitt id="quiz" titel="Welches Paket passt zu Ihnen?" einleitung="Drei kurze Fragen, dann wissen Sie es." weiss>
+        <PaketQuiz />
       </Abschnitt>
 
       {/* Über uns */}

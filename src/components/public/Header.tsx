@@ -3,8 +3,9 @@ import { Logo } from "@/components/Logo";
 import { buttonClass } from "@/components/ui";
 
 const LINKS = [
-  { href: "/#pakete", label: "Pakete" },
+  { href: "/#ablauf", label: "So läuft's" },
   { href: "/#beispiele", label: "Beispiele" },
+  { href: "/#pakete", label: "Pakete" },
   { href: "/#ueber-uns", label: "Über uns" },
   { href: "/#fragen", label: "Fragen" },
 ];
