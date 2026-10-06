@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Kopf } from "@/components/crm/Kopf";
 import { StatusBadge } from "@/components/crm/StatusBadge";
+import { RueckmeldungZeile, type Rueckmeldung } from "@/components/crm/Rueckmeldungen";
 import { Karte, buttonClass } from "@/components/ui";
 import { holeProfil } from "@/lib/crm";
 import { PAKET_NAMEN, type PaketId } from "@/lib/pakete";
@@ -86,7 +87,7 @@ export default async function Heute() {
 
   const vor7Tagen = new Date(Date.parse(jetzt) - 7 * 86400000).toISOString();
   const admin = profil.rolle === "admin";
-  const [neu, heute, ueberfaellig, angebote, verkaeufe, besuche, projekte, ohneSchritt] = await Promise.all([
+  const [neu, heute, ueberfaellig, angebote, verkaeufe, besuche, projekte, ohneSchritt, rueck] = await Promise.all([
     supabase
       .from("leads")
       .select("id, firma, ansprechpartner, branche, telefon, email, status, quelle, einwilligung_wie, created_at")
@@ -139,7 +140,14 @@ export default async function Heute() {
       .is("besuch_geplant", null)
       .order("status_seit")
       .limit(20),
+    supabase
+      .from("kunden_feedback")
+      .select("id, art, text, name, erledigt, created_at, deals(lead_id, leads(firma))")
+      .eq("erledigt", false)
+      .order("created_at", { ascending: false })
+      .limit(20),
   ]);
+  const rueckmeldungen = (rueck.data ?? []) as unknown as (Rueckmeldung & { deals: { lead_id: string | null; leads: { firma: string } | null } | null })[];
   const faelligeProjekte = (projekte.data ?? []) as unknown as {
     id: string;
     projekt_faellig: string;
@@ -186,6 +194,27 @@ export default async function Heute() {
           Zu den Leads
         </Link>
       </Kopf>
+
+      {rueckmeldungen.length > 0 ? (
+        <Karte className="mb-6 border-2 border-ok/50">
+          <h2 className="flex items-center justify-between border-b border-line bg-ok-light px-4 py-3 font-bold text-ink sm:px-5">
+            <span>💬 Rückmeldungen von Kunden</span>
+            <span className="rounded-full bg-ok px-2.5 py-0.5 text-sm text-white">{rueckmeldungen.length}</span>
+          </h2>
+          <ul className="space-y-2 p-3 sm:p-4">
+            {rueckmeldungen.map((r) => (
+              <li key={r.id}>
+                <RueckmeldungZeile r={r} zurueck="/crm" firma={r.deals?.leads?.firma ?? "Kunde"} />
+                {r.deals?.lead_id ? (
+                  <Link href={`/crm/leads/${r.deals.lead_id}`} className="ml-10 mt-1 inline-flex min-h-9 items-center text-sm font-semibold text-brand hover:underline">
+                    Zum Kunden →
+                  </Link>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </Karte>
+      ) : null}
 
       {neueAnfragen.length > 0 ? (
         <Karte className="mb-6 border-2 border-brand">

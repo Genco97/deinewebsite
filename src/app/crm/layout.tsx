@@ -5,13 +5,13 @@ import { ABGESCHLOSSEN } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
 import { heuteWien, wienGrenzen } from "@/lib/zeit";
 
-/** Zahl am Menüpunkt „Heute“: fällige Rückrufe, Besuche und (für Gründer) Projekte */
+/** Zahl am Menüpunkt „Heute“: fällige Rückrufe, Besuche, offene Kunden-Rückmeldungen und (für Gründer) Projekte */
 async function faelligZaehlen(id: string, admin: boolean) {
   const supabase = await createClient();
   const heute = heuteWien();
   const offen = `(${ABGESCHLOSSEN.join(",")})`;
   const zaehlen = { count: "exact", head: true } as const;
-  const [rueckrufe, besuche, projekte] = await Promise.all([
+  const [rueckrufe, besuche, projekte, rueckmeldungen] = await Promise.all([
     supabase
       .from("leads")
       .select("id", zaehlen)
@@ -27,8 +27,9 @@ async function faelligZaehlen(id: string, admin: boolean) {
           .neq("projekt_phase", "online")
           .lte("projekt_faellig", heute)
       : Promise.resolve({ count: 0 }),
+    supabase.from("kunden_feedback").select("id", zaehlen).eq("erledigt", false),
   ]);
-  return (rueckrufe.count ?? 0) + (besuche.count ?? 0) + (projekte.count ?? 0);
+  return (rueckrufe.count ?? 0) + (besuche.count ?? 0) + (projekte.count ?? 0) + (rueckmeldungen.count ?? 0);
 }
 
 export const metadata: Metadata = {

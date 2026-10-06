@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { istPaket } from "@/lib/pakete";
@@ -157,4 +158,33 @@ export async function karteBestaetigen(_vorher: FormStatus, fd: FormData): Promi
   }
 
   redirect("/danke?art=karte");
+}
+
+/** I3: Rückmeldung des Kunden zur Demo – landet beim Betreuer im CRM */
+export async function kundenRueckmeldung(_vorher: FormStatus, fd: FormData): Promise<FormStatus> {
+  const werte = {
+    code: text(fd, "code", 40),
+    art: text(fd, "art", 10),
+    text: text(fd, "text", 2000),
+    name: text(fd, "name", 100),
+  };
+  if (istSpam(fd)) return { ok: true };
+  if (werte.art !== "passt" && werte.art !== "aendern") return { werte, meldung: "Bitte wählen Sie eine Antwort." };
+  if (werte.art === "aendern" && !werte.text) {
+    return { werte, fehler: { text: "Bitte schreiben Sie kurz, was wir ändern sollen." }, meldung: "Bitte prüfen Sie das markierte Feld." };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("kunden_feedback_senden", {
+    p_code: werte.code,
+    p_art: werte.art,
+    p_text: werte.text,
+    p_name: werte.name,
+  });
+  if (error || !data) {
+    if (error) console.error("Kunden-Rückmeldung fehlgeschlagen", error.message);
+    return { werte, meldung: "Ihre Rückmeldung konnte gerade nicht gesendet werden. Bitte versuchen Sie es später noch einmal." };
+  }
+  revalidatePath(`/p/${werte.code}`);
+  return { ok: true, werte: { art: werte.art } };
 }

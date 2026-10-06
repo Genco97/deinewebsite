@@ -3,14 +3,14 @@
 import { useState } from "react";
 import { buttonClass, inputClass } from "@/components/ui";
 
-export function KopierFeld({ wert, label }: { wert: string; label: string }) {
+export function KopierFeld({ wert, label, id = "kopierfeld", schmal = false }: { wert: string; label: string; id?: string; schmal?: boolean }) {
   const [kopiert, setKopiert] = useState(false);
 
   async function kopieren() {
     try {
       await navigator.clipboard.writeText(wert);
     } catch {
-      const el = document.getElementById("kopierfeld") as HTMLInputElement | null;
+      const el = document.getElementById(id) as HTMLInputElement | null;
       el?.select();
       document.execCommand("copy");
     }
@@ -19,12 +19,12 @@ export function KopierFeld({ wert, label }: { wert: string; label: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-2 sm:flex-row">
-      <label htmlFor="kopierfeld" className="sr-only">
+    <div className={`flex flex-col gap-2 ${schmal ? "" : "sm:flex-row"}`}>
+      <label htmlFor={id} className="sr-only">
         {label}
       </label>
       <input
-        id="kopierfeld"
+        id={id}
         readOnly
         value={wert}
         onFocus={(e) => e.currentTarget.select()}

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { KontaktFormular } from "@/components/crm/KontaktFormular";
 import { NaechsterSchritt } from "@/components/crm/NaechsterSchritt";
 import { Gespraechshilfe } from "@/components/crm/Gespraechshilfe";
+import { KundenLinkBox, type Rueckmeldung } from "@/components/crm/Rueckmeldungen";
 import { StatusBadge } from "@/components/crm/StatusBadge";
 import { VerkaufFormular } from "@/components/crm/VerkaufFormular";
 import { Hinweis, Karte, Select, Textarea, buttonClass } from "@/components/ui";
@@ -67,7 +68,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
       .limit(100),
     supabase
       .from("deals")
-      .select("id, paket, betrag, status, projekt_phase, website_url, created_at")
+      .select("id, paket, betrag, status, projekt_phase, website_url, created_at, kunden_code, kunden_feedback(id, art, text, name, erledigt, created_at)")
       .eq("lead_id", id)
       .order("created_at"),
     supabase.from("vorlagen").select("id, titel, betreff, text, reihenfolge").order("reihenfolge"),
@@ -404,6 +405,13 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
                 ))}
               </ul>
             ) : null}
+            {(deals ?? [])
+              .filter((d) => d.status !== "storniert")
+              .map((d) => (
+                <div key={d.id} className="mb-4">
+                  <KundenLinkBox code={d.kunden_code} rueckmeldungen={(d.kunden_feedback ?? []) as Rueckmeldung[]} zurueck={`/crm/leads/${lead.id}`} id={d.id} />
+                </div>
+              ))}
             {gesperrt ? (
               <p className="text-sm text-muted">Für gesperrte Leads kann kein Verkauf gemeldet werden.</p>
             ) : (deals ?? []).some((d) => d.status !== "storniert") ? (
