@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Kopf } from "@/components/crm/Kopf";
+import { KundenLinkBox, type Rueckmeldung } from "@/components/crm/Rueckmeldungen";
 import { Hinweis, Karte, buttonClass, inputClass } from "@/components/ui";
 import { BETREUUNG, BETREUUNG_LABEL, sorglosStandard, type Betreuung } from "@/lib/betreuung";
 import { holeProfil } from "@/lib/crm";
@@ -30,6 +31,8 @@ type Projekt = {
   betreuung_seit: string | null;
   leads: { firma: string } | null;
   partner: { name: string } | null;
+  kunden_code: string;
+  kunden_feedback: Rueckmeldung[];
 };
 
 const PHASE_FARBE: Record<Phase, string> = {
@@ -66,7 +69,7 @@ export default async function Projekte({ searchParams }: PageProps<"/crm/projekt
   const { data } = await supabase
     .from("deals")
     .select(
-      "id, paket, betrag, status, projekt_phase, projekt_faellig, website_url, aenderungsrunden_inkl, aenderungsrunden_genutzt, betreuung, sorglos_monat, betreuung_seit, lead_id, created_at, leads(firma), partner:profiles!deals_partner_id_fkey(name)",
+      "id, paket, betrag, status, projekt_phase, projekt_faellig, website_url, aenderungsrunden_inkl, aenderungsrunden_genutzt, betreuung, sorglos_monat, betreuung_seit, lead_id, created_at, kunden_code, kunden_feedback(id, art, text, name, erledigt, created_at), leads(firma), partner:profiles!deals_partner_id_fkey(name)",
     )
     .neq("status", "storniert")
     .order("projekt_faellig", { ascending: true, nullsFirst: false })
@@ -149,6 +152,12 @@ export default async function Projekte({ searchParams }: PageProps<"/crm/projekt
                         {admin && x.partner ? ` · ${x.partner.name}` : ""}
                       </p>
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        {x.kunden_feedback.some((r) => !r.erledigt) ? (
+                          <span className="rounded-full bg-brand px-2 py-0.5 text-xs font-bold text-white">
+                            💬 {x.kunden_feedback.filter((r) => !r.erledigt).length} neue Rückmeldung
+                            {x.kunden_feedback.filter((r) => !r.erledigt).length === 1 ? "" : "en"}
+                          </span>
+                        ) : null}
                         {p !== "online" ? <Faellig tag={x.projekt_faellig} heute={heute} /> : null}
                         <span className="rounded-full bg-bg px-2 py-0.5 text-xs text-muted">
                           Änderungen {x.aenderungsrunden_genutzt}/{x.aenderungsrunden_inkl}
@@ -175,6 +184,15 @@ export default async function Projekte({ searchParams }: PageProps<"/crm/projekt
                           {x.website_url.replace(/^https?:\/\//, "")}
                         </a>
                       ) : null}
+
+                      <details className="mt-2" open={x.kunden_feedback.some((r) => !r.erledigt)}>
+                        <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold text-brand">
+                          Kunden-Link & Rückmeldungen
+                        </summary>
+                        <div className="pt-1">
+                          <KundenLinkBox code={x.kunden_code} rueckmeldungen={x.kunden_feedback} zurueck="/crm/projekte" id={x.id} schmal />
+                        </div>
+                      </details>
 
                       {admin ? (
                         <>
