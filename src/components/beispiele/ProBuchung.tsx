@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { SALON, euroGanz, type Leistung } from "@/lib/beispiele";
+import { abPreis, type Betrieb, type Leistung } from "@/lib/beispiele";
 
 const TAG = new Intl.DateTimeFormat("de-AT", { weekday: "short", day: "numeric", month: "numeric" });
 const TAG_LANG = new Intl.DateTimeFormat("de-AT", { weekday: "long", day: "numeric", month: "long" });
@@ -30,7 +30,7 @@ const knopf = "min-h-11 rounded-xl border px-3 py-2 text-sm font-semibold transi
 const aus = "border-white/10 bg-white/5 hover:border-violet-400/60";
 const an = "border-violet-400 bg-violet-500/25 text-white";
 
-export function ProBuchung() {
+export function ProBuchung({ betrieb }: { betrieb: Betrieb }) {
   const [leistung, setLeistung] = useState<Leistung | null>(null);
   const [tage, setTage] = useState<Date[]>([]);
   const [tag, setTag] = useState<Date | null>(null);
@@ -41,11 +41,11 @@ export function ProBuchung() {
     return (
       <div role="status" className="py-6 text-center">
         <p className="text-5xl">✓</p>
-        <p className="mt-4 text-2xl font-bold">Termin gebucht!</p>
+        <p className="mt-4 text-2xl font-bold">{betrieb.buchung.erledigt}</p>
         <p className="mt-2 text-white/70">
           {leistung.name} am {TAG_LANG.format(tag)} um {zeit} Uhr.
         </p>
-        <p className="mt-4 text-sm text-white/50">Beispiel – es wurde nichts gebucht. Auf einer echten Seite kommt jetzt eine Bestätigung per E-Mail.</p>
+        <p className="mt-4 text-sm text-white/50">Beispiel – es wurde nichts gesendet. Auf einer echten Seite kommt jetzt eine Bestätigung per E-Mail.</p>
         <button
           onClick={() => {
             setFertig(false);
@@ -64,9 +64,9 @@ export function ProBuchung() {
   return (
     <div className="space-y-6">
       <fieldset>
-        <legend className="mb-3 text-sm font-semibold uppercase tracking-wider text-violet-300">1 · Leistung</legend>
+        <legend className="mb-3 text-sm font-semibold uppercase tracking-wider text-violet-300">1 · {betrieb.buchung.schritt}</legend>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {SALON.leistungen.map((l) => (
+          {betrieb.leistungen.map((l) => (
             <button
               key={l.id}
               type="button"
@@ -80,7 +80,7 @@ export function ProBuchung() {
             >
               {l.name}
               <span className="block text-xs font-normal text-white/60">
-                {l.dauer} Min. · {euroGanz(l.preis)}
+                {l.dauer ? `${l.dauer} Min. · ` : ""}{abPreis(l.preis)}
               </span>
             </button>
           ))}
