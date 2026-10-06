@@ -1,3 +1,4 @@
+import { ProvisionsRechner } from "@/components/crm/ProvisionsRechner";
 import type { Metadata } from "next";
 import { Kopf } from "@/components/crm/Kopf";
 import { KopierFeld } from "@/components/crm/KopierFeld";
@@ -128,6 +129,10 @@ export default async function Partner() {
         </p>
       </Karte>
 
+      <div className="mt-6">
+        <ProvisionsRechner gruender />
+      </div>
+
         </>
       ) : (
         <>
@@ -142,6 +147,10 @@ export default async function Partner() {
           <p className="mt-1 font-serif text-3xl font-semibold text-ink">{euro(ausbezahlt)}</p>
           <p className="mt-1 text-sm text-muted">Bisher insgesamt</p>
         </Karte>
+      </div>
+
+      <div className="mt-6">
+        <ProvisionsRechner gruender={false} />
       </div>
 
       <h2 className="mb-3 mt-8 font-bold text-ink">Provision nach Ebene</h2>
