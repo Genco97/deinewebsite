@@ -110,21 +110,26 @@ function Abschnitt({
   einleitung,
   children,
   weiss = false,
+  seitlich = false,
 }: {
   id: string;
   titel: string;
   einleitung?: string;
   children: React.ReactNode;
   weiss?: boolean;
+  /** Ab lg Überschrift links und Inhalt rechts daneben, statt untereinander */
+  seitlich?: boolean;
 }) {
   return (
     <section id={id} className={`scroll-mt-16 py-16 sm:py-24 ${weiss ? "border-y border-line bg-surface" : ""}`}>
-      <div className="mx-auto w-full max-w-6xl px-4">
-        <div className="mb-10 max-w-2xl">
+      <div
+        className={`mx-auto w-full max-w-6xl px-4 ${seitlich ? "lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-start lg:gap-14" : ""}`}
+      >
+        <div className={`mb-10 max-w-2xl ${seitlich ? "lg:sticky lg:top-24 lg:mb-0" : ""}`}>
           <h2 className="font-serif text-3xl font-semibold tracking-tight text-ink sm:text-4xl">{titel}</h2>
           {einleitung ? <p className="mt-3 text-lg text-muted">{einleitung}</p> : null}
         </div>
-        {children}
+        <div className="min-w-0">{children}</div>
       </div>
     </section>
   );
@@ -265,7 +270,7 @@ export default function Startseite() {
       </Abschnitt>
 
       {/* Paket-Quiz (B2) */}
-      <Abschnitt id="quiz" titel="Welches Paket passt zu Ihnen?" einleitung="Drei kurze Fragen, dann wissen Sie es." weiss>
+      <Abschnitt id="quiz" titel="Welches Paket passt zu Ihnen?" einleitung="Drei kurze Fragen, dann wissen Sie es." weiss seitlich>
         <PaketQuiz />
       </Abschnitt>
 
