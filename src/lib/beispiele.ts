@@ -42,6 +42,12 @@ export type Betrieb = {
   buchung: { titel: string; text: string; schritt: string; erledigt: string };
   abschied: string;
   chat: string[];
+  stil: Stil;
+  bewertung: { sterne: number; anzahl: number };
+  vertrauen: string;
+  funktion: Funktion;
+  /** Fotos (KI-erzeugt), sobald vorhanden */
+  bild?: { hero: string };
 };
 
 const ZEITEN_STANDARD = [
@@ -51,7 +57,7 @@ const ZEITEN_STANDARD = [
   { tage: "Sonntag", zeit: "geschlossen" },
 ];
 
-export const BRANCHEN = ["friseur", "barber", "imbiss", "cafe", "handwerk"] as const;
+export const BRANCHEN = ["friseur", "barber", "imbiss", "cafe", "handwerk", "nagel", "schneiderei", "hundesalon", "kfz"] as const;
 export type BrancheId = (typeof BRANCHEN)[number];
 
 export const BRANCHE_INFO: Record<BrancheId, { label: string; symbol: string }> = {
@@ -60,9 +66,15 @@ export const BRANCHE_INFO: Record<BrancheId, { label: string; symbol: string }> 
   imbiss: { label: "Imbiss & Kebap", symbol: "🥙" },
   cafe: { label: "Café", symbol: "☕" },
   handwerk: { label: "Handwerk", symbol: "🔨" },
+  nagel: { label: "Nagelstudio", symbol: "💅" },
+  schneiderei: { label: "Schneiderei", symbol: "🧵" },
+  hundesalon: { label: "Hundesalon", symbol: "🐕" },
+  kfz: { label: "Kfz-Werkstatt", symbol: "🔧" },
 };
 
-const BETRIEBE: Record<BrancheId, Betrieb> = {
+type Basis = Omit<Betrieb, "stil" | "bewertung" | "vertrauen" | "funktion" | "bild">;
+
+const BASIS: Record<BrancheId, Basis> = {
   friseur: {
     branche: "friseur",
     art: "Friseur",
@@ -407,7 +419,477 @@ const BETRIEBE: Record<BrancheId, Betrieb> = {
     abschied: "Wir kommen zu Ihnen.",
     chat: ["Was kostet eine Küche?", "Wann habt ihr offen?", "Kostet Ausmessen etwas?", "Termin vereinbaren"],
   },
+  nagel: {
+    branche: "nagel",
+    art: "Nagelstudio",
+    name: "Nails by Lea",
+    marke: "LEA",
+    inhaberin: "Lea Horvat",
+    strasse: "Beispielgasse 5",
+    plz: "1060",
+    ort: "Wien",
+    bezirk: "Mariahilf",
+    seit: 2019,
+    telefon: "0676 234 56 78",
+    telefonLink: "tel:+436762345678",
+    email: "termin@nailsbylea.example",
+    slogan: "Schöne Nägel. Entspannte Stunde. Mitten in Mariahilf.",
+    einleitung: "Seit 2019 machen wir Gel, Acryl und Maniküre mit Liebe zum Detail – hygienisch, in Ruhe und mit fixem Termin.",
+    oeffnungszeiten: [
+      { tage: "Montag", zeit: "geschlossen" },
+      { tage: "Dienstag – Freitag", zeit: "10:00 – 19:00" },
+      { tage: "Samstag", zeit: "9:00 – 15:00" },
+      { tage: "Sonntag", zeit: "geschlossen" },
+    ],
+    leistungen: [
+      { id: "manikuere", name: "Maniküre", text: "Feilen, Nagelhaut, Lack", preis: 32, dauer: 45, symbol: "✺" },
+      { id: "gel", name: "Gel-Neumodellage", text: "Natürlich oder mit Farbe", preis: 55, dauer: 90, symbol: "◆" },
+      { id: "auffuellen", name: "Auffüllen", text: "Nach 3–4 Wochen", preis: 42, dauer: 75, symbol: "◐" },
+      { id: "pedikuere", name: "Pediküre", text: "Mit Fußbad und Lack", preis: 39, dauer: 60, symbol: "❀" },
+      { id: "nailart", name: "Nail-Art", text: "Pro Nagel", preis: 3, dauer: 10, symbol: "✂" },
+      { id: "wimpern", name: "Wimpern färben", text: "Mit Augenbrauen-Form", preis: 22, dauer: 25, symbol: "☺" },
+    ],
+    preisHinweis: "Alle Preise inklusive Pflege und Beratung.",
+    team: [
+      { name: "Lea", rolle: "Inhaberin, Gel & Nail-Art", farbe: "#be185d" },
+      { name: "Mira", rolle: "Maniküre & Pediküre", farbe: "#9d174d" },
+      { name: "Sara", rolle: "Wimpern & Brauen", farbe: "#db2777" },
+    ],
+    bewertungen: [
+      { name: "Julia K.", text: "Meine Gelnägel halten vier Wochen ohne Abplatzen. Und Lea nimmt sich wirklich Zeit." },
+      { name: "Nina P.", text: "Super sauber, entspannte Musik, und die Nail-Art war genau wie auf meinem Foto." },
+      { name: "Tamara S.", text: "Online gebucht, pünktlich drangekommen, perfekte Pediküre. Gerne wieder!" },
+    ],
+    fragen: [
+      { f: "Wie lange hält Gel?", a: "Meist 3 bis 4 Wochen. Danach füllen wir auf – das ist schonender als jedes Mal neu zu machen." },
+      { f: "Kann ich ein Foto als Vorlage mitbringen?", a: "Sehr gern! Zeigen Sie uns Ihr Wunschdesign, wir sagen Ihnen gleich, was möglich ist." },
+      { f: "Wie hygienisch arbeiten Sie?", a: "Alle Werkzeuge werden nach jeder Kundin sterilisiert, Feilen gibt es nur einmal." },
+    ],
+    galerie: [
+      { titel: "Nude-Gel", farbe: "linear-gradient(135deg,#fde2e4,#f5c6cb 60%,#e8a0a8)" },
+      { titel: "French", farbe: "linear-gradient(160deg,#fff,#fbe4e6 60%,#f4c2c7)" },
+      { titel: "Bordeaux", farbe: "linear-gradient(135deg,#9f1239,#4c0519)" },
+      { titel: "Glitzer", farbe: "linear-gradient(135deg,#fdf2f8,#f9a8d4 50%,#c084fc)" },
+      { titel: "Pediküre", farbe: "linear-gradient(135deg,#ffe4e6,#fda4af)" },
+      { titel: "Nail-Art", farbe: "linear-gradient(135deg,#fbcfe8,#be185d)" },
+    ],
+    hero: ["Nägel, die ", "Freude", " machen."],
+    proHero: ["Nägel, die", "Blicke", "fangen."],
+    heroFarbe: "linear-gradient(150deg,#fde2e4,#f9a8d4 50%,#9d174d)",
+    aktion: "Termin buchen",
+    aktionKurz: "Termin",
+    wunsch: "z. B. Gel-Neumodellage in Nude, Samstag Vormittag",
+    naechster: { klein: "Nächster freier Termin", gross: "Mittwoch, 14:30" },
+    zahlen: [
+      { zahl: 6, text: "Jahre in Mariahilf" },
+      { zahl: 4.9, komma: 1, text: "Sterne auf Google" },
+      { zahl: 7500, text: "Maniküren" },
+    ],
+    buchung: { titel: "Termin.", text: "Behandlung wählen, Tag wählen, Uhrzeit wählen – fertig. Rund um die Uhr.", schritt: "Behandlung", erledigt: "Termin gebucht!" },
+    abschied: "Wir sehen uns in Mariahilf.",
+    chat: ["Was kostet Gel?", "Wann habt ihr offen?", "Wie lange hält Gel?", "Termin buchen"],
+  },
+
+  schneiderei: {
+    branche: "schneiderei",
+    art: "Änderungsschneiderei",
+    name: "Schneiderei Aydin",
+    marke: "AYDIN",
+    inhaberin: "Selma Aydin",
+    strasse: "Beispielstraße 33",
+    plz: "1150",
+    ort: "Wien",
+    bezirk: "Rudolfsheim-Fünfhaus",
+    seit: 2005,
+    telefon: "01 892 33 44",
+    telefonLink: "tel:+4318923344",
+    email: "office@schneiderei-aydin.example",
+    slogan: "Passt nicht? Passt bald. Änderungen in 3 Tagen.",
+    einleitung: "Seit 2005 kürzen, enger machen und reparieren wir alles, was Sie lieben – vom Jeans-Saum bis zum Hochzeitskleid.",
+    oeffnungszeiten: [
+      { tage: "Montag – Freitag", zeit: "9:00 – 18:00" },
+      { tage: "Samstag", zeit: "9:00 – 13:00" },
+      { tage: "Sonntag", zeit: "geschlossen" },
+    ],
+    leistungen: [
+      { id: "kuerzen", name: "Hose kürzen", text: "Mit Original-Saum möglich", preis: 14, symbol: "✂" },
+      { id: "enger", name: "Enger machen", text: "Hose, Rock oder Kleid", preis: 22, symbol: "◆" },
+      { id: "reissverschluss", name: "Reißverschluss", text: "Neu einnähen", preis: 18, symbol: "◐" },
+      { id: "sakko", name: "Sakko anpassen", text: "Ärmel, Taille, Schultern", preis: 35, symbol: "✺" },
+      { id: "kleid", name: "Brautkleid", text: "Anpassung mit Anprobe", preis: 120, symbol: "❀" },
+      { id: "vorhang", name: "Vorhänge", text: "Kürzen und säumen", preis: 25, symbol: "☺" },
+    ],
+    preisHinweis: "Richtpreise – den genauen Preis sagen wir Ihnen bei der Abgabe.",
+    team: [
+      { name: "Selma", rolle: "Schneidermeisterin", farbe: "#1e3a5f" },
+      { name: "Kemal", rolle: "Leder & Reißverschlüsse", farbe: "#334155" },
+      { name: "Ana", rolle: "Kleider & Brautmode", farbe: "#9f1239" },
+    ],
+    bewertungen: [
+      { name: "Markus B.", text: "Drei Hosen gekürzt, nach zwei Tagen fertig, perfekt gemacht. Fairer Preis." },
+      { name: "Elif T.", text: "Mein Brautkleid saß am Ende wie angegossen. Danke, Ana!" },
+      { name: "Peter W.", text: "Reißverschluss an der Lederjacke getauscht – sieht aus wie neu." },
+    ],
+    fragen: [
+      { f: "Wie lange dauert eine Änderung?", a: "Meist 3 Werktage. Mit Express-Service oft schon am nächsten Tag." },
+      { f: "Muss ich zur Anprobe kommen?", a: "Bei Hosen reicht es, wenn Sie die gewünschte Länge abstecken. Bei Kleidern und Sakkos machen wir eine kurze Anprobe." },
+      { f: "Kann ich mit Karte zahlen?", a: "Ja, bar oder mit Karte." },
+    ],
+    galerie: [
+      { titel: "Saum", farbe: "linear-gradient(135deg,#1e3a5f,#334155)" },
+      { titel: "Brautkleid", farbe: "linear-gradient(135deg,#fff,#f1f5f9 60%,#cbd5e1)" },
+      { titel: "Sakko", farbe: "linear-gradient(135deg,#475569,#1e293b)" },
+      { titel: "Leder", farbe: "linear-gradient(135deg,#78350f,#451a03)" },
+      { titel: "Vorhänge", farbe: "linear-gradient(135deg,#e0e7ff,#a5b4fc)" },
+      { titel: "Werkstatt", farbe: "repeating-linear-gradient(90deg,#1e3a5f 0 8px,#2c5282 8px 16px)" },
+    ],
+    hero: ["Kleidung, die wieder ", "passt", "."],
+    proHero: ["Mode, die", "perfekt", "sitzt."],
+    heroFarbe: "repeating-linear-gradient(120deg,#1e3a5f 0 14px,#2c5282 14px 28px)",
+    aktion: "Abgabe vormerken",
+    aktionKurz: "Abgabe",
+    wunsch: "z. B. 2 Hosen kürzen, Abgabe Montag",
+    naechster: { klein: "Abholbereit in", gross: "3 Werktagen" },
+    zahlen: [
+      { zahl: 20, text: "Jahre im 15. Bezirk" },
+      { zahl: 4.8, komma: 1, text: "Sterne auf Google" },
+      { zahl: 30000, text: "Änderungen" },
+    ],
+    buchung: { titel: "Abgabe.", text: "Änderung wählen, Tag wählen, Uhrzeit wählen – wir haben Zeit für Sie, ohne Warten.", schritt: "Änderung", erledigt: "Abgabe vorgemerkt!" },
+    abschied: "Wir sehen uns im Fünfzehnten.",
+    chat: ["Was kostet Hose kürzen?", "Wann habt ihr offen?", "Wie lange dauert es?", "Abgabe vormerken"],
+  },
+
+  hundesalon: {
+    branche: "hundesalon",
+    art: "Hundesalon",
+    name: "Fellglück",
+    marke: "FELLGLÜCK",
+    inhaberin: "Tanja Huber",
+    strasse: "Beispielweg 8",
+    plz: "1220",
+    ort: "Wien",
+    bezirk: "Donaustadt",
+    seit: 2015,
+    telefon: "0664 345 67 89",
+    telefonLink: "tel:+436643456789",
+    email: "wuff@fellglueck.example",
+    slogan: "Gepflegt, gebadet, glücklich – mit viel Geduld.",
+    einleitung: "Seit 2015 pflegen wir Hunde aller Größen in Ruhe und ohne Stress – mit Termin, damit Ihr Liebling nie warten muss.",
+    oeffnungszeiten: [
+      { tage: "Montag – Freitag", zeit: "8:00 – 17:00" },
+      { tage: "Samstag", zeit: "8:00 – 12:00" },
+      { tage: "Sonntag", zeit: "geschlossen" },
+    ],
+    leistungen: [
+      { id: "baden", name: "Baden & Föhnen", text: "Mit mildem Shampoo", preis: 35, dauer: 60, symbol: "◐" },
+      { id: "scheren", name: "Komplett-Schur", text: "Baden, Scheren, Föhnen", preis: 55, dauer: 120, symbol: "✂" },
+      { id: "trimmen", name: "Trimmen", text: "Für Rauhaar-Rassen", preis: 60, dauer: 120, symbol: "◆" },
+      { id: "krallen", name: "Krallen schneiden", text: "Auch ohne Termin", preis: 10, dauer: 15, symbol: "☺" },
+      { id: "welpe", name: "Welpen-Eingewöhnung", text: "Erstes Kennenlernen", preis: 20, dauer: 30, symbol: "❀" },
+      { id: "entfilzen", name: "Entfilzen", text: "Pro Viertelstunde", preis: 12, dauer: 15, symbol: "✺" },
+    ],
+    preisHinweis: "Der Preis hängt von Größe und Fell ab – siehe Tabelle.",
+    team: [
+      { name: "Tanja", rolle: "Inhaberin, Groomerin", farbe: "#0f766e" },
+      { name: "Jakob", rolle: "Baden & Trimmen", farbe: "#155e75" },
+      { name: "Luna", rolle: "Bürohund", farbe: "#a16207" },
+    ],
+    bewertungen: [
+      { name: "Familie R.", text: "Unser ängstlicher Pudel geht inzwischen gern hin. Tanja hat unglaublich viel Geduld." },
+      { name: "Sandra M.", text: "Perfekter Schnitt, sauber, und der Hund riecht noch Tage später gut." },
+      { name: "Thomas K.", text: "Termin online gebucht, auf die Minute pünktlich. Sehr empfehlenswert." },
+    ],
+    fragen: [
+      { f: "Darf ich dabei bleiben?", a: "Beim ersten Mal gern. Viele Hunde sind aber ruhiger, wenn Herrchen oder Frauchen kurz spazieren geht." },
+      { f: "Wie oft sollte mein Hund zum Scheren?", a: "Je nach Rasse alle 6 bis 10 Wochen. Wir beraten Sie gern." },
+      { f: "Nehmen Sie auch große Hunde?", a: "Ja, wir haben eine Hebebadewanne für Hunde bis 60 kg." },
+    ],
+    galerie: [
+      { titel: "Pudel", farbe: "linear-gradient(135deg,#f5f5f4,#d6d3d1)" },
+      { titel: "Golden Retriever", farbe: "linear-gradient(135deg,#fde68a,#d97706)" },
+      { titel: "Yorkshire", farbe: "linear-gradient(135deg,#a8a29e,#57534e)" },
+      { titel: "Badewanne", farbe: "linear-gradient(135deg,#ccfbf1,#14b8a6)" },
+      { titel: "Welpe", farbe: "linear-gradient(135deg,#fef3c7,#fcd34d)" },
+      { titel: "Schnauzer", farbe: "linear-gradient(135deg,#d6d3d1,#44403c)" },
+    ],
+    hero: ["Ihr Hund in ", "besten", " Pfoten."],
+    proHero: ["Fell, das", "glänzt", "und Hunde, die strahlen."],
+    heroFarbe: "linear-gradient(150deg,#ccfbf1,#14b8a6 50%,#0f766e)",
+    aktion: "Termin buchen",
+    aktionKurz: "Termin",
+    wunsch: "z. B. Golden Retriever, Baden & Krallen",
+    naechster: { klein: "Nächster freier Termin", gross: "Freitag, 10:00" },
+    zahlen: [
+      { zahl: 10, text: "Jahre in der Donaustadt" },
+      { zahl: 4.9, komma: 1, text: "Sterne auf Google" },
+      { zahl: 9000, text: "glückliche Hunde" },
+    ],
+    buchung: { titel: "Termin.", text: "Pflege wählen, Tag wählen, Uhrzeit wählen – Ihr Hund muss nie warten.", schritt: "Pflege", erledigt: "Termin gebucht!" },
+    abschied: "Wir sehen uns in der Donaustadt.",
+    chat: ["Was kostet Baden?", "Wann habt ihr offen?", "Nehmt ihr große Hunde?", "Termin buchen"],
+  },
+
+  kfz: {
+    branche: "kfz",
+    art: "Kfz-Werkstatt",
+    name: "Kfz Hofer",
+    marke: "HOFER",
+    inhaberin: "Stefan Hofer",
+    strasse: "Beispielstraße 120",
+    plz: "1230",
+    ort: "Wien",
+    bezirk: "Liesing",
+    seit: 2001,
+    telefon: "01 699 12 34",
+    telefonLink: "tel:+4316991234",
+    email: "werkstatt@kfz-hofer.example",
+    slogan: "Pickerl, Service, Reifen – ehrlich und mit Fixpreis.",
+    einleitung: "Seit 2001 reparieren wir Autos aller Marken – mit Kostenvoranschlag vorher und ohne böse Überraschungen.",
+    oeffnungszeiten: [
+      { tage: "Montag – Donnerstag", zeit: "7:30 – 17:00" },
+      { tage: "Freitag", zeit: "7:30 – 13:00" },
+      { tage: "Samstag – Sonntag", zeit: "geschlossen" },
+    ],
+    leistungen: [
+      { id: "pickerl", name: "§57a-Pickerl", text: "Begutachtung aller Marken", preis: 79, dauer: 60, symbol: "◆" },
+      { id: "service", name: "Service", text: "Nach Herstellervorgabe", preis: 189, dauer: 180, symbol: "◐" },
+      { id: "reifen", name: "Reifenwechsel", text: "Inkl. Auswuchten", preis: 49, dauer: 45, symbol: "✺" },
+      { id: "bremsen", name: "Bremsen", text: "Beläge vorne", preis: 160, dauer: 120, symbol: "❀" },
+      { id: "klima", name: "Klimaservice", text: "Füllen und prüfen", preis: 89, dauer: 60, symbol: "☺" },
+      { id: "diagnose", name: "Fehlerdiagnose", text: "Mit Auslesen", preis: 45, dauer: 30, symbol: "✂" },
+    ],
+    preisHinweis: "Fixpreise für die meisten Autos – vor jeder Reparatur bekommen Sie einen Kostenvoranschlag.",
+    team: [
+      { name: "Stefan", rolle: "Kfz-Meister", farbe: "#ea580c" },
+      { name: "Milan", rolle: "Mechatroniker", farbe: "#334155" },
+      { name: "Petra", rolle: "Büro & Termine", farbe: "#0f766e" },
+    ],
+    bewertungen: [
+      { name: "Andreas L.", text: "Ehrliche Werkstatt. Hat mir gesagt, was wirklich nötig ist – und was nicht." },
+      { name: "Claudia F.", text: "Pickerl-Termin online gebucht, nach einer Stunde fertig. Top!" },
+      { name: "Mario S.", text: "Kostenvoranschlag hat genau gestimmt. Komme seit Jahren her." },
+    ],
+    fragen: [
+      { f: "Bekomme ich einen Leihwagen?", a: "Ja, gegen Voranmeldung haben wir zwei Ersatzautos." },
+      { f: "Machen Sie alle Marken?", a: "Ja, wir arbeiten an allen gängigen Marken – auch an Hybrid-Autos." },
+      { f: "Wann ist mein Pickerl fällig?", a: "Das steht auf der Plakette. Sie können bis zu einem Monat davor und vier Monate danach kommen." },
+    ],
+    galerie: [
+      { titel: "Werkstatt", farbe: "linear-gradient(135deg,#374151,#111827)" },
+      { titel: "Hebebühne", farbe: "linear-gradient(135deg,#4b5563,#ea580c)" },
+      { titel: "Reifen", farbe: "linear-gradient(135deg,#1f2937,#000)" },
+      { titel: "Diagnose", farbe: "linear-gradient(135deg,#0f766e,#134e4a)" },
+      { titel: "Bremsen", farbe: "linear-gradient(135deg,#9a3412,#431407)" },
+      { titel: "Service", farbe: "linear-gradient(135deg,#e5e7eb,#9ca3af)" },
+    ],
+    hero: ["Ihr Auto in ", "guten", " Händen."],
+    proHero: ["Autos, die", "laufen", "wie am ersten Tag."],
+    heroFarbe: "linear-gradient(150deg,#4b5563,#111827 55%,#ea580c)",
+    aktion: "Termin buchen",
+    aktionKurz: "Termin",
+    wunsch: "z. B. Pickerl für VW Golf, Baujahr 2016",
+    naechster: { klein: "Nächster Pickerl-Termin", gross: "Morgen, 8:00" },
+    zahlen: [
+      { zahl: 24, text: "Jahre in Liesing" },
+      { zahl: 4.8, komma: 1, text: "Sterne auf Google" },
+      { zahl: 40000, text: "Autos repariert" },
+    ],
+    buchung: { titel: "Termin.", text: "Leistung wählen, Tag wählen, Uhrzeit wählen – Ihr Auto kommt sofort dran.", schritt: "Leistung", erledigt: "Termin gebucht!" },
+    abschied: "Wir sehen uns in Liesing.",
+    chat: ["Was kostet das Pickerl?", "Wann habt ihr offen?", "Gibt es einen Leihwagen?", "Termin buchen"],
+  },
 };
+
+// ---------------------------------------------------------------------------
+// Pro Branche: eigener Look (B2), eigene Funktion (C1), eigene Beispielwerte (F1)
+// ---------------------------------------------------------------------------
+
+export type Stil = {
+  /** Seitenhintergrund, Kartenfläche, tiefe Fläche (Galerie/Fußzeile) */
+  bg: string;
+  flaeche: string;
+  tief: string;
+  ink: string;
+  muted: string;
+  linie: string;
+  akzent: string;
+  /** Schrift auf dem Akzent */
+  aufAkzent: string;
+  /** Zweite Akzentfarbe (Knöpfe, Hervorhebungen) */
+  akzent2: string;
+  dunkel: boolean;
+  schrift: "serif" | "sans" | "display";
+  /** Verlauf im Pro-Design */
+  pro: [string, string, string];
+};
+
+type Gericht = { name: string; text: string; preis: number };
+
+export type Funktion =
+  | { art: "preistabelle"; titel: string; text: string; spalten: [string, string, string]; zeilen: { name: string; preise: (number | null)[] }[]; hinweis?: string }
+  | { art: "wartezeit"; titel: string; text: string; minuten: number; vorIhnen: number; stuehle: number }
+  | { art: "speisekarte"; titel: string; text: string; modus: "bestellen" | "reservieren"; kategorien: { name: string; gerichte: Gericht[] }[] }
+  | { art: "projekte"; titel: string; text: string; gebiet: string[]; projekte: { titel: string; ort: string; text: string; vorher: string; nachher: string }[] }
+  | { art: "termin"; titel: string; text: string; hinweis?: string };
+
+type Extra = { stil: Stil; bewertung: { sterne: number; anzahl: number }; vertrauen: string; funktion: Funktion; bild?: { hero: string } };
+
+const EXTRA: Record<BrancheId, Extra> = {
+  friseur: {
+    stil: { bg: "#fbf4f1", flaeche: "#ffffff", tief: "#3b1d27", ink: "#2d1a20", muted: "#7a5c64", linie: "#efdcd9", akzent: "#b0546a", aufAkzent: "#ffffff", akzent2: "#7a2e43", dunkel: false, schrift: "serif", pro: ["#ec4899", "#db2777", "#f43f5e"] },
+    bewertung: { sterne: 4.8, anzahl: 63 },
+    vertrauen: "Seit 2012 in Neubau",
+    funktion: {
+      art: "preistabelle",
+      titel: "Preise nach Haarlänge",
+      text: "Kein Rätselraten: So viel kostet Ihr Besuch – je nach Länge Ihrer Haare.",
+      spalten: ["kurz", "mittel", "lang"],
+      zeilen: [
+        { name: "Waschen, Schneiden, Föhnen", preise: [42, 52, 62] },
+        { name: "Färben (Ansatz)", preise: [58, 58, 64] },
+        { name: "Färben (ganze Länge)", preise: [62, 68, 85] },
+        { name: "Strähnen & Balayage", preise: [null, 110, 140] },
+        { name: "Föhnen & Styling", preise: [24, 29, 34] },
+      ],
+      hinweis: "Online-Termin direkt im nächsten Schritt.",
+    },
+  },
+  barber: {
+    stil: { bg: "#111111", flaeche: "#1b1b1b", tief: "#000000", ink: "#f5f5f4", muted: "#a8a29e", linie: "#2e2e2e", akzent: "#c9a24a", aufAkzent: "#111111", akzent2: "#e6c77a", dunkel: true, schrift: "display", pro: ["#d4a72c", "#b45309", "#f59e0b"] },
+    bewertung: { sterne: 4.7, anzahl: 128 },
+    vertrauen: "Ohne Termin, 6 Tage die Woche",
+    funktion: { art: "wartezeit", titel: "Jetzt ohne Termin", text: "Schauen Sie vorher nach, wie lange Sie warten – oder buchen Sie gleich einen fixen Termin.", minuten: 15, vorIhnen: 2, stuehle: 3 },
+  },
+  imbiss: {
+    stil: { bg: "#fff8ec", flaeche: "#ffffff", tief: "#3a0d0d", ink: "#2a1608", muted: "#7c5a3a", linie: "#f3e1c4", akzent: "#d62828", aufAkzent: "#ffffff", akzent2: "#fcbf49", dunkel: false, schrift: "sans", pro: ["#f59e0b", "#ea580c", "#dc2626"] },
+    bewertung: { sterne: 4.6, anzahl: 312 },
+    vertrauen: "Täglich bis 24 Uhr",
+    funktion: {
+      art: "speisekarte",
+      titel: "Speisekarte",
+      text: "Gleich online bestellen – zum Abholen in 10 Minuten oder geliefert.",
+      modus: "bestellen",
+      kategorien: [
+        { name: "Kebap", gerichte: [
+          { name: "Kebap im Brot", text: "Kalb oder Huhn, Hausbrot", preis: 6 },
+          { name: "Dürüm", text: "Im Fladen gerollt", preis: 7 },
+          { name: "Kebap-Teller", text: "Mit Reis, Salat, Pommes", preis: 12 },
+          { name: "Falafel im Brot", text: "Vegetarisch, mit Hummus", preis: 7 },
+        ] },
+        { name: "Pizza & Pide", gerichte: [
+          { name: "Lahmacun", text: "Türkische Pizza", preis: 5 },
+          { name: "Pide Käse", text: "Mit Ei auf Wunsch", preis: 9 },
+          { name: "Pizza Margherita", text: "30 cm", preis: 9 },
+        ] },
+        { name: "Getränke", gerichte: [
+          { name: "Ayran", text: "Hausgemacht", preis: 2 },
+          { name: "Cola 0,33 l", text: "", preis: 2.5 },
+          { name: "Çay", text: "Türkischer Tee", preis: 1.5 },
+        ] },
+      ],
+    },
+  },
+  cafe: {
+    stil: { bg: "#f6f1e7", flaeche: "#fffdf8", tief: "#23372a", ink: "#23302a", muted: "#6b6a58", linie: "#e6dcc8", akzent: "#3f6b4f", aufAkzent: "#ffffff", akzent2: "#b5835a", dunkel: false, schrift: "serif", pro: ["#4d9a6a", "#2f7a50", "#b5835a"] },
+    bewertung: { sterne: 4.8, anzahl: 187 },
+    vertrauen: "Eigene Rösterei seit 2016",
+    funktion: {
+      art: "speisekarte",
+      titel: "Frühstück & Karte",
+      text: "Schauen Sie, worauf Sie Lust haben – und reservieren Sie gleich Ihren Tisch.",
+      modus: "reservieren",
+      kategorien: [
+        { name: "Frühstück", gerichte: [
+          { name: "Linde-Frühstück", text: "Gebäck, Ei, Aufstriche, Kaffee", preis: 14 },
+          { name: "Avocado-Toast", text: "Mit pochiertem Ei", preis: 11 },
+          { name: "Granola-Bowl", text: "Joghurt, Obst, Honig", preis: 8 },
+        ] },
+        { name: "Kaffee", gerichte: [
+          { name: "Wiener Melange", text: "Aus eigener Röstung", preis: 4 },
+          { name: "Cappuccino", text: "Auch mit Hafermilch", preis: 4.2 },
+          { name: "Einspänner", text: "Mit Schlagobers", preis: 4.8 },
+        ] },
+        { name: "Mehlspeisen", gerichte: [
+          { name: "Topfentorte", text: "Hausgemacht", preis: 5 },
+          { name: "Apfelstrudel", text: "Mit Vanillesauce", preis: 5.5 },
+        ] },
+      ],
+    },
+  },
+  handwerk: {
+    stil: { bg: "#f4efe8", flaeche: "#ffffff", tief: "#1f3327", ink: "#1f2a22", muted: "#6b6256", linie: "#e4dacb", akzent: "#2f4f3a", aufAkzent: "#ffffff", akzent2: "#a0703c", dunkel: false, schrift: "sans", pro: ["#d97706", "#a16207", "#16a34a"] },
+    bewertung: { sterne: 5.0, anzahl: 18 },
+    vertrauen: "Meisterbetrieb seit 1998",
+    funktion: {
+      art: "projekte",
+      titel: "Unsere Projekte",
+      text: "Echte Arbeiten aus der Gegend – vorher und nachher. Ihr Projekt? Schicken Sie uns ein Foto.",
+      gebiet: ["Floridsdorf", "Donaustadt", "Brigittenau", "Korneuburg", "Gerasdorf"],
+      projekte: [
+        { titel: "Küche in Eiche", ort: "1210 Wien", text: "Alte Einbauküche raus, maßgefertigte Eichenküche rein – in 6 Wochen.", vorher: "linear-gradient(135deg,#d6d3d1,#a8a29e)", nachher: "linear-gradient(135deg,#fde68a,#b45309 60%,#78350f)" },
+        { titel: "Schrank unter der Dachschräge", ort: "2100 Korneuburg", text: "Jeder Zentimeter genutzt, mit Schiebetüren.", vorher: "linear-gradient(135deg,#e7e5e4,#c8bfb2)", nachher: "linear-gradient(135deg,#f5f5f4,#d6c3a5 60%,#a0703c)" },
+        { titel: "Esstisch aus Nuss", ort: "1220 Wien", text: "2,40 m Massivholz für die ganze Familie.", vorher: "linear-gradient(135deg,#e5e7eb,#9ca3af)", nachher: "linear-gradient(135deg,#a16207,#451a03)" },
+      ],
+    },
+  },
+  nagel: {
+    stil: { bg: "#fdf4f6", flaeche: "#ffffff", tief: "#4a1029", ink: "#3a1726", muted: "#8a5b6c", linie: "#f5dbe3", akzent: "#be185d", aufAkzent: "#ffffff", akzent2: "#f9a8d4", dunkel: false, schrift: "serif", pro: ["#ec4899", "#c026d3", "#a855f7"] },
+    bewertung: { sterne: 4.9, anzahl: 94 },
+    vertrauen: "Seit 2019 in Mariahilf",
+    funktion: { art: "termin", titel: "Termin in 20 Sekunden", text: "Behandlung wählen, Tag und Uhrzeit wählen – fertig. Auch am Abend und am Wochenende.", hinweis: "Bestätigung kommt sofort per E-Mail." },
+  },
+  schneiderei: {
+    stil: { bg: "#f3f5f9", flaeche: "#ffffff", tief: "#14253d", ink: "#16243a", muted: "#5b6b82", linie: "#dde3ec", akzent: "#1e3a5f", aufAkzent: "#ffffff", akzent2: "#c2410c", dunkel: false, schrift: "sans", pro: ["#3b82f6", "#2563eb", "#f97316"] },
+    bewertung: { sterne: 4.8, anzahl: 142 },
+    vertrauen: "Fertig in 3 Werktagen",
+    funktion: {
+      art: "preistabelle",
+      titel: "Was kostet meine Änderung?",
+      text: "Richtpreise für die häufigsten Änderungen – den genauen Preis sagen wir Ihnen bei der Abgabe.",
+      spalten: ["Hose", "Rock/Kleid", "Sakko"],
+      zeilen: [
+        { name: "Kürzen", preise: [14, 18, 28] },
+        { name: "Enger machen", preise: [22, 26, 35] },
+        { name: "Reißverschluss neu", preise: [18, 22, 30] },
+        { name: "Ärmel kürzen", preise: [null, 20, 26] },
+      ],
+      hinweis: "Express in 24 Stunden: + 50 %",
+    },
+  },
+  hundesalon: {
+    stil: { bg: "#f0f9f7", flaeche: "#ffffff", tief: "#103b37", ink: "#12322e", muted: "#55716c", linie: "#d5ebe6", akzent: "#0f766e", aufAkzent: "#ffffff", akzent2: "#f59e0b", dunkel: false, schrift: "sans", pro: ["#14b8a6", "#0d9488", "#f59e0b"] },
+    bewertung: { sterne: 4.9, anzahl: 76 },
+    vertrauen: "Geduldig seit 2015",
+    funktion: {
+      art: "preistabelle",
+      titel: "Preise nach Hundegröße",
+      text: "Klein wie ein Yorkie, mittel wie ein Beagle, groß wie ein Golden Retriever.",
+      spalten: ["klein", "mittel", "groß"],
+      zeilen: [
+        { name: "Baden & Föhnen", preise: [35, 45, 60] },
+        { name: "Komplett-Schur", preise: [55, 70, 90] },
+        { name: "Trimmen", preise: [60, 75, 95] },
+        { name: "Krallen schneiden", preise: [10, 10, 12] },
+      ],
+      hinweis: "Bei verfilztem Fell kommt Entfilzen dazu (12 € pro Viertelstunde).",
+    },
+  },
+  kfz: {
+    stil: { bg: "#16191f", flaeche: "#1f242c", tief: "#0b0d11", ink: "#f3f4f6", muted: "#9ca3af", linie: "#2d333d", akzent: "#f97316", aufAkzent: "#111111", akzent2: "#fdba74", dunkel: true, schrift: "display", pro: ["#f97316", "#ea580c", "#eab308"] },
+    bewertung: { sterne: 4.8, anzahl: 211 },
+    vertrauen: "Alle Marken seit 2001",
+    funktion: { art: "termin", titel: "Pickerl & Service online buchen", text: "Leistung wählen, Tag und Uhrzeit wählen – Ihr Auto kommt sofort dran.", hinweis: "Kostenvoranschlag vor jeder Reparatur." },
+  },
+};
+
+const BETRIEBE = Object.fromEntries(
+  (Object.keys(BASIS) as BrancheId[]).map((k) => {
+    const e = EXTRA[k];
+    const zahlen = BASIS[k].zahlen.map((z) => (z.text.includes("Sterne") ? { ...z, zahl: e.bewertung.sterne } : z));
+    return [k, { ...BASIS[k], ...e, zahlen }];
+  }),
+) as Record<BrancheId, Betrieb>;
 
 /** Der Friseursalon bleibt das Standard-Beispiel. */
 export const SALON = BETRIEBE.friseur;
@@ -432,7 +914,7 @@ export function betriebFuer(branche: unknown, name?: unknown): Betrieb {
   const eigener = bereinigterName(name);
   if (!eigener) return b;
   const woerter = eigener.split(" ");
-  const marke = (woerter.find((w) => w.length > 2 && !/^(salon|café|cafe|tischlerei|barbershop|friseur|imbiss)$/i.test(w)) ?? woerter[0]).toUpperCase();
+  const marke = (woerter.find((w) => w.length > 2 && !/^(salon|café|cafe|tischlerei|barbershop|friseur|imbiss|schneiderei|kfz|nails|by)$/i.test(w)) ?? woerter[0]).toUpperCase();
   return { ...b, name: eigener, marke: marke.slice(0, 14) };
 }
 

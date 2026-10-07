@@ -7,7 +7,7 @@ export function DemoFormular({ knopf, feld, akzent, wunsch }: { knopf: string; f
   const [gesendet, setGesendet] = useState(false);
   if (gesendet) {
     return (
-      <p role="status" className="rounded-xl p-5 font-semibold" style={{ background: `${akzent}14`, color: akzent }}>
+      <p role="status" className="rounded-xl p-5 font-semibold" style={{ background: `color-mix(in srgb, ${akzent} 8%, transparent)`, color: akzent }}>
         Danke! Auf einer echten Website kommt Ihre Anfrage jetzt per E-Mail beim Betrieb an. In diesem Beispiel wird nichts gesendet.
       </p>
     );
@@ -32,7 +32,7 @@ export function DemoFormular({ knopf, feld, akzent, wunsch }: { knopf: string; f
         Ihr Wunsch
         <textarea rows={3} className={feld} placeholder={wunsch} />
       </label>
-      <button className="min-h-11 w-full rounded-full px-6 font-semibold text-white" style={{ background: akzent }}>
+      <button className="min-h-11 w-full rounded-full px-6 font-semibold" style={{ background: akzent, color: "var(--b-auf, #fff)" }}>
         {knopf}
       </button>
     </form>

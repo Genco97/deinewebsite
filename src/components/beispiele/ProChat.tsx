@@ -148,7 +148,7 @@ export function ProChat({ betrieb }: { betrieb: Betrieb }) {
       ) : (
         <button
           onClick={() => setOffen(true)}
-          className="fixed bottom-5 right-5 z-50 flex min-h-12 items-center gap-2 rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-400 px-5 font-bold text-white shadow-[0_0_40px_rgba(167,139,250,0.55)] transition hover:scale-105"
+          className="fixed bottom-5 right-5 z-50 flex min-h-12 items-center gap-2 rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-400 px-5 font-bold text-white shadow-[0_0_40px_color-mix(in_srgb,var(--pro-b)_55%,transparent)] transition hover:scale-105"
         >
           <span aria-hidden>✦</span> Fragen Sie unsere KI
         </button>
