@@ -5,7 +5,7 @@ import { useState } from "react";
 import { buttonClass } from "@/components/ui";
 import { BRANCHEN, BRANCHE_INFO, THEMEN, THEMA_INFO, betriebFuer, type BrancheId, type Thema } from "@/lib/beispiele";
 import { PAKET_NAMEN } from "@/lib/pakete";
-import { DesktopRahmen, HandyRahmen } from "./Geraete";
+import { DesktopRahmen, HandyRahmen, useHandyBreite } from "./Geraete";
 import { demoLink, vorschauLink } from "./VorschauGenerator";
 
 /** C3: Branche und Design frei kombinieren – Computer und Handy nebeneinander */
@@ -22,6 +22,7 @@ export function BeispielUmschalter() {
     document.getElementById(`thema-${t}`)?.focus();
   }
 
+  const handy = useHandyBreite();
   const info = THEMA_INFO[thema];
   const betrieb = betriebFuer(branche);
   const src = vorschauLink(thema, branche, "");
@@ -60,7 +61,7 @@ export function BeispielUmschalter() {
           <p id="design-titel" className="mb-2 text-sm font-semibold uppercase tracking-wide text-brand">
             2 · Ihr Design
           </p>
-          <div role="tablist" aria-labelledby="design-titel" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div role="tablist" aria-labelledby="design-titel" className="grid grid-cols-4 gap-1.5 sm:gap-2">
             {THEMEN.map((t, i) => {
               const aktiv = t === thema;
               return (
@@ -73,12 +74,12 @@ export function BeispielUmschalter() {
                   tabIndex={aktiv ? 0 : -1}
                   onClick={() => setThema(t)}
                   onKeyDown={(e) => pfeil(e, i)}
-                  className={`min-h-11 rounded-xl border px-4 py-2.5 text-left transition-[transform,background-color,border-color] duration-150 hover:scale-[1.03] active:scale-95 motion-reduce:transform-none ${
+                  className={`min-h-11 rounded-xl border px-1 py-2 text-center text-sm transition sm:px-4 sm:py-2.5 sm:text-left sm:text-base-[transform,background-color,border-color] duration-150 hover:scale-[1.03] active:scale-95 motion-reduce:transform-none ${
                     aktiv ? "border-brand bg-brand text-white" : "border-line bg-surface text-ink hover:border-brand"
                   }`}
                 >
                   <span className="block font-semibold">{THEMA_INFO[t].label}</span>
-                  <span className={`block text-sm ${aktiv ? "text-white/80" : "text-muted"}`}>{THEMA_INFO[t].kurz}</span>
+                  <span className={`hidden text-sm sm:block ${aktiv ? "text-white/80" : "text-muted"}`}>{THEMA_INFO[t].kurz}</span>
                 </button>
               );
             })}
@@ -86,7 +87,7 @@ export function BeispielUmschalter() {
         </div>
       </div>
 
-      <div id="thema-vorschau" role="tabpanel" aria-labelledby={`thema-${thema}`} className="mt-8">
+      <div id="thema-vorschau" role="tabpanel" aria-labelledby={`thema-${thema}`} className="mt-6 sm:mt-8">
         <div className="flex items-end gap-6">
           <div className="hidden min-w-0 flex-1 lg:block">
             <p className="mb-2 text-sm font-medium text-muted">Am Computer</p>
@@ -99,23 +100,30 @@ export function BeispielUmschalter() {
           </div>
           <div className="mx-auto lg:mx-0">
             <p className="mb-2 text-center text-sm font-medium text-muted lg:text-left">Am Handy</p>
-            <HandyRahmen src={src} titel={`${betrieb.name} im Design ${info.label} am Handy`} breite={280} />
+            <HandyRahmen src={src} titel={`${betrieb.name} im Design ${info.label} am Handy`} breite={handy ? 240 : 280} />
           </div>
         </div>
 
         <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="max-w-2xl text-muted">
+          <p className="max-w-2xl text-sm text-muted sm:text-base">
             <strong className="text-ink">
               {BRANCHE_INFO[branche].label} · {info.paket ? `Paket ${PAKET_NAMEN[info.paket]}` : "Unser Stil"}:
             </strong>{" "}
             {info.text}
           </p>
-          <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+          <div className="grid shrink-0 grid-cols-2 gap-2 sm:flex">
             <Link href={src} className={buttonClass("secondary")}>
               Ganz ansehen
             </Link>
             <Link href={demoLink(info.paket ?? "business", branche, "", info.label)} className={buttonClass("primary")}>
-              {info.paket === "premium" ? "Pro anfragen" : "So eine Demo gratis"}
+              {info.paket === "premium" ? (
+                "Pro anfragen"
+              ) : (
+                <>
+                  <span className="sm:hidden">Gratis-Demo</span>
+                  <span className="hidden sm:inline">So eine Demo gratis</span>
+                </>
+              )}
             </Link>
           </div>
         </div>
