@@ -148,9 +148,12 @@ export function ProChat({ betrieb }: { betrieb: Betrieb }) {
       ) : (
         <button
           onClick={() => setOffen(true)}
-          className="fixed bottom-5 right-5 z-50 flex min-h-12 items-center gap-2 rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-400 px-5 font-bold text-white shadow-[0_0_40px_color-mix(in_srgb,var(--pro-b)_55%,transparent)] transition hover:scale-105"
+          aria-label="Fragen Sie unsere KI"
+          className="fixed bottom-5 right-5 z-50 flex h-12 w-12 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-400 font-bold text-white shadow-[0_0_40px_color-mix(in_srgb,var(--pro-b)_55%,transparent)] transition hover:scale-105 sm:w-auto sm:px-5"
         >
-          <span aria-hidden>✦</span> Fragen Sie unsere KI
+          {/* Am Handy nur das Symbol, damit der Knopf keine Inhalte verdeckt */}
+          <span aria-hidden className="text-lg sm:text-base">✦</span>
+          <span aria-hidden className="hidden sm:inline">Fragen Sie unsere KI</span>
         </button>
       )}
     </>

@@ -28,6 +28,7 @@ export default async function ProBeispiel({ searchParams }: PageProps<"/beispiel
     "--f-akzent": a,
     "--f-auf": "#ffffff",
   } as CSSProperties;
+  const offen = betrieb.oeffnungszeiten.find((o) => o.zeit !== "geschlossen") ?? betrieb.oeffnungszeiten[0];
   const sterne = betrieb.bewertung.sterne.toLocaleString("de-AT", { minimumFractionDigits: 1 });
   return (
     <div className={`${grotesk.variable} pro-seite relative flex-1`} style={farben}>
@@ -51,7 +52,7 @@ export default async function ProBeispiel({ searchParams }: PageProps<"/beispiel
       </header>
 
       {/* Hero */}
-      <section className="relative grid min-h-[calc(100svh-4.5rem)] place-items-center overflow-hidden px-5 py-16">
+      <section className="relative overflow-hidden px-5 py-12 md:py-24">
         <div aria-hidden className="absolute inset-0">
           <div className="pro-blob left-[10%] top-[15%] h-[40vmax] w-[40vmax] bg-fuchsia-600" />
           <div className="pro-blob pro-blob-2 right-[5%] top-[30%] h-[35vmax] w-[35vmax] bg-violet-700" />
@@ -59,31 +60,53 @@ export default async function ProBeispiel({ searchParams }: PageProps<"/beispiel
           <div className="absolute inset-0 bg-[radial-gradient(transparent_0,#07070c_75%)]" />
           <div className="absolute inset-0 opacity-[0.07] [background-image:linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)] [background-size:64px_64px]" />
         </div>
-        <div className="relative z-10 mx-auto max-w-5xl text-center">
-          <p data-reveal className="mx-auto w-fit rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-sm text-white/80 backdrop-blur">
-            ✦ Jetzt mit KI-Beratung & Online-Buchung
-          </p>
-          <h1 data-reveal style={verzoegert(120)} className="mt-8 text-[clamp(3rem,10vw,8.5rem)] font-bold leading-[0.9] tracking-tighter">
-            {betrieb.proHero[0]}
-            <br />
-            <span className="pro-verlauf-text">{betrieb.proHero[1]}</span> {betrieb.proHero[2]}
-          </h1>
-          <p data-reveal style={verzoegert(240)} className="mx-auto mt-8 max-w-xl text-lg text-white/70 sm:text-xl">
-            {betrieb.einleitung}
-          </p>
-          <div data-reveal style={verzoegert(360)} className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
-            <a
-              href="#buchen"
-              className="inline-flex min-h-14 items-center justify-center rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-400 px-8 text-lg font-bold shadow-[0_0_60px_color-mix(in_srgb,var(--pro-b)_50%,transparent)] transition hover:scale-105"
+        <div className={`relative z-10 mx-auto grid max-w-6xl items-center gap-10 ${betrieb.bild ? "md:grid-cols-[1.15fr_0.85fr] md:gap-12" : "max-w-5xl text-center"}`}>
+          <div className={betrieb.bild ? "order-2 md:order-1" : undefined}>
+            <p data-reveal className={`w-fit rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-sm text-white/80 backdrop-blur ${betrieb.bild ? "" : "mx-auto"}`}>
+              ✦ Jetzt mit KI-Beratung & Online-Buchung
+            </p>
+            <h1
+              data-reveal
+              style={verzoegert(120)}
+              className={`mt-8 font-bold leading-[0.9] tracking-tighter ${betrieb.bild ? "text-[clamp(2.75rem,6.5vw,6rem)]" : "text-[clamp(3rem,10vw,8.5rem)]"}`}
             >
-              {betrieb.aktion} in 20 Sekunden
-            </a>
-            <a href="#leistungen" className="inline-flex min-h-14 items-center justify-center rounded-full border border-white/20 px-8 text-lg font-semibold transition hover:bg-white/10">
-              Leistungen entdecken
-            </a>
+              {betrieb.proHero[0]}
+              <br />
+              <span className="pro-verlauf-text">{betrieb.proHero[1]}</span> {betrieb.proHero[2]}
+            </h1>
+            <p data-reveal style={verzoegert(240)} className={`mt-8 max-w-xl text-lg text-white/70 sm:text-xl ${betrieb.bild ? "" : "mx-auto"}`}>
+              {betrieb.einleitung}
+            </p>
+            <div data-reveal style={verzoegert(360)} className={`mt-10 flex flex-col gap-3 sm:flex-row ${betrieb.bild ? "" : "justify-center"}`}>
+              <a
+                href="#buchen"
+                className="inline-flex min-h-14 items-center justify-center rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-400 px-8 text-lg font-bold shadow-[0_0_60px_color-mix(in_srgb,var(--pro-b)_50%,transparent)] transition hover:scale-105"
+              >
+                {betrieb.aktion} in 20 Sekunden
+              </a>
+              <a href="#leistungen" className="inline-flex min-h-14 items-center justify-center rounded-full border border-white/20 px-8 text-lg font-semibold transition hover:bg-white/10">
+                Leistungen entdecken
+              </a>
+            </div>
           </div>
+          {betrieb.bild && (
+            <div data-reveal style={verzoegert(200)} className="relative order-1 md:order-2">
+              <div className="pro-rahmen">
+                <div className="aspect-[16/10] overflow-hidden rounded-[calc(2rem-2px)] md:aspect-[4/5]">
+                  <div className="pro-foto h-full w-full" style={{ background: `center / cover url(${betrieb.bild.hero})` }} />
+                </div>
+              </div>
+              <div className="absolute bottom-3 left-3 rounded-2xl border border-white/10 bg-[#07070c]/80 px-4 py-3 backdrop-blur-xl md:-bottom-5 md:-left-5">
+                <p className="text-sm font-bold">★ {sterne} · {betrieb.bewertung.anzahl} Bewertungen</p>
+                <p className="text-xs text-white/60">{betrieb.vertrauen}</p>
+              </div>
+              <div className="absolute right-3 top-3 rounded-2xl border border-white/10 bg-[#07070c]/80 px-4 py-3 backdrop-blur-xl md:-right-4 md:top-6">
+                <p className="text-xs text-white/60">{betrieb.naechster.klein}</p>
+                <p className="text-sm font-bold">{betrieb.naechster.gross}</p>
+              </div>
+            </div>
+          )}
         </div>
-        <p aria-hidden className="absolute bottom-6 left-1/2 -translate-x-1/2 animate-bounce text-white/40">↓</p>
       </section>
 
       {/* Laufband */}
@@ -127,6 +150,27 @@ export default async function ProBeispiel({ searchParams }: PageProps<"/beispiel
           </div>
         ))}
       </section>
+
+      {/* Einblick: breites Foto-Fenster */}
+      {betrieb.bild?.einblick && (
+        <section className="relative z-10 mx-auto max-w-6xl px-5 py-16">
+          <h2 data-reveal className="text-center text-5xl font-bold tracking-tighter sm:text-7xl">
+            Einfach mal <span className="pro-verlauf-text">reinschauen</span>.
+          </h2>
+          <div data-reveal style={verzoegert(150)} className="relative mx-auto mt-12 [perspective:1400px]">
+            <div className="pro-rahmen [transform:rotateX(8deg)]">
+              <div className="relative aspect-[4/3] overflow-hidden rounded-[calc(2rem-2px)] sm:aspect-[21/9]">
+                <div className="pro-foto h-full w-full" style={{ background: `center / cover url(${betrieb.bild.einblick})` }} />
+                <div className="absolute inset-x-0 bottom-0 flex flex-wrap gap-2 bg-gradient-to-t from-black/70 to-transparent p-3 pt-12 text-xs sm:gap-3 sm:p-6 sm:pt-24 sm:text-sm">
+                  <span className="rounded-full border border-white/15 bg-black/50 px-3 py-1.5 backdrop-blur sm:px-4 sm:py-2">📍 {betrieb.strasse}, {betrieb.plz} {betrieb.ort}</span>
+                  <span className="hidden rounded-full border border-white/15 bg-black/50 px-4 py-2 backdrop-blur sm:inline">🕒 {offen.tage} {offen.zeit}</span>
+                  <span className="hidden rounded-full border border-white/15 bg-black/50 px-4 py-2 backdrop-blur sm:inline">✦ {betrieb.vertrauen}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Leistungen */}
       <section id="leistungen" className="relative z-10 mx-auto max-w-6xl scroll-mt-24 px-5 py-16">

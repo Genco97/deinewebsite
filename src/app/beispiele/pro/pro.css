@@ -39,6 +39,23 @@
 .pro-blob-2 { animation-duration: 18s; animation-delay: -6s; }
 .pro-blob-3 { animation-duration: 22s; animation-delay: -11s; }
 
+/* Fotos: Rahmen im Markenverlauf, langsamer Zoom */
+.pro-rahmen {
+  border-radius: 2rem;
+  padding: 2px;
+  background: linear-gradient(135deg, var(--pro-a), var(--pro-b), var(--pro-c));
+  box-shadow: 0 0 80px color-mix(in srgb, var(--pro-b) 45%, transparent);
+}
+
+.pro-foto {
+  animation: pro-zoom 30s ease-in-out infinite alternate;
+}
+
+@keyframes pro-zoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.12); }
+}
+
 @keyframes pro-schweben {
   0% { transform: translate(0, 0) scale(1); }
   50% { transform: translate(8vw, -6vh) scale(1.2); }
@@ -111,6 +128,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .pro-blob,
+  .pro-foto,
   .pro-verlauf-text,
   .pro-band,
   .pro-tippen span {
