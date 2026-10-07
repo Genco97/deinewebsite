@@ -165,28 +165,31 @@ export default function Startseite() {
 
       {/* So läuft es ab (D1) */}
       <Abschnitt id="ablauf" titel="So läuft es ab" einleitung="Vier Schritte, ein fixer Ansprechpartner. Und Sie zahlen erst ganz am Schluss.">
-        <ol className="grid gap-4 md:grid-cols-4">
+        {/* Zeitleiste: am Handy senkrecht, ab md waagrecht */}
+        <ol className="grid md:grid-cols-4 md:gap-6">
           {ABLAUF.map((s, i) => {
             const letzter = i === ABLAUF.length - 1;
             return (
-              <li
-                key={s.titel}
-                className={`relative rounded-2xl border p-5 ${letzter ? "border-2 border-brand bg-brand-light" : "border-line bg-surface"}`}
-              >
+              <li key={s.titel} className="relative flex gap-4 pb-7 last:pb-0 md:block md:pb-0">
+                {!letzter ? (
+                  <span
+                    aria-hidden
+                    className="absolute bottom-0 left-5 top-10 w-px bg-line md:bottom-auto md:left-12 md:right-[-1.5rem] md:top-5 md:h-px md:w-auto"
+                  />
+                ) : null}
                 <span
                   aria-hidden
-                  className={`flex h-10 w-10 items-center justify-center rounded-full text-lg font-bold ${letzter ? "bg-brand text-white" : "bg-brand-light text-brand"}`}
+                  className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-bold ${letzter ? "bg-brand text-white shadow-md shadow-brand/30" : "border border-line bg-surface text-brand"}`}
                 >
                   {i + 1}
                 </span>
-                <p className="mt-4 text-lg font-bold text-ink">{s.titel}</p>
-                <p className="mt-1 text-muted">{s.text}</p>
-                <p className="mt-3 text-sm font-semibold text-brand">{s.dauer}</p>
-                {i < ABLAUF.length - 1 ? (
-                  <span aria-hidden className="absolute -right-3 top-9 z-10 hidden h-6 w-6 items-center justify-center rounded-full border border-line bg-surface text-sm text-brand md:flex">
-                    →
-                  </span>
-                ) : null}
+                <div className="pt-1.5 md:mt-4 md:pt-0">
+                  <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className={`text-lg font-bold ${letzter ? "text-brand" : "text-ink"}`}>{s.titel}</span>
+                    <span className="rounded-full bg-brand-light px-2.5 py-0.5 text-xs font-semibold text-brand">{s.dauer}</span>
+                  </p>
+                  <p className="mt-1 text-muted">{s.text}</p>
+                </div>
               </li>
             );
           })}
