@@ -4,6 +4,7 @@ import { Space_Grotesk } from "next/font/google";
 import { ProBuchung } from "@/components/beispiele/ProBuchung";
 import { ProChat } from "@/components/beispiele/ProChat";
 import { ProEffekte } from "@/components/beispiele/ProEffekte";
+import { BranchenFunktion } from "@/components/beispiele/Funktionen";
 import { abPreis, betriebAusSuche } from "@/lib/beispiele";
 import "./pro.css";
 
@@ -15,8 +16,21 @@ const verzoegert = (ms: number) => ({ "--pro-delay": `${ms}ms` }) as CSSProperti
 
 export default async function ProBeispiel({ searchParams }: PageProps<"/beispiele/pro">) {
   const betrieb = await betriebAusSuche(searchParams);
+  const [a, b, c] = betrieb.stil.pro;
+  const farben = {
+    "--pro-a": a,
+    "--pro-b": b,
+    "--pro-c": c,
+    "--f-flaeche": "rgba(255,255,255,.05)",
+    "--f-ink": "#f4f4f8",
+    "--f-muted": "rgba(244,244,248,.62)",
+    "--f-linie": "rgba(255,255,255,.12)",
+    "--f-akzent": a,
+    "--f-auf": "#ffffff",
+  } as CSSProperties;
+  const sterne = betrieb.bewertung.sterne.toLocaleString("de-AT", { minimumFractionDigits: 1 });
   return (
-    <div className={`${grotesk.variable} pro-seite relative flex-1`}>
+    <div className={`${grotesk.variable} pro-seite relative flex-1`} style={farben}>
       <ProEffekte />
 
       <header className="sticky top-0 z-40 border-b border-white/5 bg-[#07070c]/60 backdrop-blur-xl">
@@ -60,7 +74,7 @@ export default async function ProBeispiel({ searchParams }: PageProps<"/beispiel
           <div data-reveal style={verzoegert(360)} className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
             <a
               href="#buchen"
-              className="inline-flex min-h-14 items-center justify-center rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-400 px-8 text-lg font-bold shadow-[0_0_60px_rgba(167,139,250,0.5)] transition hover:scale-105"
+              className="inline-flex min-h-14 items-center justify-center rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-400 px-8 text-lg font-bold shadow-[0_0_60px_color-mix(in_srgb,var(--pro-b)_50%,transparent)] transition hover:scale-105"
             >
               {betrieb.aktion} in 20 Sekunden
             </a>
@@ -86,6 +100,18 @@ export default async function ProBeispiel({ searchParams }: PageProps<"/beispiel
           ))}
         </div>
       </div>
+
+      {/* Das Wichtigste der Branche zuerst */}
+      <section id="angebot" className="relative z-10 mx-auto max-w-6xl scroll-mt-24 px-5 pt-24">
+        <div data-reveal>
+          <h2 className="text-5xl font-bold tracking-tighter sm:text-6xl">
+            {betrieb.funktion.titel}
+            <span className="pro-verlauf-text">.</span>
+          </h2>
+          <p className="mb-8 mt-3 max-w-2xl text-lg text-white/60">{betrieb.funktion.text}</p>
+          <BranchenFunktion betrieb={betrieb} ziel="#buchen" />
+        </div>
+      </section>
 
       {/* Zahlen */}
       <section className="relative z-10 mx-auto grid max-w-6xl gap-10 px-5 py-24 text-center sm:grid-cols-3">
@@ -149,8 +175,9 @@ export default async function ProBeispiel({ searchParams }: PageProps<"/beispiel
       {/* Stimmen */}
       <section id="stimmen" className="relative z-10 mx-auto max-w-6xl scroll-mt-24 px-5 py-16">
         <h2 data-reveal className="text-5xl font-bold tracking-tighter sm:text-7xl">
-          <span className="pro-verlauf-text">★ 4,9</span> von 200+
+          <span className="pro-verlauf-text">★ {sterne}</span> von {betrieb.bewertung.anzahl}
         </h2>
+        <p className="mt-3 text-sm text-white/50">Beispielwerte</p>
         <ul className="mt-12 grid gap-4 md:grid-cols-3">
           {betrieb.bewertungen.map((b, i) => (
             <li key={b.name} data-reveal style={verzoegert(i * 150)} className="pro-karte p-7">

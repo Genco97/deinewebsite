@@ -136,7 +136,7 @@ export function ProBuchung({ betrieb }: { betrieb: Betrieb }) {
         <button
           type="button"
           onClick={() => setFertig(true)}
-          className="min-h-12 w-full rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-400 px-6 font-bold text-white shadow-[0_0_40px_rgba(167,139,250,0.45)] transition hover:brightness-110"
+          className="min-h-12 w-full rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-400 px-6 font-bold text-white shadow-[0_0_40px_color-mix(in_srgb,var(--pro-b)_45%,transparent)] transition hover:brightness-110"
         >
           {leistung.name} am {TAG.format(tag)} um {zeit} buchen
         </button>

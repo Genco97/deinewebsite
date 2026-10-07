@@ -7,6 +7,16 @@
   color: #f4f4f8;
   font-family: var(--font-grotesk), ui-sans-serif, system-ui, sans-serif;
   overflow-x: clip;
+  /* Farben der Branche: die lila Töne des Grunddesigns werden umgefärbt */
+  --color-fuchsia-500: var(--pro-a, #d946ef);
+  --color-fuchsia-600: var(--pro-a, #c026d3);
+  --color-violet-300: color-mix(in srgb, var(--pro-b, #8b5cf6) 55%, white);
+  --color-violet-400: var(--pro-b, #a78bfa);
+  --color-violet-500: var(--pro-b, #8b5cf6);
+  --color-violet-600: var(--pro-b, #7c3aed);
+  --color-violet-700: var(--pro-b, #6d28d9);
+  --color-cyan-400: var(--pro-c, #22d3ee);
+  --color-cyan-500: var(--pro-c, #06b6d4);
 }
 
 /* Licht, das der Maus folgt */
@@ -15,7 +25,7 @@
   position: fixed;
   inset: 0;
   z-index: 0;
-  background: radial-gradient(600px circle at var(--pro-x) var(--pro-y), rgba(168, 85, 247, 0.13), transparent 60%);
+  background: radial-gradient(600px circle at var(--pro-x) var(--pro-y), color-mix(in srgb, var(--pro-b, #a855f7) 13%, transparent), transparent 60%);
 }
 
 /* Polarlicht im Hero */
@@ -36,7 +46,7 @@
 }
 
 .pro-verlauf-text {
-  background: linear-gradient(90deg, #f0abfc, #a78bfa, #67e8f9, #f0abfc);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--pro-a, #d946ef) 60%, white), color-mix(in srgb, var(--pro-b, #8b5cf6) 60%, white), color-mix(in srgb, var(--pro-c, #22d3ee) 60%, white), color-mix(in srgb, var(--pro-a, #d946ef) 60%, white));
   background-size: 300% 100%;
   -webkit-background-clip: text;
   background-clip: text;
