@@ -9,7 +9,7 @@ import {
   bereinigterName,
   type BrancheId,
 } from "@/lib/beispiele";
-import { HandyRahmen } from "./Geraete";
+import { HandyRahmen, useHandyBreite } from "./Geraete";
 
 export function vorschauLink(thema: string, branche: BrancheId, name: string) {
   const p = new URLSearchParams({ branche });
@@ -41,6 +41,7 @@ export function VorschauGenerator({
   const [eingabe, setEingabe] = useState("");
   const [name, setName] = useState("");
   const [branche, setBranche] = useState<BrancheId>("friseur");
+  const handy = useHandyBreite();
 
   // Erst nach einer kurzen Tipp-Pause neu laden, nicht bei jedem Buchstaben
   useEffect(() => {
@@ -49,10 +50,10 @@ export function VorschauGenerator({
   }, [eingabe]);
 
   return (
-    <div className="grid items-center gap-10 lg:grid-cols-[1fr_auto]">
+    <div className="grid items-center gap-8 sm:gap-10 lg:grid-cols-[1fr_auto]">
       <div className="min-w-0">
         {children}
-        <div className="mt-8 rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-6">
+        <div className="mt-6 rounded-2xl border border-line bg-surface p-5 shadow-sm sm:mt-8 sm:p-6">
           <p className="text-sm font-semibold uppercase tracking-wide text-brand">
             Ihre Seite in 10 Sekunden
           </p>
@@ -109,7 +110,7 @@ export function VorschauGenerator({
                 aussehen. Ihre echte Demo bauen wir mit Ihren Fotos und Texten.
               </>
             ) : (
-              "Tippen Sie Ihren Namen ein – rechts sehen Sie sofort, wie Ihre Seite am Handy aussehen kann."
+              "Tippen Sie Ihren Namen ein – die Vorschau zeigt sofort, wie Ihre Seite am Handy aussehen kann."
             )}
           </p>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
@@ -129,11 +130,16 @@ export function VorschauGenerator({
           </div>
         </div>
       </div>
-      <HandyRahmen
-        src={vorschauLink("business", branche, name)}
-        titel={`Vorschau: Website für ${name || "Ihren Betrieb"}`}
-        breite={300}
-      />
+      <div>
+        <p className="mb-3 text-center text-sm font-medium text-muted lg:hidden">
+          Live-Vorschau
+        </p>
+        <HandyRahmen
+          src={vorschauLink("business", branche, name)}
+          titel={`Vorschau: Website für ${name || "Ihren Betrieb"}`}
+          breite={handy ? 230 : 300}
+        />
+      </div>
     </div>
   );
 }

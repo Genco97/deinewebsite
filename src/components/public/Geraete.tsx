@@ -1,6 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+
+/** true unter 640 px (Tailwind „sm“). Am Server und beim ersten Rendern false. */
+export function useHandyBreite() {
+  return useSyncExternalStore(
+    (melden) => {
+      const mq = window.matchMedia("(max-width: 639px)");
+      mq.addEventListener("change", melden);
+      return () => mq.removeEventListener("change", melden);
+    },
+    () => window.matchMedia("(max-width: 639px)").matches,
+    () => false,
+  );
+}
 
 /** Beispielseite im Handy-Rahmen: die Seite wird in 390 px gebaut und verkleinert angezeigt. */
 export function HandyRahmen({ src, titel, breite = 260, klickbar = true }: { src: string; titel: string; breite?: number; klickbar?: boolean }) {
@@ -22,6 +35,13 @@ export function HandyRahmen({ src, titel, breite = 260, klickbar = true }: { src
           title={titel}
           tabIndex={klickbar ? 0 : -1}
           onLoad={() => setGeladen(src)}
+          ref={(f) => {
+            // Der Rahmen wird am Server mitgerendert: Ist die Seite darin schon vor dem
+            // Hydrieren fertig, kommt onLoad nie an – dann hier als geladen markieren.
+            if (f && geladen !== src && f.contentWindow?.location.href !== "about:blank" && f.contentDocument?.readyState === "complete") {
+              setGeladen(src);
+            }
+          }}
           className="absolute left-0 top-7 origin-top-left border-0 transition-opacity duration-300"
           style={{
             width: 390,

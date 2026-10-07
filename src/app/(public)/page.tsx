@@ -117,12 +117,12 @@ export default function Startseite() {
       {/* Hero mit Live-Vorschau (A2) */}
       <section className="relative isolate overflow-hidden">
         <div aria-hidden className="absolute inset-x-0 top-0 -z-10 h-[520px] bg-gradient-to-b from-brand-light to-transparent" />
-        <div className="mx-auto w-full max-w-6xl px-4 pb-14 pt-12 sm:pb-20 sm:pt-16">
+        <div className="mx-auto w-full max-w-6xl px-4 pb-12 pt-8 sm:pb-20 sm:pt-16">
           <VorschauGenerator>
-            <h1 className="font-serif text-4xl font-semibold leading-tight tracking-tight text-ink sm:text-5xl xl:text-6xl">
-              Eine Website für Ihren Betrieb. Erst ansehen, dann zahlen.
+            <h1 className="font-serif text-[2.1rem] font-semibold leading-[1.1] tracking-tight text-ink sm:text-5xl xl:text-6xl">
+              Eine Website für Ihren Betrieb. <span className="text-brand">Erst ansehen, dann zahlen.</span>
             </h1>
-            <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted sm:text-xl">
+            <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted sm:mt-5 sm:text-xl">
               Wir erstellen Ihnen eine kostenlose Demo Ihrer neuen Website. Wenn sie Ihnen gefällt, zahlen Sie einen
               fixen Preis. Wenn nicht, zahlen Sie nichts.
             </p>
