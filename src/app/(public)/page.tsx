@@ -8,12 +8,30 @@ import { VorschauGenerator } from "@/components/public/VorschauGenerator";
 import { FIRMA, preisHinweis } from "@/lib/firma";
 import { PAKETE } from "@/lib/pakete";
 
+// Einfache Strich-Symbole (24er-Raster), passend zur Schrift
+const SYMBOL = {
+  auge: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z",
+  preis: "M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9-9-9Z M7.5 7.5h.01",
+  ort: "M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11Z M12 7.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z",
+  schluessel: "M15 7a4 4 0 1 1-3.9 4.9L4 19v2h3v-2h2v-2h2l1.1-1.1A4 4 0 0 1 15 7Z M16 9.5h.01",
+};
+
 const VERTRAUEN = [
-  { titel: "Erst zahlen, wenn's passt", text: "Sie sehen Ihre Website als Demo, bevor Sie etwas bezahlen." },
-  { titel: "Fixpreis", text: "Der Preis steht vorher fest. Keine Stundenabrechnung." },
-  { titel: "Persönlich aus Wien", text: "Ein fixer Ansprechpartner, der Ihren Betrieb kennt." },
-  { titel: "Die Website gehört Ihnen", text: "Inhalte und Domain gehören Ihnen – ohne Knebelvertrag." },
+  { titel: "Erst zahlen, wenn's passt", text: "Sie sehen Ihre Website als Demo, bevor Sie etwas bezahlen.", symbol: SYMBOL.auge },
+  { titel: "Fixpreis", text: "Der Preis steht vorher fest. Keine Stundenabrechnung.", symbol: SYMBOL.preis },
+  { titel: "Persönlich aus Wien", text: "Ein fixer Ansprechpartner, der Ihren Betrieb kennt.", symbol: SYMBOL.ort },
+  { titel: "Die Website gehört Ihnen", text: "Inhalte und Domain gehören Ihnen – ohne Knebelvertrag.", symbol: SYMBOL.schluessel },
 ];
+
+function Symbol({ d }: { d: string }) {
+  return (
+    <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-light text-brand">
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+        <path d={d} />
+      </svg>
+    </span>
+  );
+}
 
 const ABLAUF = [
   { titel: "Anfrage", text: "Sie schicken uns zwei Minuten lang ein paar Infos – oder wir telefonieren kurz.", dauer: "2 Minuten" },
@@ -132,14 +150,14 @@ export default function Startseite() {
 
       {/* Vertrauensleiste */}
       <section aria-label="Unsere Versprechen" className="border-y border-line bg-surface">
-        <ul className="mx-auto grid w-full max-w-6xl gap-px bg-line sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-x-4 gap-y-5 px-4 py-6 sm:gap-6 lg:grid-cols-4 lg:py-8">
           {VERTRAUEN.map((v) => (
-            <li key={v.titel} className="bg-surface px-4 py-6">
-              <p className="flex items-center gap-2 font-semibold text-ink">
-                <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-brand" />
-                {v.titel}
-              </p>
-              <p className="mt-1.5 pl-4 text-sm text-muted">{v.text}</p>
+            <li key={v.titel} className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+              <Symbol d={v.symbol} />
+              <div>
+                <p className="text-[15px] font-semibold leading-snug text-ink">{v.titel}</p>
+                <p className="mt-0.5 text-[13px] leading-snug text-muted sm:text-sm">{v.text}</p>
+              </div>
             </li>
           ))}
         </ul>
