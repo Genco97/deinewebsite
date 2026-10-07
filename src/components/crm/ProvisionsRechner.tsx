@@ -58,9 +58,9 @@ function useZaehlen(ziel: number) {
 
 const HINWEIS = "Bruttobeträge vor Steuer. Ausgezahlt wird, sobald der Kunde voll bezahlt hat. Ist jemand darüber ein Gründer, geht dessen Anteil in den Gründer-Topf.";
 
-function ProPreis({ r, hell = true }: { r: ReturnType<typeof useRechner>; hell?: boolean }) {
+function ProPreis({ r }: { r: ReturnType<typeof useRechner> }) {
   return (
-    <label className={`flex items-center gap-2 text-sm ${hell ? "text-muted" : "text-white/70"}`}>
+    <label className="flex items-center gap-2 text-sm text-white/70">
       Pro-Paket kostet
       <span className="relative">
         <input
@@ -71,9 +71,7 @@ function ProPreis({ r, hell = true }: { r: ReturnType<typeof useRechner>; hell?:
           value={r.proEingabe}
           onChange={(e) => r.setProEingabe(e.target.value)}
           onBlur={() => r.setProEingabe(String(r.proPreis))}
-          className={`h-9 w-28 rounded-full px-4 pr-8 text-sm font-semibold focus:outline-none focus:ring-2 ${
-            hell ? "bg-bg text-ink ring-1 ring-line focus:ring-brand" : "bg-white/10 text-white ring-1 ring-white/20 focus:ring-sky-300"
-          }`}
+          className="h-9 w-28 rounded-full px-4 pr-8 text-sm font-semibold focus:outline-none focus:ring-2 bg-white/10 text-white ring-1 ring-white/20 focus:ring-sky-300"
         />
         <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">€</span>
       </span>
@@ -82,92 +80,9 @@ function ProPreis({ r, hell = true }: { r: ReturnType<typeof useRechner>; hell?:
 }
 
 /* ===================================================================== */
-/* R1 · Hell mit Schiebereglern und farbiger Ergebnis-Karte              */
+/* Dunkel mit Glas-Kacheln und Ebenen-Umschalter                         */
 /* ===================================================================== */
-function R1({ gruender }: { gruender: boolean }) {
-  const r = useRechner();
-  const gesamt = useZaehlen(r.summe);
-  return (
-    <div className="grid gap-5 rounded-[28px] border border-line bg-surface p-4 shadow-[0_1px_2px_rgba(16,24,40,.04),0_12px_32px_-12px_rgba(29,78,137,.18)] sm:p-6 lg:grid-cols-[1.5fr_1fr]">
-      <div>
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand">Provisions-Rechner</p>
-        <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">{gruender ? "Was eure Partner verdienen" : "Was du verdienen kannst"}</h2>
-        <p className="mt-1 text-sm text-muted">Zieh die Regler – Verkäufe pro Monat.</p>
-
-        <div className="mt-6 space-y-6">
-          {EBENEN.map((e) => (
-            <section key={e.key}>
-              <div className="mb-3 flex items-center justify-between">
-                <p className="flex items-center gap-2 font-bold text-ink">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: e.farbe }} />
-                  {e.titel}
-                  <span className="rounded-full bg-brand-light px-2 py-0.5 text-xs font-bold text-brand">{e.prozent} %</span>
-                </p>
-                <p className="font-bold tabular-nums text-ink">{ganz(r.ebeneSumme(e))}</p>
-              </div>
-              <div className="space-y-3">
-                {PAKETE.map((p) => {
-                  const n = r.anzahl[e.key][p.id];
-                  const id = `r1-${e.key}-${p.id}`;
-                  return (
-                    <div key={p.id} className="grid grid-cols-[7rem_1fr_2.5rem] items-center gap-3">
-                      <label htmlFor={id} className="leading-tight">
-                        <span className="block text-sm font-semibold text-ink">{p.name}</span>
-                        <span className="block text-xs text-muted">{ganz(r.jeVerkauf(e, p.id))} je Verkauf</span>
-                      </label>
-                      <input
-                        id={id}
-                        type="range"
-                        min={0}
-                        max={20}
-                        value={Math.min(n, 20)}
-                        onChange={(ev) => r.setzen(e.key, p.id, Number(ev.target.value))}
-                        className="regler h-2 w-full cursor-pointer appearance-none rounded-full"
-                        style={{ background: `linear-gradient(90deg, ${e.farbe} ${(Math.min(n, 20) / 20) * 100}%, #e8edf3 0)` }}
-                      />
-                      <span className="rounded-lg bg-bg py-1 text-center text-sm font-bold tabular-nums text-ink">{n}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
-        </div>
-      </div>
-
-      <aside className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1d4e89] via-[#2563a8] to-[#3d7fd0] p-6 text-white lg:sticky lg:top-6 lg:self-start">
-        <div aria-hidden className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-        <p className="relative text-sm font-medium text-white/80">{gruender ? "Ein Partner verdient" : "Du verdienst"} pro Monat</p>
-        <p className="relative mt-1 text-5xl font-extrabold tabular-nums tracking-tight">{ganz(gesamt)}</p>
-        <p className="relative mt-1 text-white/80">
-          ≈ <strong className="text-white">{ganz(r.summe * 12)}</strong> im Jahr
-        </p>
-        <div className="relative mt-6 flex h-3 overflow-hidden rounded-full bg-white/15" aria-hidden>
-          {EBENEN.map((e) => (
-            <span key={e.key} className="h-full transition-[width] duration-500" style={{ width: `${r.summe ? (r.ebeneSumme(e) / r.summe) * 100 : 0}%`, background: e.key === "eigen" ? "#fff" : e.key === "direkt" ? "#bfdbfe" : "#7dd3fc" }} />
-          ))}
-        </div>
-        <ul className="relative mt-4 space-y-2 text-sm">
-          {EBENEN.map((e) => (
-            <li key={e.key} className="flex justify-between">
-              <span className="text-white/80">{e.kurz} · {e.prozent} %</span>
-              <span className="font-semibold tabular-nums">{ganz(r.ebeneSumme(e))}</span>
-            </li>
-          ))}
-        </ul>
-        <div className="relative mt-6 border-t border-white/15 pt-4">
-          <ProPreis r={r} hell={false} />
-          <p className="mt-3 text-xs leading-relaxed text-white/60">{HINWEIS}</p>
-        </div>
-      </aside>
-    </div>
-  );
-}
-
-/* ===================================================================== */
-/* R2 · Dunkel mit Glas-Kacheln und Ebenen-Umschalter                    */
-/* ===================================================================== */
-function R2({ gruender }: { gruender: boolean }) {
+function Rechner({ gruender }: { gruender: boolean }) {
   const r = useRechner();
   const gesamt = useZaehlen(r.summe);
   const [aktiv, setAktiv] = useState<EbeneKey>("eigen");
@@ -248,151 +163,14 @@ function R2({ gruender }: { gruender: boolean }) {
       </div>
 
       <div className="relative mt-6 flex flex-col gap-3 border-t border-white/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
-        <ProPreis r={r} hell={false} />
+        <ProPreis r={r} />
         <p className="max-w-md text-xs text-white/50">{HINWEIS}</p>
       </div>
     </div>
   );
 }
 
-/* ===================================================================== */
-/* R3 · Hell & minimal mit Ring-Diagramm                                 */
-/* ===================================================================== */
-function Ring({ r, gesamt }: { r: ReturnType<typeof useRechner>; gesamt: number }) {
-  const R = 54;
-  const U = 2 * Math.PI * R;
-  const anteile = EBENEN.map((e) => (r.summe ? (r.ebeneSumme(e) / r.summe) * U : 0));
-  const versaetze = anteile.map((_, i) => anteile.slice(0, i).reduce((s, x) => s + x, 0));
-  return (
-    <div className="relative mx-auto h-56 w-56">
-      <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90" aria-hidden>
-        <circle cx="70" cy="70" r={R} fill="none" stroke="#eef2f7" strokeWidth="14" />
-        {EBENEN.map((e, i) => {
-          const laenge = anteile[i];
-          return (
-            <circle
-              key={e.key}
-              cx="70"
-              cy="70"
-              r={R}
-              fill="none"
-              stroke={e.farbe}
-              strokeWidth="14"
-              strokeDasharray={`${Math.max(0, laenge - 2)} ${U}`}
-              strokeDashoffset={-versaetze[i]}
-              strokeLinecap="round"
-              className="transition-all duration-500"
-            />
-          );
-        })}
-      </svg>
-      <div className="absolute inset-0 grid place-items-center text-center">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted">pro Monat</p>
-          <p className="text-4xl font-extrabold tabular-nums tracking-tight text-ink">{ganz(gesamt)}</p>
-          <p className="text-sm text-muted">{ganz(r.summe * 12)} / Jahr</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function R3({ gruender }: { gruender: boolean }) {
-  const r = useRechner();
-  const gesamt = useZaehlen(r.summe);
-  const [aktiv, setAktiv] = useState<EbeneKey>("eigen");
-  const e = EBENEN.find((x) => x.key === aktiv)!;
-  return (
-    <div className="rounded-[32px] bg-white p-5 shadow-[0_2px_4px_rgba(16,24,40,.04),0_24px_48px_-24px_rgba(16,24,40,.18)] ring-1 ring-black/5 sm:p-8">
-      <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
-        <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-ink">Provisions-Rechner</h2>
-          <p className="text-sm text-muted">{gruender ? "So viel verdient ein Partner im Monat." : "So viel verdienst du im Monat."}</p>
-        </div>
-        <ProPreis r={r} />
-      </div>
-
-      <div className="mt-6 grid items-center gap-8 lg:grid-cols-[1fr_1.4fr]">
-        <div>
-          <Ring r={r} gesamt={gesamt} />
-          <ul className="mx-auto mt-4 max-w-xs space-y-2 text-sm">
-            {EBENEN.map((x) => (
-              <li key={x.key} className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-muted">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: x.farbe }} />
-                  {x.kurz} · {x.prozent} %
-                </span>
-                <span className="font-semibold tabular-nums text-ink">{ganz(r.ebeneSumme(x))}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <div role="tablist" aria-label="Ebene wählen" className="grid grid-cols-3 rounded-2xl bg-[#f1f4f8] p-1">
-            {EBENEN.map((x) => (
-              <button
-                key={x.key}
-                role="tab"
-                aria-selected={x.key === aktiv}
-                onClick={() => setAktiv(x.key)}
-                className={`min-h-11 rounded-xl text-sm font-semibold transition ${x.key === aktiv ? "bg-white text-ink shadow-sm" : "text-muted hover:text-ink"}`}
-              >
-                {x.kurz} <span className="text-brand">{x.prozent} %</span>
-              </button>
-            ))}
-          </div>
-
-          <ul className="mt-4 divide-y divide-[#eef1f5]" role="tabpanel">
-            {PAKETE.map((p) => {
-              const n = r.anzahl[e.key][p.id];
-              return (
-                <li key={p.id} className="flex items-center gap-4 py-4">
-                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-sm font-extrabold text-white" style={{ background: e.farbe }}>
-                    {p.id === "premium" ? "2k+" : p.preis}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-bold text-ink">{p.name}</span>
-                    <span className="block text-sm text-muted">{ganz(r.jeVerkauf(e, p.id))} je Verkauf</span>
-                  </span>
-                  <span className="flex items-center gap-2" role="group" aria-label={`${e.titel}, ${p.name}`}>
-                    <button
-                      type="button"
-                      onClick={() => r.setzen(e.key, p.id, n - 1)}
-                      disabled={n === 0}
-                      aria-label="eins weniger"
-                      className="grid h-10 w-10 place-items-center rounded-full bg-[#f1f4f8] text-lg font-bold text-ink transition hover:bg-[#e4e9f0] active:scale-90 disabled:opacity-30"
-                    >
-                      −
-                    </button>
-                    <span className="w-8 text-center text-xl font-extrabold tabular-nums text-ink" aria-live="polite">
-                      {n}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => r.setzen(e.key, p.id, n + 1)}
-                      aria-label="eins mehr"
-                      className="grid h-10 w-10 place-items-center rounded-full bg-brand text-lg font-bold text-white transition hover:bg-brand-hover active:scale-90"
-                    >
-                      +
-                    </button>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-          <p className="mt-2 text-xs text-muted">{HINWEIS}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export type RechnerVariante = "r1" | "r2" | "r3";
-
 /** Rechner: was ein Partner im Monat verdient – mit den echten Paketpreisen und Provisionssätzen */
-export function ProvisionsRechner({ gruender, variante = "r1" }: { gruender: boolean; variante?: RechnerVariante }) {
-  if (variante === "r2") return <R2 gruender={gruender} />;
-  if (variante === "r3") return <R3 gruender={gruender} />;
-  return <R1 gruender={gruender} />;
+export function ProvisionsRechner({ gruender }: { gruender: boolean }) {
+  return <Rechner gruender={gruender} />;
 }

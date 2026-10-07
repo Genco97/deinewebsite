@@ -33,24 +33,3 @@ body {
   outline: 2px solid var(--color-brand);
   outline-offset: 2px;
 }
-
-/* Schieberegler im Provisions-Rechner */
-.regler::-webkit-slider-thumb {
-  appearance: none;
-  width: 22px;
-  height: 22px;
-  border-radius: 9999px;
-  background: #fff;
-  border: 3px solid var(--color-brand);
-  box-shadow: 0 2px 6px rgba(29, 78, 137, 0.35);
-  cursor: grab;
-}
-.regler::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 9999px;
-  background: #fff;
-  border: 3px solid var(--color-brand);
-  box-shadow: 0 2px 6px rgba(29, 78, 137, 0.35);
-  cursor: grab;
-}
