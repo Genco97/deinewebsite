@@ -3,6 +3,7 @@ import { RueckrufFormular } from "@/components/public/RueckrufFormular";
 import { Karte, buttonClass } from "@/components/ui";
 import { Angabe } from "@/components/public/Angabe";
 import { BeispielUmschalter } from "@/components/public/BeispielUmschalter";
+import { PaketAuswahl } from "@/components/public/PaketAuswahl";
 import { PaketQuiz } from "@/components/public/PaketQuiz";
 import { VorschauGenerator } from "@/components/public/VorschauGenerator";
 import { FIRMA, preisHinweis } from "@/lib/firma";
@@ -216,13 +217,13 @@ export default function Startseite() {
         titel="Pakete mit Fixpreis"
         einleitung="Ohne Abo-Falle und ohne Werbebudget. Sie wissen vorher, was es kostet."
       >
-        <div className="grid gap-6 lg:grid-cols-3">
+        <PaketAuswahl namen={PAKETE.map((p) => p.name)} start={PAKETE.findIndex((p) => p.id === "business")}>
           {PAKETE.map((p) => {
             const hervorgehoben = p.id === "business";
             return (
               <Karte
                 key={p.id}
-                className={`relative flex flex-col p-6 sm:p-8 ${hervorgehoben ? "border-2 border-brand" : ""}`}
+                className={`relative flex flex-col p-5 sm:p-8 ${hervorgehoben ? "border-2 border-brand" : ""}`}
               >
                 {p.hinweis ? (
                   <span className="absolute -top-3 left-6 rounded-full bg-brand px-3 py-1 text-xs font-semibold text-white">
@@ -237,7 +238,7 @@ export default function Startseite() {
                 <p className="mt-1 text-sm text-muted">
                   einmalig, {preisHinweis() ?? <Angabe wert={null} platzhalter="inkl./zzgl. USt." />}
                 </p>
-                <ul className="mt-6 flex-1 space-y-3">
+                <ul className="mt-5 flex-1 space-y-2.5 sm:mt-6 sm:space-y-3">
                   {p.leistungen.map((l) => (
                     <li key={l} className="flex gap-3 text-[15px] text-ink">
                       <span aria-hidden className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
@@ -255,7 +256,7 @@ export default function Startseite() {
               </Karte>
             );
           })}
-        </div>
+        </PaketAuswahl>
         <p className="mt-6 text-sm text-muted">
           Nach der Fertigstellung gehört die Website Ihnen: Wir übergeben sie samt Domain auf Ihren Namen – kein Abo
           nötig. Optional: Sorglos-Paket um {hosting} pro Monat (Pro {hostingPro}) mit Hosting, Domain, Updates und
