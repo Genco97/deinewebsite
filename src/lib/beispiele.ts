@@ -46,7 +46,7 @@ export type Betrieb = {
   bewertung: { sterne: number; anzahl: number };
   vertrauen: string;
   funktion: Funktion;
-  /** Fotos (KI-erzeugt), sobald vorhanden */
+  /** Fotos (Unsplash-Lizenz) aus public/beispiele/ */
   bild?: { hero: string };
 };
 
@@ -740,6 +740,7 @@ const EXTRA: Record<BrancheId, Extra> = {
     stil: { bg: "#fbf4f1", flaeche: "#ffffff", tief: "#3b1d27", ink: "#2d1a20", muted: "#7a5c64", linie: "#efdcd9", akzent: "#b0546a", aufAkzent: "#ffffff", akzent2: "#7a2e43", dunkel: false, schrift: "serif", pro: ["#ec4899", "#db2777", "#f43f5e"] },
     bewertung: { sterne: 4.8, anzahl: 63 },
     vertrauen: "Seit 2012 in Neubau",
+    bild: { hero: "/beispiele/friseur.jpg" },
     funktion: {
       art: "preistabelle",
       titel: "Preise nach Haarlänge",
@@ -759,12 +760,14 @@ const EXTRA: Record<BrancheId, Extra> = {
     stil: { bg: "#111111", flaeche: "#1b1b1b", tief: "#000000", ink: "#f5f5f4", muted: "#a8a29e", linie: "#2e2e2e", akzent: "#c9a24a", aufAkzent: "#111111", akzent2: "#e6c77a", dunkel: true, schrift: "display", pro: ["#d4a72c", "#b45309", "#f59e0b"] },
     bewertung: { sterne: 4.7, anzahl: 128 },
     vertrauen: "Ohne Termin, 6 Tage die Woche",
+    bild: { hero: "/beispiele/barber.jpg" },
     funktion: { art: "wartezeit", titel: "Jetzt ohne Termin", text: "Schauen Sie vorher nach, wie lange Sie warten – oder buchen Sie gleich einen fixen Termin.", minuten: 15, vorIhnen: 2, stuehle: 3 },
   },
   imbiss: {
     stil: { bg: "#fff8ec", flaeche: "#ffffff", tief: "#3a0d0d", ink: "#2a1608", muted: "#7c5a3a", linie: "#f3e1c4", akzent: "#d62828", aufAkzent: "#ffffff", akzent2: "#fcbf49", dunkel: false, schrift: "sans", pro: ["#f59e0b", "#ea580c", "#dc2626"] },
     bewertung: { sterne: 4.6, anzahl: 312 },
     vertrauen: "Täglich bis 24 Uhr",
+    bild: { hero: "/beispiele/imbiss.jpg" },
     funktion: {
       art: "speisekarte",
       titel: "Speisekarte",
@@ -794,6 +797,7 @@ const EXTRA: Record<BrancheId, Extra> = {
     stil: { bg: "#f6f1e7", flaeche: "#fffdf8", tief: "#23372a", ink: "#23302a", muted: "#6b6a58", linie: "#e6dcc8", akzent: "#3f6b4f", aufAkzent: "#ffffff", akzent2: "#b5835a", dunkel: false, schrift: "serif", pro: ["#4d9a6a", "#2f7a50", "#b5835a"] },
     bewertung: { sterne: 4.8, anzahl: 187 },
     vertrauen: "Eigene Rösterei seit 2016",
+    bild: { hero: "/beispiele/cafe.jpg" },
     funktion: {
       art: "speisekarte",
       titel: "Frühstück & Karte",
@@ -821,6 +825,7 @@ const EXTRA: Record<BrancheId, Extra> = {
     stil: { bg: "#f4efe8", flaeche: "#ffffff", tief: "#1f3327", ink: "#1f2a22", muted: "#6b6256", linie: "#e4dacb", akzent: "#2f4f3a", aufAkzent: "#ffffff", akzent2: "#a0703c", dunkel: false, schrift: "sans", pro: ["#d97706", "#a16207", "#16a34a"] },
     bewertung: { sterne: 5.0, anzahl: 18 },
     vertrauen: "Meisterbetrieb seit 1998",
+    bild: { hero: "/beispiele/handwerk.jpg" },
     funktion: {
       art: "projekte",
       titel: "Unsere Projekte",
@@ -837,12 +842,14 @@ const EXTRA: Record<BrancheId, Extra> = {
     stil: { bg: "#fdf4f6", flaeche: "#ffffff", tief: "#4a1029", ink: "#3a1726", muted: "#8a5b6c", linie: "#f5dbe3", akzent: "#be185d", aufAkzent: "#ffffff", akzent2: "#f9a8d4", dunkel: false, schrift: "serif", pro: ["#ec4899", "#c026d3", "#a855f7"] },
     bewertung: { sterne: 4.9, anzahl: 94 },
     vertrauen: "Seit 2019 in Mariahilf",
+    bild: { hero: "/beispiele/nagel.jpg" },
     funktion: { art: "termin", titel: "Termin in 20 Sekunden", text: "Behandlung wählen, Tag und Uhrzeit wählen – fertig. Auch am Abend und am Wochenende.", hinweis: "Bestätigung kommt sofort per E-Mail." },
   },
   schneiderei: {
     stil: { bg: "#f3f5f9", flaeche: "#ffffff", tief: "#14253d", ink: "#16243a", muted: "#5b6b82", linie: "#dde3ec", akzent: "#1e3a5f", aufAkzent: "#ffffff", akzent2: "#c2410c", dunkel: false, schrift: "sans", pro: ["#3b82f6", "#2563eb", "#f97316"] },
     bewertung: { sterne: 4.8, anzahl: 142 },
     vertrauen: "Fertig in 3 Werktagen",
+    bild: { hero: "/beispiele/schneiderei.jpg" },
     funktion: {
       art: "preistabelle",
       titel: "Was kostet meine Änderung?",
@@ -861,6 +868,7 @@ const EXTRA: Record<BrancheId, Extra> = {
     stil: { bg: "#f0f9f7", flaeche: "#ffffff", tief: "#103b37", ink: "#12322e", muted: "#55716c", linie: "#d5ebe6", akzent: "#0f766e", aufAkzent: "#ffffff", akzent2: "#f59e0b", dunkel: false, schrift: "sans", pro: ["#14b8a6", "#0d9488", "#f59e0b"] },
     bewertung: { sterne: 4.9, anzahl: 76 },
     vertrauen: "Geduldig seit 2015",
+    bild: { hero: "/beispiele/hundesalon.jpg" },
     funktion: {
       art: "preistabelle",
       titel: "Preise nach Hundegröße",
@@ -879,6 +887,7 @@ const EXTRA: Record<BrancheId, Extra> = {
     stil: { bg: "#16191f", flaeche: "#1f242c", tief: "#0b0d11", ink: "#f3f4f6", muted: "#9ca3af", linie: "#2d333d", akzent: "#f97316", aufAkzent: "#111111", akzent2: "#fdba74", dunkel: true, schrift: "display", pro: ["#f97316", "#ea580c", "#eab308"] },
     bewertung: { sterne: 4.8, anzahl: 211 },
     vertrauen: "Alle Marken seit 2001",
+    bild: { hero: "/beispiele/kfz.jpg" },
     funktion: { art: "termin", titel: "Pickerl & Service online buchen", text: "Leistung wählen, Tag und Uhrzeit wählen – Ihr Auto kommt sofort dran.", hinweis: "Kostenvoranschlag vor jeder Reparatur." },
   },
 };
