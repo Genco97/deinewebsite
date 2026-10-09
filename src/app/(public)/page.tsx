@@ -321,17 +321,26 @@ export default function Startseite() {
       </Abschnitt>
 
       {/* FAQ */}
-      <Abschnitt id="fragen" titel="Häufige Fragen" weiss>
-        <div className="max-w-3xl divide-y divide-line border-y border-line">
+      <Abschnitt
+        id="fragen"
+        titel="Häufige Fragen"
+        einleitung="Ihre Frage ist nicht dabei? Hinterlassen Sie unten Ihre Nummer – wir rufen Sie zurück."
+        weiss
+        seitlich
+      >
+        <div className="divide-y divide-line border-y border-line">
           {FAQ.map((f) => (
             <details key={f.frage} className="group">
-              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 text-left font-semibold text-ink [&::-webkit-details-marker]:hidden">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 text-left text-[15px] font-semibold text-ink hover:text-brand sm:text-base [&::-webkit-details-marker]:hidden">
                 {f.frage}
-                <span aria-hidden className="text-xl text-brand transition-transform group-open:rotate-45">
+                <span
+                  aria-hidden
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-light text-lg leading-none text-brand transition-transform group-open:rotate-45"
+                >
                   +
                 </span>
               </summary>
-              <p className="pb-5 leading-relaxed text-muted">{f.antwort}</p>
+              <p className="pb-5 pr-10 text-[15px] leading-relaxed text-muted sm:text-base">{f.antwort}</p>
             </details>
           ))}
         </div>
@@ -342,8 +351,9 @@ export default function Startseite() {
         id="rueckruf"
         titel="Lieber kurz telefonieren?"
         einleitung="Hinterlassen Sie Ihre Nummer. Wir rufen Sie zurück – unverbindlich und ohne Verkaufsdruck."
+        seitlich
       >
-        <Karte className="max-w-2xl p-5 sm:p-8">
+        <Karte className="p-5 sm:p-8">
           <RueckrufFormular />
         </Karte>
       </Abschnitt>
