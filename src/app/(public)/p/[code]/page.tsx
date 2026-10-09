@@ -67,10 +67,10 @@ export default async function KundenProjekt({ params }: PageProps<"/p/[code]">) 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:py-14">
       <p className="text-sm font-semibold uppercase tracking-wide text-brand">Ihr Projekt · Paket {paketName}</p>
-      <h1 className="mt-2 font-serif text-3xl font-semibold tracking-tight text-ink sm:text-5xl">
+      <h1 className="mt-2 font-serif text-[1.9rem] font-semibold leading-tight tracking-tight text-ink sm:text-5xl">
         {online ? `${p.firma} ist online! 🎉` : `Ihre Website für ${p.firma}`}
       </h1>
-      <p className="mt-4 text-lg leading-relaxed text-muted">
+      <p className="mt-3 text-base leading-relaxed text-muted sm:mt-4 sm:text-lg">
         Hier sehen Sie jederzeit, wie weit wir sind.
         {p.betreuer ? (
           <>
@@ -80,8 +80,46 @@ export default async function KundenProjekt({ params }: PageProps<"/p/[code]">) 
         ) : null}
       </p>
 
+      {/* Kurz-Stand: Schritt x von 5 mit Balken */}
+      <div className="mt-6">
+        <p className="flex items-baseline justify-between gap-3 text-sm">
+          <span className="font-semibold text-ink">
+            {online ? "Fertig – Ihre Website ist online" : `Schritt ${aktuell + 1} von ${SCHRITTE.length}: ${SCHRITTE[aktuell].titel}`}
+          </span>
+          {!online && p.faellig ? <span className="shrink-0 text-muted">bis {tagText(p.faellig)}</span> : null}
+        </p>
+        <div aria-hidden className="mt-2 h-2 overflow-hidden rounded-full bg-line">
+          <div
+            className={`h-full rounded-full ${online ? "bg-ok" : "bg-brand"}`}
+            style={{ width: `${online ? 100 : Math.round(((aktuell + 0.5) / SCHRITTE.length) * 100)}%` }}
+          />
+        </div>
+      </div>
+
+      {p.website_url ? (
+        <Karte className="mt-6 flex flex-col gap-4 border-2 border-brand p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+          <div>
+            <p className="font-bold text-ink">{online ? "Ihre Website" : "Ihre Demo ist bereit"}</p>
+            <p className="text-sm text-muted">{p.website_url.replace(/^https?:\/\//, "")}</p>
+          </div>
+          <a href={p.website_url} target="_blank" rel="noopener noreferrer" className={buttonClass("primary", "sm:px-7")}>
+            {online ? "Website öffnen" : "Demo ansehen"} →
+          </a>
+        </Karte>
+      ) : null}
+
+      {/* I1: Rückmeldung */}
+      {!online ? (
+        <Karte className="mt-6 p-5 sm:p-7">
+          <h2 className="font-serif text-2xl font-semibold text-ink">{p.website_url ? "Wie gefällt Ihnen die Seite?" : "Haben Sie Wünsche für Ihre Seite?"}</h2>
+          <p className="mb-5 mt-1 text-muted">Ihre Antwort geht direkt an {p.betreuer ?? "Ihre Ansprechperson"}.</p>
+          <KundenRueckmeldung code={code} />
+        </Karte>
+      ) : null}
+
       {/* I2: Fortschritt */}
-      <Karte className="mt-8 p-5 sm:p-7">
+      <h2 className="mt-10 text-sm font-semibold uppercase tracking-wide text-muted">Alle Schritte</h2>
+      <Karte className="mt-2 p-5 sm:p-7">
         <ol className="relative space-y-6">
           {SCHRITTE.map((s, i) => {
             const fertig = i < aktuell || (online && i === aktuell);
@@ -117,27 +155,6 @@ export default async function KundenProjekt({ params }: PageProps<"/p/[code]">) 
           })}
         </ol>
       </Karte>
-
-      {p.website_url ? (
-        <Karte className="mt-6 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
-          <div>
-            <p className="font-bold text-ink">{online ? "Ihre Website" : "Ihre Demo ist bereit"}</p>
-            <p className="text-sm text-muted">{p.website_url.replace(/^https?:\/\//, "")}</p>
-          </div>
-          <a href={p.website_url} target="_blank" rel="noopener noreferrer" className={buttonClass("primary", "sm:px-7")}>
-            {online ? "Website öffnen" : "Demo ansehen"} →
-          </a>
-        </Karte>
-      ) : null}
-
-      {/* I1: Rückmeldung */}
-      {!online ? (
-        <Karte className="mt-6 p-5 sm:p-7">
-          <h2 className="font-serif text-2xl font-semibold text-ink">{p.website_url ? "Wie gefällt Ihnen die Seite?" : "Haben Sie Wünsche für Ihre Seite?"}</h2>
-          <p className="mb-5 mt-1 text-muted">Ihre Antwort geht direkt an {p.betreuer ?? "Ihre Ansprechperson"}.</p>
-          <KundenRueckmeldung code={code} />
-        </Karte>
-      ) : null}
 
       {p.rueckmeldungen.length > 0 ? (
         <section className="mt-6">

@@ -31,12 +31,12 @@ export function KundenRueckmeldung({ code }: { code: string }) {
       <input type="hidden" name="art" value={art ?? ""} />
       {status.meldung ? <Hinweis art="fehler">{status.meldung}</Hinweis> : null}
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3">
         <button
           type="button"
           aria-pressed={art === "passt"}
           onClick={() => setArt("passt")}
-          className={`flex min-h-20 flex-col items-center justify-center rounded-xl border-2 px-4 py-3 text-lg font-bold transition-transform hover:scale-[1.02] active:scale-[0.98] motion-reduce:transform-none ${
+          className={`flex min-h-20 flex-col items-center justify-center rounded-xl border-2 px-3 py-3 text-base font-bold sm:px-4 sm:text-lg transition-transform hover:scale-[1.02] active:scale-[0.98] motion-reduce:transform-none ${
             art === "passt" ? "border-ok bg-ok-light text-ok" : "border-line bg-surface text-ink hover:border-ok"
           }`}
         >
@@ -49,7 +49,7 @@ export function KundenRueckmeldung({ code }: { code: string }) {
           type="button"
           aria-pressed={art === "aendern"}
           onClick={() => setArt("aendern")}
-          className={`flex min-h-20 flex-col items-center justify-center rounded-xl border-2 px-4 py-3 text-lg font-bold transition-transform hover:scale-[1.02] active:scale-[0.98] motion-reduce:transform-none ${
+          className={`flex min-h-20 flex-col items-center justify-center rounded-xl border-2 px-3 py-3 text-base font-bold sm:px-4 sm:text-lg transition-transform hover:scale-[1.02] active:scale-[0.98] motion-reduce:transform-none ${
             art === "aendern" ? "border-brand bg-brand-light text-brand" : "border-line bg-surface text-ink hover:border-brand"
           }`}
         >
