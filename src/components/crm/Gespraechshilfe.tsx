@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import { Karte } from "@/components/ui";
 import { ABSCHLUSS, EINWAENDE, branchenSatz, einstieg } from "@/lib/gespraech";
 
@@ -16,9 +19,14 @@ export function Gespraechshilfe({
   offen?: boolean;
 }) {
   const saetze = einstieg({ meinName, ansprechpartner, firma });
+  // Am Handy eingeklappt (sonst sehr lang), ab lg wie gewohnt offen, wenn Anrufe erlaubt sind
+  const aufklapp = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    if (offen && aufklapp.current && window.matchMedia("(min-width: 1024px)").matches) aufklapp.current.open = true;
+  }, [offen]);
   return (
     <Karte className="overflow-hidden">
-      <details open={offen} className="group">
+      <details ref={aufklapp} className="group">
         <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 bg-brand-light px-4 py-3 [&::-webkit-details-marker]:hidden">
           <span className="flex items-center gap-2 font-bold text-brand">
             <span aria-hidden>💬</span> Gesprächshilfe

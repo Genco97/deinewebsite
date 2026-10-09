@@ -33,12 +33,14 @@ const QUELLE: Record<string, string> = {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function Abschnitt({ titel, children }: { titel: string; children: React.ReactNode }) {
+function Abschnitt({ titel, id, children }: { titel: string; id?: string; children: React.ReactNode }) {
   return (
-    <Karte className="p-4 sm:p-5">
-      <h2 className="mb-4 font-bold text-ink">{titel}</h2>
-      {children}
-    </Karte>
+    <section id={id} className="scroll-mt-20">
+      <Karte className="p-4 sm:p-5">
+        <h2 className="mb-4 font-bold text-ink">{titel}</h2>
+        {children}
+      </Karte>
+    </section>
   );
 }
 
@@ -74,6 +76,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
     supabase.from("vorlagen").select("id, titel, betreff, text, reihenfolge").order("reihenfolge"),
   ]);
 
+  const letzteNotiz = (verlauf ?? []).find((v) => v.art === "notiz") ?? null;
   const status = lead.status as LeadStatus;
   const gesperrt = status === "nicht_anrufen";
   // Telefonnummer bei „nicht anrufen“ gar nicht erst an den Browser schicken
@@ -110,6 +113,27 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
 
   return (
     <>
+      {/* Handy: die wichtigsten Aktionen bleiben unten erreichbar */}
+      <nav
+        aria-label="Schnellaktionen"
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 gap-2 border-t border-line bg-surface/95 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden print:hidden"
+      >
+        {anrufErlaubt && lead.telefon ? (
+          <a href={`tel:${lead.telefon.replace(/[^+0-9]/g, "")}`} className={buttonClass("primary", "px-2")}>
+            📞 Anrufen
+          </a>
+        ) : (
+          <span className="flex min-h-11 items-center justify-center rounded-lg bg-bg px-2 text-center text-xs text-muted">
+            {gesperrt ? "Nicht anrufen" : "Kein Anruf erlaubt"}
+          </span>
+        )}
+        <a href="#notiz" className={buttonClass("secondary", "px-2")}>
+          ✎ Notiz
+        </a>
+        <a href="#status" className={buttonClass("secondary", "px-2")}>
+          Status
+        </a>
+      </nav>
       <Link href="/crm/leads" className="mb-3 inline-flex min-h-11 items-center text-sm text-brand hover:underline">
         ← Alle Leads
       </Link>
@@ -121,6 +145,13 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
             <StatusBadge status={status} />
             {[lead.branche, lead.bezirk].filter(Boolean).join(" · ")}
           </p>
+          {letzteNotiz ? (
+            <a href="#verlauf" className="mt-3 block max-w-xl rounded-lg border border-line bg-surface px-3 py-2 text-sm hover:border-brand">
+              <span className="font-semibold text-ink">📝 Zuletzt: </span>
+              <span className="text-ink">{letzteNotiz.text.length > 160 ? `${letzteNotiz.text.slice(0, 160)} …` : letzteNotiz.text}</span>
+              <span className="block text-xs text-muted">{datumZeit(letzteNotiz.created_at)}</span>
+            </a>
+          ) : null}
         </div>
         {anrufErlaubt && lead.telefon ? (
           <a href={`tel:${lead.telefon.replace(/[^+0-9]/g, "")}`} className={buttonClass("primary")}>
@@ -168,7 +199,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-6">
-          <Abschnitt titel="Status und nächster Schritt">
+          <Abschnitt titel="Status und nächster Schritt" id="status">
             {gesperrt && !admin ? (
               <p className="text-sm text-muted">Der Status ist gesperrt.</p>
             ) : gesperrt && admin ? (
@@ -217,13 +248,13 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
             )}
           </Abschnitt>
 
-          <Abschnitt titel="Notizen und Verlauf">
+          <Abschnitt titel="Notizen und Verlauf" id="verlauf">
             <form action={notizHinzufuegen} className="space-y-2">
               <input type="hidden" name="id" value={lead.id} />
               <label htmlFor="notiz" className="sr-only">
                 Neue Notiz
               </label>
-              <Textarea name="notiz" rows={3} placeholder="Was wurde besprochen?" required />
+              <Textarea id="notiz" name="notiz" rows={3} placeholder="Was wurde besprochen? Wie seid ihr verblieben?" required />
               <button className={buttonClass("secondary")}>Notiz speichern</button>
             </form>
             <ol className="mt-5 space-y-4 border-l-2 border-line pl-4">
@@ -424,6 +455,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
           </Abschnitt>
         </div>
       </div>
+      <div aria-hidden className="h-20 md:hidden" />
     </>
   );
 }

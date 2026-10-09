@@ -288,7 +288,19 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
                   {admin ? <th className="w-10 py-3 pl-4"><span className="sr-only">Markieren</span></th> : null}
                   <th className="px-4 py-3 font-semibold">Firma</th>
                   <th className="px-4 py-2 font-semibold">
-                    <SpaltenFilter name="branche" titel="Branche" werte={branchen} />
+                    <SpaltenFilter
+                      key={branche}
+                      name="branche"
+                      titel="Branche"
+                      werte={branchen}
+                      aktuell={branche}
+                      pfad="/crm/leads"
+                      filter={(() => {
+                        const f = new URLSearchParams(filter);
+                        f.delete("branche");
+                        return f.toString();
+                      })()}
+                    />
                   </th>
                   <th className="px-4 py-3 font-semibold">Telefon</th>
                   <th className="px-4 py-3 font-semibold">Bezirk</th>
