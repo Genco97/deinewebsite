@@ -81,6 +81,18 @@ export default async function Besuche({ searchParams }: PageProps<"/crm/besuche"
   const liste = (k.data ?? []) as Stopp[];
   const bezirke = [...new Set((b.data ?? []).map((x) => x.bezirk as string))].sort((x, y) => x.localeCompare(y, "de"));
   const route = mapsRoute(stopps);
+  // Letzte Notiz je Betrieb in der Runde: wie man beim letzten Mal verblieben ist
+  const notizen = new Map<string, string>();
+  if (stopps.length) {
+    const { data: n } = await supabase
+      .from("lead_verlauf")
+      .select("lead_id, text")
+      .in("lead_id", stopps.map((x) => x.id))
+      .eq("art", "notiz")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    for (const z of n ?? []) if (!notizen.has(z.lead_id as string)) notizen.set(z.lead_id as string, z.text as string);
+  }
 
   return (
     <>
@@ -153,60 +165,73 @@ export default async function Besuche({ searchParams }: PageProps<"/crm/besuche"
                         {[s.branche, adresseText(s) || "keine Adresse"].filter(Boolean).join(" · ")}
                         {s.letzter_besuch ? ` · zuletzt vor Ort ${datum(s.letzter_besuch)}` : ""}
                       </p>
+                      {notizen.get(s.id) ? (
+                        <p className="mt-1.5 line-clamp-2 rounded-lg bg-bg px-3 py-1.5 text-sm text-ink">📝 {notizen.get(s.id)}</p>
+                      ) : null}
 
-                      <form action={besuchErfassen} className="mt-3 space-y-3">
-                        <input type="hidden" name="id" value={s.id} />
-                        <input type="hidden" name="zurueck" value={hier} />
-                        <label htmlFor={`notiz-${s.id}`} className="sr-only">
-                          Notiz zum Besuch
-                        </label>
-                        <input
-                          id={`notiz-${s.id}`}
-                          name="notiz"
-                          placeholder="Notiz (optional), z. B. „Chefin ab 15 Uhr da“"
-                          className={inputClass}
-                        />
-                        {s.einwilligung_wie ? (
-                          <p className="text-sm text-ok">Anruf erlaubt ({s.einwilligung_wie})</p>
-                        ) : (
-                          <label className="flex min-h-11 items-start gap-3 text-sm text-muted">
-                            <input type="checkbox" name="einwilligung" className="mt-1 h-5 w-5 shrink-0 accent-brand" />
-                            <span>Betrieb ist einverstanden, dass wir anrufen und mailen</span>
-                          </label>
-                        )}
-                        <NaechsterSchritt
-                          vorgabe={{ art: "besuch", tag: tagVerschieben(heute, 7), zeit: "10:00" }}
-                          anrufOk={!!s.einwilligung_wie}
-                          idPrefix={`schritt-${s.id}`}
-                        />
-                        <p className="text-sm font-semibold text-ink">Ergebnis speichern</p>
-                        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                          {(Object.keys(BESUCH_ERGEBNISSE) as BesuchErgebnis[]).map((e) => (
-                            <button
-                              key={e}
-                              name="ergebnis"
-                              value={e}
-                              formNoValidate={e === "kein_interesse"}
-                              className={`min-h-11 rounded-lg border bg-surface px-3 text-sm font-semibold ${ERGEBNIS_KNOPF[e]}`}
-                            >
-                              {BESUCH_ERGEBNISSE[e].label}
-                            </button>
-                          ))}
-                        </div>
-                      </form>
-
-                      <div className="mt-2 flex flex-wrap gap-2">
+                      <div className="mt-1 flex flex-wrap gap-x-4">
                         {s.adresse ? (
-                          <a href={mapsSuche(s)} target="_blank" rel="noopener noreferrer" className={buttonClass("ghost", "px-3 text-sm")}>
+                          <a href={mapsSuche(s)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center text-sm font-semibold text-brand hover:underline">
                             Auf der Karte
                           </a>
                         ) : null}
                         <form action={ausRundeEntfernen}>
                           <input type="hidden" name="id" value={s.id} />
                           <input type="hidden" name="zurueck" value={hier} />
-                          <button className={buttonClass("ghost", "px-3 text-sm text-muted")}>Aus der Runde nehmen</button>
+                          <button className="inline-flex min-h-9 items-center text-sm font-semibold text-muted hover:text-ink">Aus der Runde nehmen</button>
                         </form>
                       </div>
+
+                      {/* Ergebnis erfassen: eingeklappt, damit die Runde kurz bleibt */}
+                      <details className="group mt-2 rounded-lg border border-line">
+                        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 text-sm font-semibold text-brand [&::-webkit-details-marker]:hidden">
+                          Besuch erfassen
+                          <span aria-hidden className="transition-transform group-open:rotate-180">
+                            ▾
+                          </span>
+                        </summary>
+
+                        <form action={besuchErfassen} className="space-y-3 border-t border-line p-3">
+                          <input type="hidden" name="id" value={s.id} />
+                          <input type="hidden" name="zurueck" value={hier} />
+                          <label htmlFor={`notiz-${s.id}`} className="sr-only">
+                            Notiz zum Besuch
+                          </label>
+                          <input
+                            id={`notiz-${s.id}`}
+                            name="notiz"
+                            placeholder="Notiz (optional), z. B. „Chefin ab 15 Uhr da“"
+                            className={inputClass}
+                          />
+                          {s.einwilligung_wie ? (
+                            <p className="text-sm text-ok">Anruf erlaubt ({s.einwilligung_wie})</p>
+                          ) : (
+                            <label className="flex min-h-11 items-start gap-3 text-sm text-muted">
+                              <input type="checkbox" name="einwilligung" className="mt-1 h-5 w-5 shrink-0 accent-brand" />
+                              <span>Betrieb ist einverstanden, dass wir anrufen und mailen</span>
+                            </label>
+                          )}
+                          <NaechsterSchritt
+                            vorgabe={{ art: "besuch", tag: tagVerschieben(heute, 7), zeit: "10:00" }}
+                            anrufOk={!!s.einwilligung_wie}
+                            idPrefix={`schritt-${s.id}`}
+                          />
+                          <p className="text-sm font-semibold text-ink">Ergebnis speichern</p>
+                          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                            {(Object.keys(BESUCH_ERGEBNISSE) as BesuchErgebnis[]).map((e) => (
+                              <button
+                                key={e}
+                                name="ergebnis"
+                                value={e}
+                                formNoValidate={e === "kein_interesse"}
+                                className={`min-h-11 rounded-lg border bg-surface px-3 text-sm font-semibold ${ERGEBNIS_KNOPF[e]}`}
+                              >
+                                {BESUCH_ERGEBNISSE[e].label}
+                              </button>
+                            ))}
+                          </div>
+                        </form>
+                      </details>
                     </div>
                   </div>
                 </li>
