@@ -115,13 +115,13 @@ export function VorschauGenerator({
           </p>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             <Link
-              href={demoLink("business", branche, name, "Business")}
+              href={demoLink("business", branche, name)}
               className={buttonClass("primary", "sm:px-7")}
             >
-              Diese Seite gratis als Demo
+              Gratis-Demo anfordern
             </Link>
             <Link
-              href={vorschauLink("business", branche, name)}
+              href={vorschauLink("pro", branche, name)}
               target="_blank"
               className={buttonClass("secondary", "sm:px-7")}
             >
@@ -135,7 +135,7 @@ export function VorschauGenerator({
           Live-Vorschau
         </p>
         <HandyRahmen
-          src={vorschauLink("business", branche, name)}
+          src={vorschauLink("pro", branche, name)}
           titel={`Vorschau: Website für ${name || "Ihren Betrieb"}`}
           breite={handy ? 230 : 300}
         />

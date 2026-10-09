@@ -10,7 +10,7 @@ import { demoLink, vorschauLink } from "./VorschauGenerator";
 
 /** C3: Branche und Design frei kombinieren – Computer und Handy nebeneinander */
 export function BeispielUmschalter() {
-  const [thema, setThema] = useState<Thema>("business");
+  const [thema, setThema] = useState<Thema>("pro");
   const [branche, setBranche] = useState<BrancheId>("friseur");
 
   function pfeil(e: React.KeyboardEvent, i: number) {
