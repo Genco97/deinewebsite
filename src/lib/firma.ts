@@ -23,6 +23,10 @@ export const FIRMA = {
   /** z. B. „Magistratisches Bezirksamt für den 7. Bezirk“ */
   gewerbebehoerde: null as string | null,
   kammer: "Wirtschaftskammer Wien",
+  /** Vornamen fürs „Über uns“, z. B. "Anna und Jonas" – solange null, bleibt der Satz ohne Namen */
+  gruender: null as string | null,
+  /** Pfad zum Teamfoto in public/, z. B. "/team.jpg" – solange null, steht dort die Markenkarte */
+  teamfoto: null as string | null,
   /** true = Kleinunternehmer (keine USt.), false = Preise mit USt., null = noch offen */
   kleinunternehmer: null as boolean | null,
   /** Hosting & Wartung pro Monat bei Basic und Business (inkl. Domain) */

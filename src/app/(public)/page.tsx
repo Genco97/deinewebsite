@@ -276,14 +276,36 @@ export default function Startseite() {
 
       {/* Über uns */}
       <Abschnitt id="ueber-uns" titel="Über uns">
-        <div className="grid gap-8 md:grid-cols-[1fr_2fr]">
-          <div className="flex aspect-square max-w-xs items-center justify-center rounded-xl border border-line bg-surface text-sm text-muted">
-            <Angabe wert={null} platzhalter="Teamfoto" />
-          </div>
-          <div className="space-y-4 text-lg leading-relaxed text-muted">
+        <div className="grid gap-6 md:grid-cols-[1fr_2fr] md:gap-10">
+          {FIRMA.teamfoto ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={FIRMA.teamfoto}
+              alt={`Das Team von ${FIRMA.name}`}
+              className="aspect-[4/3] w-full rounded-2xl object-cover md:aspect-square"
+            />
+          ) : (
+            <figure className="relative overflow-hidden rounded-2xl bg-brand p-6 text-white sm:p-8">
+              <span aria-hidden className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10" />
+              <span aria-hidden className="absolute -bottom-16 -left-8 h-44 w-44 rounded-full bg-white/5" />
+              <blockquote className="relative font-serif text-2xl font-semibold leading-snug sm:text-3xl">
+                „Eine gute Website soll man sich ansehen können, bevor man zahlt.“
+              </blockquote>
+              <figcaption className="relative mt-4 text-sm text-white/75">
+                {FIRMA.gruender ? `${FIRMA.gruender}, ` : ""}Gründerteam {FIRMA.name} · Wien
+              </figcaption>
+            </figure>
+          )}
+          <div className="space-y-4 text-base leading-relaxed text-muted sm:text-lg">
             <p>
-              Hinter {FIRMA.name} steht ein kleines Gründerteam aus Wien:{" "}
-              <Angabe wert={null} platzhalter="Vornamen der Gründer" />.
+              Hinter {FIRMA.name} steht ein kleines Gründerteam aus Wien
+              {FIRMA.gruender ? (
+                <>
+                  : <strong className="font-semibold text-ink">{FIRMA.gruender}</strong>.
+                </>
+              ) : (
+                "."
+              )}
             </p>
             <p>
               Viele Betriebe sind online kaum zu finden – nicht, weil sie schlecht arbeiten, sondern weil eine gute
