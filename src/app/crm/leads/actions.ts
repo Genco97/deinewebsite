@@ -201,6 +201,7 @@ export async function notizHinzufuegen(fd: FormData) {
   const supabase = await createClient();
   await supabase.from("lead_verlauf").insert({ lead_id: id, autor_id: profil.id, art: "notiz", text: notiz });
   revalidatePath(`/crm/leads/${id}`);
+  revalidatePath("/crm/leads");
 }
 
 export async function kontaktSpeichern(_v: AktionStatus, fd: FormData): Promise<AktionStatus> {

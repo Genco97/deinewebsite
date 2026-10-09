@@ -29,31 +29,34 @@ export function ZuteilenLeiste({ personen, zurueck }: { personen: Person[]; zuru
     <form
       id="zuteilen"
       action={leadsZuteilen}
-      className="mb-4 flex flex-col gap-2 rounded-xl border border-brand/30 bg-brand-light p-3 sm:flex-row sm:items-center"
+      className={`mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-brand/30 bg-brand-light px-3 py-1.5 sm:flex-nowrap sm:py-3 ${anzahl > 0 ? "max-sm:fixed max-sm:inset-x-3 max-sm:bottom-3 max-sm:z-30 max-sm:mb-0 max-sm:py-3 max-sm:shadow-xl" : ""}`}
     >
       <input type="hidden" name="zurueck" value={zurueck} />
-      <label className="flex min-h-11 items-center gap-3 text-sm font-semibold text-ink">
+      <label className="flex min-h-10 items-center gap-3 text-sm font-semibold text-ink">
         <input type="checkbox" onChange={(e) => alle(e.target.checked)} className="h-5 w-5 accent-brand" />
         Alle markieren
       </label>
-      <span className="text-sm text-muted sm:mr-auto">{anzahl} markiert</span>
-      <label htmlFor="besitzer" className="sr-only">
-        Zuteilen an
-      </label>
-      <Select id="besitzer" name="besitzer" required defaultValue="" className="sm:max-w-60">
-        <option value="" disabled>
-          Zuteilen an …
-        </option>
-        {personen.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name.trim() || p.email}
-            {p.rolle === "admin" ? " (Gründer)" : ""}
+      <span className="ml-auto text-sm text-muted">{anzahl} markiert</span>
+      {/* Am Handy erst sichtbar, wenn etwas markiert ist */}
+      <div className={`flex w-full items-center gap-2 sm:w-auto ${anzahl > 0 ? "" : "max-sm:hidden"}`}>
+        <label htmlFor="besitzer" className="sr-only">
+          Zuteilen an
+        </label>
+        <Select id="besitzer" name="besitzer" required defaultValue="" className="min-w-0 flex-1 sm:max-w-60">
+          <option value="" disabled>
+            Zuteilen an …
           </option>
-        ))}
-      </Select>
-      <button disabled={anzahl === 0} className={buttonClass("primary")}>
-        Zuteilen
-      </button>
+          {personen.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name.trim() || p.email}
+              {p.rolle === "admin" ? " (Gründer)" : ""}
+            </option>
+          ))}
+        </Select>
+        <button disabled={anzahl === 0} className={buttonClass("primary")}>
+          Zuteilen
+        </button>
+      </div>
     </form>
   );
 }

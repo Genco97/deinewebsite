@@ -47,8 +47,8 @@ export function CsvImport({ personen = [], ichId }: { personen?: Person[]; ichId
   }
 
   return (
-    <details className="group rounded-xl border border-line bg-surface">
-      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 font-semibold text-ink [&::-webkit-details-marker]:hidden">
+    <details className="group rounded-xl border border-line bg-surface open:col-span-2 md:open:col-span-1">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 text-[15px] font-semibold text-ink sm:min-h-12 sm:px-4 sm:text-base [&::-webkit-details-marker]:hidden">
         CSV-Import
         <span aria-hidden className="text-xl text-brand group-open:rotate-45">+</span>
       </summary>
