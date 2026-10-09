@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PhasenReiter } from "@/components/crm/PhasenReiter";
 import { Kopf } from "@/components/crm/Kopf";
 import { KundenLinkBox, type Rueckmeldung } from "@/components/crm/Rueckmeldungen";
 import { Hinweis, Karte, buttonClass, inputClass } from "@/components/ui";
@@ -11,6 +12,11 @@ import { DEAL_STATUS_LABEL } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
 import { datum, euro, heuteWien, tagVerschieben } from "@/lib/zeit";
 import { betreuungSpeichern, phaseSetzen, projektSpeichern } from "./actions";
+
+/** Aufklappbare Bereiche in der Projektkarte: als kleine Knöpfe nebeneinander, geöffnet über volle Breite */
+const AUFKLAPP = "group open:basis-full";
+const AUFKLAPP_KNOPF =
+  "inline-flex min-h-9 cursor-pointer list-none items-center rounded-full border border-line bg-bg px-3 text-xs font-semibold text-brand hover:border-brand group-open:border-brand group-open:bg-brand-light [&::-webkit-details-marker]:hidden";
 
 export const metadata: Metadata = { title: "Projekte" };
 
@@ -118,7 +124,15 @@ export default async function Projekte({ searchParams }: PageProps<"/crm/projekt
           Noch keine Projekte. Sobald ein Verkauf gemeldet ist, erscheint er hier.
         </Karte>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-4">
+        <PhasenReiter
+          phasen={PHASEN.map((p) => ({ label: PHASE_INFO[p].label, anzahl: nachPhase(p).length, farbe: PHASE_FARBE[p] }))}
+          start={Math.max(
+            0,
+            PHASEN.findIndex((p) => nachPhase(p).some((x) => x.kunden_feedback.some((r) => !r.erledigt))) >= 0
+              ? PHASEN.findIndex((p) => nachPhase(p).some((x) => x.kunden_feedback.some((r) => !r.erledigt)))
+              : PHASEN.findIndex((p) => nachPhase(p).length > 0),
+          )}
+        >
           {PHASEN.map((p, pi) => (
             <section key={p} aria-labelledby={`phase-${p}`} className="rounded-xl bg-line/40 p-2">
               <h2 id={`phase-${p}`} className="flex items-center justify-between px-2 py-2">
@@ -185,120 +199,117 @@ export default async function Projekte({ searchParams }: PageProps<"/crm/projekt
                         </a>
                       ) : null}
 
-                      <details className="mt-2" open={x.kunden_feedback.some((r) => !r.erledigt)}>
-                        <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold text-brand">
-                          Kunden-Link & Rückmeldungen
-                        </summary>
-                        <div className="pt-1">
-                          <KundenLinkBox code={x.kunden_code} rueckmeldungen={x.kunden_feedback} zurueck="/crm/projekte" id={x.id} schmal />
-                        </div>
-                      </details>
-
                       {admin ? (
-                        <>
-                          <div className="mt-3 flex gap-2">
-                            {pi > 0 ? (
-                              <form action={phaseSetzen} className="flex-1">
-                                <input type="hidden" name="id" value={x.id} />
-                                <input type="hidden" name="phase" value={PHASEN[pi - 1]} />
-                                <button className={buttonClass("secondary", "w-full px-2 text-sm")} title={PHASE_INFO[PHASEN[pi - 1]].label}>
-                                  ← Zurück
-                                </button>
-                              </form>
-                            ) : null}
-                            {pi < PHASEN.length - 1 ? (
-                              <form action={phaseSetzen} className="flex-1">
-                                <input type="hidden" name="id" value={x.id} />
-                                <input type="hidden" name="phase" value={PHASEN[pi + 1]} />
-                                <button
-                                  className={buttonClass("primary", "w-full px-2 text-sm")}
-                                  title={`Weiter zu „${PHASE_INFO[PHASEN[pi + 1]].label}“`}
-                                >
-                                  Weiter →
-                                </button>
-                              </form>
-                            ) : null}
-                          </div>
-                          <details className="mt-2">
-                            <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold text-brand">
-                              Termin, Link, Änderungen
-                            </summary>
-                            <form action={projektSpeichern} className="space-y-2 pt-1">
+                        <div className="mt-3 flex gap-2">
+                          {pi > 0 ? (
+                            <form action={phaseSetzen} className="flex-1">
                               <input type="hidden" name="id" value={x.id} />
-                              <label className="block text-xs font-semibold text-ink">
-                                Fällig am
-                                <input name="faellig" type="date" defaultValue={x.projekt_faellig ?? ""} className={`${inputClass} mt-1`} />
-                              </label>
-                              <label className="block text-xs font-semibold text-ink">
-                                Website / Demo-Link
-                                <input
-                                  name="website_url"
-                                  type="url"
-                                  placeholder="https://…"
-                                  defaultValue={x.website_url ?? ""}
-                                  className={`${inputClass} mt-1`}
-                                />
-                              </label>
-                              <label className="block text-xs font-semibold text-ink">
-                                Genutzte Änderungsrunden (von {x.aenderungsrunden_inkl})
-                                <input
-                                  name="aenderungsrunden_genutzt"
-                                  type="number"
-                                  min={0}
-                                  max={20}
-                                  defaultValue={x.aenderungsrunden_genutzt}
-                                  className={`${inputClass} mt-1`}
-                                />
-                              </label>
-                              <button className={buttonClass("secondary", "w-full")}>Speichern</button>
+                              <input type="hidden" name="phase" value={PHASEN[pi - 1]} />
+                              <button className={buttonClass("secondary", "w-full px-2 text-sm")} title={PHASE_INFO[PHASEN[pi - 1]].label}>
+                                ← Zurück
+                              </button>
                             </form>
-                          </details>
-                          <details className="mt-1">
-                            <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold text-brand">
-                              Nach der Fertigstellung
-                            </summary>
-                            <form action={betreuungSpeichern} className="space-y-2 pt-1">
+                          ) : null}
+                          {pi < PHASEN.length - 1 ? (
+                            <form action={phaseSetzen} className="flex-1">
                               <input type="hidden" name="id" value={x.id} />
-                              <label className="block text-xs font-semibold text-ink">
-                                Was passiert danach?
-                                <select name="betreuung" defaultValue={x.betreuung} className={`${inputClass} mt-1`}>
-                                  {BETREUUNG.map((b) => (
-                                    <option key={b} value={b}>
-                                      {BETREUUNG_LABEL[b]}
-                                    </option>
-                                  ))}
-                                </select>
-                              </label>
-                              <label className="block text-xs font-semibold text-ink">
-                                Monatsbetrag in € (nur Sorglos-Paket)
-                                <input
-                                  name="sorglos_monat"
-                                  inputMode="decimal"
-                                  defaultValue={String(x.sorglos_monat ?? sorglosStandard(x.paket)).replace(".", ",")}
-                                  className={`${inputClass} mt-1`}
-                                />
-                              </label>
-                              <label className="block text-xs font-semibold text-ink">
-                                Gilt ab
-                                <input
-                                  name="betreuung_seit"
-                                  type="date"
-                                  defaultValue={x.betreuung_seit ?? heute}
-                                  className={`${inputClass} mt-1`}
-                                />
-                              </label>
-                              <button className={buttonClass("secondary", "w-full")}>Speichern</button>
+                              <input type="hidden" name="phase" value={PHASEN[pi + 1]} />
+                              <button
+                                className={buttonClass("primary", "w-full px-2 text-sm")}
+                                title={`Weiter zu „${PHASE_INFO[PHASEN[pi + 1]].label}“`}
+                              >
+                                Weiter →
+                              </button>
                             </form>
-                          </details>
-                        </>
+                          ) : null}
+                        </div>
                       ) : null}
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <details className={AUFKLAPP} open={x.kunden_feedback.some((r) => !r.erledigt)}>
+                          <summary className={AUFKLAPP_KNOPF}>💬 Kunde</summary>
+                          <div className="pt-1">
+                            <KundenLinkBox code={x.kunden_code} rueckmeldungen={x.kunden_feedback} zurueck="/crm/projekte" id={x.id} schmal />
+                          </div>
+                        </details>
+                        {admin ? (
+                          <>
+                            <details className={AUFKLAPP}>
+                              <summary className={AUFKLAPP_KNOPF}>📅 Termin & Link</summary>
+                              <form action={projektSpeichern} className="space-y-2 pt-1">
+                                <input type="hidden" name="id" value={x.id} />
+                                <label className="block text-xs font-semibold text-ink">
+                                  Fällig am
+                                  <input name="faellig" type="date" defaultValue={x.projekt_faellig ?? ""} className={`${inputClass} mt-1`} />
+                                </label>
+                                <label className="block text-xs font-semibold text-ink">
+                                  Website / Demo-Link
+                                  <input
+                                    name="website_url"
+                                    type="url"
+                                    placeholder="https://…"
+                                    defaultValue={x.website_url ?? ""}
+                                    className={`${inputClass} mt-1`}
+                                  />
+                                </label>
+                                <label className="block text-xs font-semibold text-ink">
+                                  Genutzte Änderungsrunden (von {x.aenderungsrunden_inkl})
+                                  <input
+                                    name="aenderungsrunden_genutzt"
+                                    type="number"
+                                    min={0}
+                                    max={20}
+                                    defaultValue={x.aenderungsrunden_genutzt}
+                                    className={`${inputClass} mt-1`}
+                                  />
+                                </label>
+                                <button className={buttonClass("secondary", "w-full")}>Speichern</button>
+                              </form>
+                            </details>
+                            <details className={AUFKLAPP}>
+                              <summary className={AUFKLAPP_KNOPF}>🔑 Danach</summary>
+                              <form action={betreuungSpeichern} className="space-y-2 pt-1">
+                                <input type="hidden" name="id" value={x.id} />
+                                <label className="block text-xs font-semibold text-ink">
+                                  Was passiert danach?
+                                  <select name="betreuung" defaultValue={x.betreuung} className={`${inputClass} mt-1`}>
+                                    {BETREUUNG.map((b) => (
+                                      <option key={b} value={b}>
+                                        {BETREUUNG_LABEL[b]}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                                <label className="block text-xs font-semibold text-ink">
+                                  Monatsbetrag in € (nur Sorglos-Paket)
+                                  <input
+                                    name="sorglos_monat"
+                                    inputMode="decimal"
+                                    defaultValue={String(x.sorglos_monat ?? sorglosStandard(x.paket)).replace(".", ",")}
+                                    className={`${inputClass} mt-1`}
+                                  />
+                                </label>
+                                <label className="block text-xs font-semibold text-ink">
+                                  Gilt ab
+                                  <input
+                                    name="betreuung_seit"
+                                    type="date"
+                                    defaultValue={x.betreuung_seit ?? heute}
+                                    className={`${inputClass} mt-1`}
+                                  />
+                                </label>
+                                <button className={buttonClass("secondary", "w-full")}>Speichern</button>
+                              </form>
+                            </details>
+                          </>
+                        ) : null}
+                      </div>
                     </Karte>
                   </li>
                 ))}
               </ul>
             </section>
           ))}
-        </div>
+        </PhasenReiter>
       )}
     </>
   );

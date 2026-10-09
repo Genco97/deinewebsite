@@ -59,16 +59,27 @@ export default async function Postkarten({ searchParams }: PageProps<"/crm/postk
         </div>
       ) : null}
 
-      <Karte className="mb-6 space-y-2 p-5 text-sm text-muted">
-        <p>
-          <strong className="text-ink">So geht&apos;s:</strong> Betriebe auswählen → „Karten erstellen“ → in der
-          Druckansicht drucken (A6, beidseitig) → frankieren und einwerfen.
-        </p>
-        <p>
-          Meldet sich ein Betrieb über die Karte, steht die Einwilligung automatisch beim Lead und der Rückruf ist sofort
-          bei „Heute“ fällig. Hier erscheinen nur Leads ohne Einwilligung und mit Adresse.
-        </p>
-      </Karte>
+      {/* Erklärung eingeklappt – wer sie kennt, braucht sie nicht jedes Mal */}
+      <details className="group mb-4 rounded-xl border border-line bg-surface text-sm text-muted sm:mb-6">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 font-semibold text-ink sm:px-5 [&::-webkit-details-marker]:hidden">
+          <span>
+            So geht&apos;s: <span className="font-normal text-muted">auswählen → Karten erstellen → drucken → einwerfen</span>
+          </span>
+          <span aria-hidden className="text-brand transition-transform group-open:rotate-180">
+            ▾
+          </span>
+        </summary>
+        <div className="space-y-2 border-t border-line px-4 py-3 sm:px-5">
+          <p>
+            Betriebe auswählen → „Karten erstellen“ → in der Druckansicht drucken (A6, beidseitig) → frankieren und
+            einwerfen.
+          </p>
+          <p>
+            Meldet sich ein Betrieb über die Karte, steht die Einwilligung automatisch beim Lead und der Rückruf ist
+            sofort bei „Heute“ fällig. Hier erscheinen nur Leads ohne Einwilligung und mit Adresse.
+          </p>
+        </div>
+      </details>
 
       <form method="get" className="mb-4 grid gap-2 sm:grid-cols-[1fr_auto_auto]" role="search">
         <label className="sr-only" htmlFor="q">
