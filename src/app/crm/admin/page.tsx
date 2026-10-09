@@ -68,10 +68,11 @@ export default async function Admin({ searchParams }: PageProps<"/crm/admin">) {
     <>
       <Kopf titel="Admin" text="Anfragen, Deals, Provisionen, Team und Vorlagen." />
 
-      <nav aria-label="Admin-Bereiche" className="mb-6">
-        <ul className="flex flex-wrap gap-x-1 border-b border-line">
+      {/* Am Handy eine Zeile zum Wischen statt zwei umbrechender Reihen */}
+      <nav aria-label="Admin-Bereiche" className="-mx-4 mb-6 sm:mx-0">
+        <ul className="flex snap-x overflow-x-auto border-b border-line px-4 [scrollbar-width:none] sm:flex-wrap sm:gap-x-1 sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
           {TABS.map((t) => (
-            <li key={t.id}>
+            <li key={t.id} className="shrink-0 snap-start scroll-ml-4">
               <Link
                 href={`/crm/admin?tab=${t.id}`}
                 aria-current={tab === t.id ? "page" : undefined}
