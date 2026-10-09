@@ -25,21 +25,37 @@ export default async function DemoSeite({ searchParams }: PageProps<"/demo">) {
   };
 
   return (
-    <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:py-16 lg:grid-cols-[1fr_1.3fr]">
-      <div>
+    <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-8 sm:gap-10 sm:py-16 lg:grid-cols-[1fr_1.3fr] lg:items-start">
+      <div className="lg:sticky lg:top-24">
         <p className="text-sm font-semibold uppercase tracking-wide text-brand">
           {premium ? "Beratung" : "Gratis-Demo"}
         </p>
         <h1 className="mt-2 font-serif text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
           {premium ? "Beratung für Ihr Pro-Projekt" : "Ihre kostenlose Demo-Website"}
         </h1>
-        <p className="mt-4 text-lg text-muted">
+        <p className="mt-3 text-base text-muted sm:mt-4 sm:text-lg">
           {premium
             ? "Erzählen Sie uns kurz von Ihrem Vorhaben. Wir melden uns für ein persönliches Erstgespräch."
             : "Wir bauen eine Demo Ihrer neuen Website. Sie sehen sie sich in Ruhe an und entscheiden dann."}
         </p>
 
-        <Karte className="mt-8 p-5">
+        {/* Paket wechseln: Umschalter statt Links unter der Karte */}
+        <nav aria-label="Paket wählen" className="mt-6 grid grid-cols-3 gap-1 rounded-full border border-line bg-surface p-1 sm:mt-8">
+          {PAKETE.map((p) => (
+            <Link
+              key={p.id}
+              href={`/demo?paket=${p.id}`}
+              aria-current={p.id === paket.id ? "page" : undefined}
+              className={`flex min-h-10 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
+                p.id === paket.id ? "bg-brand text-white" : "text-ink hover:text-brand"
+              }`}
+            >
+              {p.name}
+            </Link>
+          ))}
+        </nav>
+
+        <Karte className="mt-3 p-5">
           <div className="flex items-baseline justify-between gap-4">
             <p className="font-bold text-ink">Paket {paket.name}</p>
             <p className="text-right">
@@ -50,33 +66,39 @@ export default async function DemoSeite({ searchParams }: PageProps<"/demo">) {
           <p className="mt-1 text-right text-xs text-muted">
             {preisHinweis() ?? <Angabe wert={null} platzhalter="inkl./zzgl. USt." />}
           </p>
-          <ul className="mt-4 space-y-2 text-sm text-ink">
-            {paket.leistungen.map((l) => (
-              <li key={l} className="flex gap-2.5">
-                <span aria-hidden className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
-                {l}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-4 text-sm text-muted">{paket.zahlung}</p>
+          {/* Am Handy eingeklappt, damit das Formular gleich sichtbar ist */}
+          <details className="group mt-3 lg:hidden">
+            <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between text-sm font-semibold text-brand [&::-webkit-details-marker]:hidden">
+              Was ist enthalten?
+              <span aria-hidden className="transition-transform group-open:rotate-180">⌄</span>
+            </summary>
+            <Leistungen paket={paket} />
+          </details>
+          <div className="hidden lg:block">
+            <Leistungen paket={paket} />
+          </div>
         </Karte>
-
-        <nav aria-label="Paket wechseln" className="mt-4 flex flex-wrap gap-2 text-sm">
-          {PAKETE.filter((p) => p.id !== paket.id).map((p) => (
-            <Link
-              key={p.id}
-              href={`/demo?paket=${p.id}`}
-              className="inline-flex min-h-11 items-center rounded-lg px-3 text-brand hover:bg-brand-light"
-            >
-              Stattdessen {p.name}
-            </Link>
-          ))}
-        </nav>
       </div>
 
       <Karte className="p-5 sm:p-8">
         <DemoFormular key={paket.id} paket={paket.id} button={premium ? "Beratung anfragen" : "Gratis-Demo anfordern"} vorgabe={vorgabe} />
       </Karte>
     </div>
+  );
+}
+
+function Leistungen({ paket }: { paket: (typeof PAKETE)[number] }) {
+  return (
+    <>
+      <ul className="mt-3 space-y-2 text-sm text-ink lg:mt-4">
+        {paket.leistungen.map((l) => (
+          <li key={l} className="flex gap-2.5">
+            <span aria-hidden className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
+            {l}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-4 text-sm text-muted">{paket.zahlung}</p>
+    </>
   );
 }
