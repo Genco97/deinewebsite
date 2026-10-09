@@ -257,96 +257,169 @@ export default async function Heute() {
         </Karte>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Block titel="Überfällige Rückrufe" anzahl={ueberfaellig.data?.length ?? 0} rot>
-          <LeadListe
-            leads={(ueberfaellig.data ?? []) as LeadZeile[]}
-            leer="Nichts überfällig. Gut gemacht."
-            zeit={(l) => datumZeit(l.naechster_rueckruf)}
-            rot
-          />
-        </Block>
-
-        <Block titel="Rückrufe heute" anzahl={heute.data?.length ?? 0}>
-          <LeadListe
-            leads={(heute.data ?? []) as LeadZeile[]}
-            leer="Für heute sind keine weiteren Rückrufe geplant."
-            zeit={(l) => uhrzeit(l.naechster_rueckruf)}
-          />
-        </Block>
-
-        <Block titel="Ohne nächsten Schritt" anzahl={ohneSchritt.count ?? 0} rot>
-          <LeadListe
-            leads={(ohneSchritt.data ?? []) as LeadZeile[]}
-            leer="Jeder aktive Lead hat einen nächsten Schritt."
-            zeit={() => "planen"}
-            rot
-          />
-        </Block>
-
-        <Block titel="Offene Angebote" anzahl={angebote.data?.length ?? 0}>
-          <LeadListe
-            leads={(angebote.data ?? []) as LeadZeile[]}
-            leer="Keine offenen Angebote."
-            zeit={(l) => (l.naechster_rueckruf ? datum(l.naechster_rueckruf) : "")}
-          />
-        </Block>
-
-        {admin ? (
-          <Block titel="Projekte fällig" anzahl={faelligeProjekte.length} rot>
-            {faelligeProjekte.length === 0 ? (
-              <p className="px-4 py-6 text-sm text-muted sm:px-5">Keine Projekte in den nächsten zwei Tagen fällig.</p>
-            ) : (
-              <ul className="divide-y divide-line">
-                {faelligeProjekte.map((p) => (
-                  <li key={p.id}>
-                    <Link
-                      href="/crm/projekte"
-                      className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 hover:bg-bg sm:px-5"
-                    >
+      {(() => {
+        const listen = [
+          {
+            id: "ueberfaellig",
+            titel: "Überfällige Rückrufe",
+            kurz: "überfällig",
+            anzahl: ueberfaellig.data?.length ?? 0,
+            rot: true,
+            leer: "Nichts überfällig",
+            inhalt: (
+              <LeadListe
+                leads={(ueberfaellig.data ?? []) as LeadZeile[]}
+                leer=""
+                zeit={(l) => datumZeit(l.naechster_rueckruf)}
+                rot
+              />
+            ),
+          },
+          {
+            id: "heute",
+            titel: "Rückrufe heute",
+            kurz: "heute",
+            anzahl: heute.data?.length ?? 0,
+            leer: "Keine Rückrufe mehr heute",
+            inhalt: <LeadListe leads={(heute.data ?? []) as LeadZeile[]} leer="" zeit={(l) => uhrzeit(l.naechster_rueckruf)} />,
+          },
+          {
+            id: "ohne-schritt",
+            titel: "Ohne nächsten Schritt",
+            kurz: "ohne Schritt",
+            anzahl: ohneSchritt.count ?? 0,
+            rot: true,
+            leer: "Jeder Lead hat einen nächsten Schritt",
+            inhalt: <LeadListe leads={(ohneSchritt.data ?? []) as LeadZeile[]} leer="" zeit={() => "planen"} rot />,
+          },
+          {
+            id: "angebote",
+            titel: "Offene Angebote",
+            kurz: "Angebote",
+            anzahl: angebote.data?.length ?? 0,
+            leer: "Keine offenen Angebote",
+            inhalt: (
+              <LeadListe
+                leads={(angebote.data ?? []) as LeadZeile[]}
+                leer=""
+                zeit={(l) => (l.naechster_rueckruf ? datum(l.naechster_rueckruf) : "")}
+              />
+            ),
+          },
+          ...(admin
+            ? [
+                {
+                  id: "projekte",
+                  titel: "Projekte fällig",
+                  kurz: "Projekte",
+                  anzahl: faelligeProjekte.length,
+                  rot: true,
+                  leer: "Keine Projekte fällig",
+                  inhalt: (
+                    <ul className="divide-y divide-line">
+                      {faelligeProjekte.map((p) => (
+                        <li key={p.id}>
+                          <Link
+                            href="/crm/projekte"
+                            className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 hover:bg-bg sm:px-5"
+                          >
+                            <span className="min-w-0">
+                              <span className="block truncate font-semibold text-ink">{p.leads?.firma ?? "–"}</span>
+                              <span className="block text-sm text-muted">{PHASE_INFO[p.projekt_phase].label}</span>
+                            </span>
+                            <span
+                              className={`shrink-0 text-sm font-semibold ${p.projekt_faellig < heuteWien() ? "text-danger" : "text-ink"}`}
+                            >
+                              {datum(`${p.projekt_faellig}T12:00:00Z`)}
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  ),
+                },
+              ]
+            : []),
+          {
+            id: "verkaeufe",
+            titel: "Verkäufe dieser Woche",
+            kurz: "Verkäufe",
+            anzahl: deals.length,
+            leer: "Diese Woche noch keine Verkäufe",
+            inhalt: (
+              <>
+                <ul className="divide-y divide-line">
+                  {deals.map((d) => (
+                    <li key={d.id} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 sm:px-5">
                       <span className="min-w-0">
-                        <span className="block truncate font-semibold text-ink">{p.leads?.firma ?? "–"}</span>
-                        <span className="block text-sm text-muted">{PHASE_INFO[p.projekt_phase].label}</span>
+                        <span className="block truncate font-semibold text-ink">{d.leads?.firma ?? "–"}</span>
+                        <span className="block text-sm text-muted">
+                          {PAKET_NAMEN[d.paket]} · {datum(d.created_at)}
+                        </span>
                       </span>
-                      <span
-                        className={`shrink-0 text-sm font-semibold ${p.projekt_faellig < heuteWien() ? "text-danger" : "text-ink"}`}
-                      >
-                        {datum(`${p.projekt_faellig}T12:00:00Z`)}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Block>
-        ) : null}
+                      <span className="shrink-0 font-semibold text-ink">{euro(d.betrag)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="flex justify-between border-t border-line px-4 py-3 text-sm font-semibold sm:px-5">
+                  <span>Summe</span>
+                  <span>{euro(summe)}</span>
+                </p>
+              </>
+            ),
+          },
+        ];
+        const offen = listen.filter((l) => l.anzahl > 0);
+        const erledigt = listen.filter((l) => l.anzahl === 0);
+        return (
+          <>
+            {/* Kurzüberblick: Zahlen zum Antippen, springen zur Liste */}
+            <nav aria-label="Kurzüberblick" className="-mx-4 mb-5 flex snap-x gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
+              {listen.map((l) => {
+                const warnung = l.rot && l.anzahl > 0;
+                return (
+                  <a
+                    key={l.id}
+                    href={l.anzahl > 0 ? `#${l.id}` : undefined}
+                    className={`flex shrink-0 snap-start scroll-ml-4 items-baseline gap-1.5 rounded-full border px-3.5 py-2 text-sm ${
+                      warnung
+                        ? "border-danger/30 bg-danger-light text-danger"
+                        : l.anzahl > 0
+                          ? "border-line bg-surface text-ink"
+                          : "border-line bg-bg text-muted"
+                    }`}
+                  >
+                    <span className="text-base font-bold">{l.anzahl}</span> {l.kurz}
+                  </a>
+                );
+              })}
+            </nav>
 
-        <Block titel="Verkäufe dieser Woche" anzahl={deals.length}>
-          {deals.length === 0 ? (
-            <p className="px-4 py-6 text-sm text-muted sm:px-5">Diese Woche noch keine Verkäufe.</p>
-          ) : (
-            <>
-              <ul className="divide-y divide-line">
-                {deals.map((d) => (
-                  <li key={d.id} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 sm:px-5">
-                    <span className="min-w-0">
-                      <span className="block truncate font-semibold text-ink">{d.leads?.firma ?? "–"}</span>
-                      <span className="block text-sm text-muted">
-                        {PAKET_NAMEN[d.paket]} · {datum(d.created_at)}
-                      </span>
-                    </span>
-                    <span className="shrink-0 font-semibold text-ink">{euro(d.betrag)}</span>
-                  </li>
-                ))}
-              </ul>
-              <p className="flex justify-between border-t border-line px-4 py-3 text-sm font-semibold sm:px-5">
-                <span>Summe</span>
-                <span>{euro(summe)}</span>
-              </p>
-            </>
-          )}
-        </Block>
-      </div>
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:gap-6">
+              {offen.map((l) => (
+                <div key={l.id} id={l.id} className="min-w-0 scroll-mt-20">
+                  <Block titel={l.titel} anzahl={l.anzahl} rot={l.rot}>
+                    {l.inhalt}
+                  </Block>
+                </div>
+              ))}
+            </div>
+
+            {erledigt.length > 0 ? (
+              <Karte className="mt-5 px-4 py-3 sm:px-5 lg:mt-6">
+                <ul className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-muted">
+                  {erledigt.map((l) => (
+                    <li key={l.id} className="flex items-center gap-1.5">
+                      <span aria-hidden className="font-bold text-ok">✓</span>
+                      {l.leer}
+                    </li>
+                  ))}
+                </ul>
+              </Karte>
+            ) : null}
+          </>
+        );
+      })()}
     </>
   );
 }
