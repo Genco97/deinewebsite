@@ -8,7 +8,7 @@ type Nachricht = { von: "ki" | "ich"; text: string };
 const klein = (t: string) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
 // Vorbereitete Antworten – im Beispiel ohne echte KI, damit nichts kostet.
-function antwortFuer(b: Betrieb, frage: string) {
+export function antwortFuer(b: Betrieb, frage: string) {
   const f = klein(frage);
   const preis = (l: Betrieb["leistungen"][number]) =>
     `${l.name}: ${abPreis(l.preis)}${l.dauer ? `, Dauer ca. ${l.dauer} Minuten` : ""}.`;
@@ -89,7 +89,7 @@ export function ProChat({ betrieb }: { betrieb: Betrieb }) {
             </button>
           </div>
 
-          <div ref={liste} aria-live="polite" className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+          <div ref={liste} aria-live="polite" data-lenis-prevent className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
             {verlauf.map((n, i) => (
               <p
                 key={i}

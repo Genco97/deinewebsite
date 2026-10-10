@@ -1,19 +1,24 @@
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
+import { BranchenFunktion } from "@/components/beispiele/Funktionen";
+import { Icon } from "@/components/beispiele/Icon";
+import { OffenStatus } from "@/components/beispiele/OffenStatus";
 import { ProBuchung } from "@/components/beispiele/ProBuchung";
 import { ProChat } from "@/components/beispiele/ProChat";
-import { ProEffekte } from "@/components/beispiele/ProEffekte";
-import { BranchenFunktion } from "@/components/beispiele/Funktionen";
-import { abPreis, betriebAusSuche } from "@/lib/beispiele";
+import { ProDemoChat } from "@/components/beispiele/ProDemoChat";
+import { ProKino } from "@/components/beispiele/ProKino";
+import { ProWasserBild } from "@/components/beispiele/ProWasserBild";
+import { abPreis, betriebAusSuche, extrasFuer, galerieFuer } from "@/lib/beispiele";
 import "./pro.css";
 
 export const metadata: Metadata = { title: "Beispiel: Pro" };
 
 const grotesk = Space_Grotesk({ subsets: ["latin", "latin-ext"], variable: "--font-grotesk" });
 
-const verzoegert = (ms: number) => ({ "--pro-delay": `${ms}ms` }) as CSSProperties;
+const sterne = (n: number) => n.toLocaleString("de-AT", { minimumFractionDigits: 1 });
 
+// Pro „Kino“: das volle Programm – Vorspann, WebGL-Foto, Scroll-Effekte, Online-Buchung, KI-Assistentin.
 export default async function ProBeispiel({ searchParams }: PageProps<"/beispiele/pro">) {
   const betrieb = await betriebAusSuche(searchParams);
   const [a, b, c] = betrieb.stil.pro;
@@ -28,238 +33,335 @@ export default async function ProBeispiel({ searchParams }: PageProps<"/beispiel
     "--f-akzent": a,
     "--f-auf": "#ffffff",
   } as CSSProperties;
-  const offen = betrieb.oeffnungszeiten.find((o) => o.zeit !== "geschlossen") ?? betrieb.oeffnungszeiten[0];
-  const sterne = betrieb.bewertung.sterne.toLocaleString("de-AT", { minimumFractionDigits: 1 });
+  const extras = extrasFuer(betrieb);
+  const galerie = galerieFuer(betrieb);
+  const fotos = [betrieb.bild?.einblick, betrieb.bild?.hero].filter((x): x is string => !!x);
+  const foto = (i: number) => (fotos.length ? `center / cover url(${fotos[i % fotos.length]})` : betrieb.galerie[i % betrieb.galerie.length].farbe);
+  const titel = "font-bold leading-[0.88] tracking-[-0.055em]";
+  const h2 = `${titel} text-[clamp(3.2rem,8vw,8.5rem)]`;
+  const kick = "text-[12.5px] font-semibold uppercase tracking-[0.24em] text-[color-mix(in_srgb,var(--pro-a)_50%,white)]";
+  const knopf = "pro-knopf inline-flex min-h-14 items-center justify-center gap-3 rounded-full px-8 font-bold";
+  const voll = `${knopf} bg-gradient-to-r from-fuchsia-500 to-cyan-400 text-white shadow-[0_20px_60px_-20px_var(--pro-a)]`;
+  const leer = `${knopf} border border-white/25`;
+  const ablauf = [
+    { t: `${betrieb.aktion} – online`, x: betrieb.buchung.text },
+    { t: "Bestätigung & Erinnerung", x: "Sie bekommen sofort eine Bestätigung per E-Mail und am Vortag eine Erinnerung. Umbuchen geht mit einem Klick." },
+    { t: "Willkommen", x: betrieb.slogan },
+  ];
+  const beliebt = betrieb.leistungen.slice(0, 3);
+  const offen = betrieb.oeffnungszeiten.filter((o) => o.zeit !== "geschlossen");
+
   return (
     <div className={`${grotesk.variable} pro-seite relative flex-1`} style={farben}>
-      <ProEffekte />
+      <ProKino />
 
-      <header className="sticky top-0 z-40 border-b border-white/5 bg-[#07070c]/60 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
-          <p className="text-xl font-bold tracking-tight">
-            {betrieb.marke}<span className="pro-verlauf-text">.</span>
-          </p>
-          <nav aria-label="Beispiel-Navigation" className="hidden gap-8 text-sm text-white/70 md:flex">
-            <a href="#leistungen" className="hover:text-white">Leistungen</a>
-            <a href="#buchen" className="hover:text-white">{betrieb.aktionKurz}</a>
-            <a href="#stimmen" className="hover:text-white">Stimmen</a>
-            <a href="#kontakt" className="hover:text-white">Kontakt</a>
+      {/* Vorspann */}
+      <div data-vorspann aria-hidden className="pro-vorspann">
+        <i />
+        <i />
+        <b data-vorspann-zahl className="relative text-[22vw] font-bold leading-none tracking-[-0.06em]">0</b>
+        <small className="absolute bottom-10 left-10 text-xs tracking-[0.3em]">
+          {betrieb.name.toUpperCase()} — WIEN-{betrieb.bezirk.toUpperCase()}
+        </small>
+      </div>
+      <noscript>
+        <style>{".pro-vorspann{display:none}"}</style>
+      </noscript>
+
+      <header data-pro-kopf className="absolute inset-x-0 top-auto z-50 mix-blend-difference md:fixed md:top-0">
+        <div className="flex items-center justify-between gap-4 px-5 py-5 sm:px-10 sm:py-6">
+          <p className="text-xl font-bold tracking-[0.04em] sm:text-2xl">{betrieb.marke}®</p>
+          <nav aria-label="Beispiel-Navigation" className="hidden gap-9 text-[13px] uppercase tracking-[0.18em] md:flex">
+            <a href="#salon">Salon</a>
+            <a href="#leistungen">Leistungen</a>
+            <a href="#ablauf">Ablauf</a>
+            <a href="#buchen">{betrieb.aktionKurz}</a>
           </nav>
-          <a href="#buchen" className="rounded-full bg-white px-5 py-2.5 text-sm font-bold text-black transition hover:scale-105">
-            {betrieb.aktionKurz}
+          <a href="#buchen" data-magnet className={`${leer} !min-h-11 !px-5 text-sm`}>
+            {betrieb.aktion}
           </a>
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden px-5 py-12 md:py-24">
-        <div aria-hidden className="absolute inset-0">
-          <div className="pro-blob left-[10%] top-[15%] h-[40vmax] w-[40vmax] bg-fuchsia-600" />
-          <div className="pro-blob pro-blob-2 right-[5%] top-[30%] h-[35vmax] w-[35vmax] bg-violet-700" />
-          <div className="pro-blob pro-blob-3 bottom-[-10%] left-[30%] h-[30vmax] w-[30vmax] bg-cyan-500" />
-          <div className="absolute inset-0 bg-[radial-gradient(transparent_0,#07070c_75%)]" />
-          <div className="absolute inset-0 opacity-[0.07] [background-image:linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)] [background-size:64px_64px]" />
-        </div>
-        <div className={`relative z-10 mx-auto grid max-w-6xl items-center gap-10 ${betrieb.bild ? "md:grid-cols-[1.15fr_0.85fr] md:gap-12" : "max-w-5xl text-center"}`}>
-          <div className={betrieb.bild ? "order-2 md:order-1" : undefined}>
-            <p data-reveal className={`w-fit rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-sm text-white/80 backdrop-blur ${betrieb.bild ? "" : "mx-auto"}`}>
-              ✦ Jetzt mit KI-Beratung & Online-Buchung
-            </p>
-            <h1
-              data-reveal
-              style={verzoegert(120)}
-              className={`mt-8 font-bold leading-[0.9] tracking-tighter ${betrieb.bild ? "text-[clamp(2.75rem,6.5vw,6rem)]" : "text-[clamp(3rem,10vw,8.5rem)]"}`}
-            >
-              {betrieb.proHero[0]}
-              <br />
-              <span className="pro-verlauf-text">{betrieb.proHero[1]}</span> {betrieb.proHero[2]}
-            </h1>
-            <p data-reveal style={verzoegert(240)} className={`mt-8 max-w-xl text-lg text-white/70 sm:text-xl ${betrieb.bild ? "" : "mx-auto"}`}>
-              {betrieb.einleitung}
-            </p>
-            <div data-reveal style={verzoegert(360)} className={`mt-10 flex flex-col gap-3 sm:flex-row ${betrieb.bild ? "" : "justify-center"}`}>
-              <a
-                href="#buchen"
-                className="inline-flex min-h-14 items-center justify-center rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-400 px-8 text-lg font-bold shadow-[0_0_60px_color-mix(in_srgb,var(--pro-b)_50%,transparent)] transition hover:scale-105"
-              >
-                {betrieb.aktion} in 20 Sekunden
-              </a>
-              <a href="#leistungen" className="inline-flex min-h-14 items-center justify-center rounded-full border border-white/20 px-8 text-lg font-semibold transition hover:bg-white/10">
-                Leistungen entdecken
-              </a>
-            </div>
-          </div>
-          {betrieb.bild && (
-            <div data-reveal style={verzoegert(200)} className="relative order-1 md:order-2">
-              <div className="pro-rahmen">
-                <div className="aspect-[16/10] overflow-hidden rounded-[calc(2rem-2px)] md:aspect-[4/5]">
-                  <div className="pro-foto h-full w-full" style={{ background: `center / cover url(${betrieb.bild.hero})` }} />
-                </div>
-              </div>
-              <div className="absolute bottom-3 left-3 rounded-2xl border border-white/10 bg-[#07070c]/80 px-4 py-3 backdrop-blur-xl md:-bottom-5 md:-left-5">
-                <p className="text-sm font-bold">★ {sterne} · {betrieb.bewertung.anzahl} Bewertungen</p>
-                <p className="text-xs text-white/60">{betrieb.vertrauen}</p>
-              </div>
-              <div className="absolute right-3 top-3 rounded-2xl border border-white/10 bg-[#07070c]/80 px-4 py-3 backdrop-blur-xl md:-right-4 md:top-6">
-                <p className="text-xs text-white/60">{betrieb.naechster.klein}</p>
-                <p className="text-sm font-bold">{betrieb.naechster.gross}</p>
-              </div>
-            </div>
-          )}
+      {/* Held: WebGL-Foto mit riesigem Titel */}
+      <section data-held className="relative h-[calc(100svh-2.5rem)] min-h-[600px] overflow-hidden">
+        {betrieb.bild ? <ProWasserBild bild={betrieb.bild.hero} /> : <div aria-hidden className="absolute inset-0" style={{ background: betrieb.heroFarbe }} />}
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_30%_60%,transparent,rgba(7,7,12,.78)_80%),linear-gradient(180deg,rgba(7,7,12,.4),transparent_30%,rgba(7,7,12,.88))]" />
+        <h1 className={`${titel} pointer-events-none absolute bottom-36 left-5 right-5 text-[clamp(3.6rem,11.5vw,12rem)] sm:bottom-32 sm:left-10`}>
+          <span className="block overflow-hidden"><span data-titel-wort className="inline-block">{betrieb.proHero[0]}</span></span>
+          <span className="block overflow-hidden pb-[0.06em]"><span data-titel-wort className="pro-verlauf-text inline-block">{betrieb.proHero[1]}</span></span>
+          <span className="block overflow-hidden"><span data-titel-wort className="inline-block">{betrieb.proHero[2]}</span></span>
+        </h1>
+        <p data-held-info className="absolute right-10 top-32 hidden max-w-[300px] text-right text-white/65 lg:block">{betrieb.einleitung}</p>
+        <div data-held-info className="absolute inset-x-5 bottom-10 flex flex-wrap items-center gap-x-8 gap-y-4 sm:inset-x-10">
+          <a href="#buchen" data-magnet className={`${voll} !min-h-13`}>
+            {betrieb.aktion}
+            <span className="hidden sm:inline"> in 20 Sekunden</span>
+          </a>
+          <p className="text-xs uppercase tracking-[0.24em] text-white/60">
+            ★ {sterne(betrieb.bewertung.sterne)} · {betrieb.bewertung.anzahl} Bewertungen
+          </p>
+          <p className="hidden text-xs uppercase tracking-[0.24em] text-white/60 md:block">Scrollen ↓</p>
         </div>
       </section>
 
       {/* Laufband */}
-      <div aria-hidden className="relative z-10 -rotate-2 border-y border-white/10 bg-white py-4 text-black">
-        <div className="pro-band">
-          {[0, 1].map((k) => (
-            <div key={k} className="flex shrink-0 items-center">
-              {betrieb.leistungen.map((l) => (
-                <span key={l.id} className="flex items-center gap-6 px-6 text-2xl font-bold uppercase tracking-tight sm:text-4xl">
-                  {l.name} <span className="text-violet-600">✦</span>
-                </span>
-              ))}
-            </div>
-          ))}
+      <div aria-hidden className="overflow-hidden whitespace-nowrap border-y border-white/10 py-10 sm:py-14">
+        <div data-band className="inline-flex text-[clamp(3rem,8vw,8.5rem)] font-bold leading-none tracking-[-0.04em]">
+          {[0, 1].map((k) =>
+            betrieb.leistungen.map((l, i) => (
+              <span key={`${k}-${l.id}`} className="flex items-center">
+                <span className={`px-[0.3em] ${i % 2 ? "pro-hohl" : ""}`}>{l.name}</span>
+                <span className="text-[var(--pro-a)]">✦</span>
+              </span>
+            )),
+          )}
         </div>
       </div>
 
-      {/* Das Wichtigste der Branche zuerst */}
-      <section id="angebot" className="relative z-10 mx-auto max-w-6xl scroll-mt-24 px-5 pt-24">
-        <div data-reveal>
-          <h2 className="text-5xl font-bold tracking-tighter sm:text-6xl">
-            {betrieb.funktion.titel}
-            <span className="pro-verlauf-text">.</span>
-          </h2>
-          <p className="mb-8 mt-3 max-w-2xl text-lg text-white/60">{betrieb.funktion.text}</p>
+      {/* Manifest */}
+      <section id="salon" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-36 sm:px-10 sm:py-52">
+        <p data-manifest className="text-[clamp(2rem,4.6vw,4.4rem)] font-semibold leading-[1.08] tracking-[-0.035em]">
+          {betrieb.slogan}{" "}
+          <span aria-hidden className="inline-block h-[0.8em] w-[1.9em] rounded-full align-[-0.06em]" style={{ background: foto(0) }} /> {betrieb.einleitung}
+        </p>
+      </section>
+
+      {/* Galerie, die seitwärts fährt */}
+      <section data-quer aria-label="Galerie" className="relative overflow-x-auto md:h-screen md:overflow-hidden" style={{ scrollbarWidth: "none" }}>
+        <div data-quer-spur className="flex h-full items-center gap-[3vw] px-5 py-10 md:px-10 md:py-0">
+          <div className="w-[78vw] shrink-0 md:w-[34vw]">
+            <p className={kick}>Galerie</p>
+            <h2 className={`${titel} mt-5 text-[clamp(3rem,6.5vw,7rem)]`}>Einfach mal reinschauen.</h2>
+            <p className="mt-6 hidden max-w-xs text-white/60 md:block">Die Seite bleibt stehen – die Bilder fahren vorbei und kippen mit Ihrem Tempo.</p>
+            <p className="mt-6 text-white/60 md:hidden">Zur Seite wischen →</p>
+          </div>
+          {galerie.map((g, i) => (
+            <figure
+              key={g.titel + i}
+              data-quer-karte
+              className={`relative shrink-0 overflow-hidden rounded-[26px] ${i % 2 ? "h-[52vh] w-[70vw] md:h-[58vh] md:w-[32vw]" : "h-[60vh] w-[82vw] md:h-[72vh] md:w-[44vw]"}`}
+            >
+              <div data-quer-bild className="absolute -inset-x-[15%] -inset-y-[8%]" style={{ background: g.bild ? `center / cover url(${g.bild})` : g.farbe }} />
+              <figcaption className="absolute inset-x-6 bottom-5 flex items-end justify-between">
+                <b className="text-4xl tracking-[-0.03em] drop-shadow-[0_2px_12px_rgba(0,0,0,.5)]">{g.titel}</b>
+                <small className="text-white/70">{String(i + 1).padStart(2, "0")}</small>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </section>
+
+      {/* Die Funktion der Branche */}
+      <section id="angebot" className="mx-auto max-w-6xl scroll-mt-24 px-5 pt-32 sm:px-10 sm:pt-44">
+        <p className={kick}>Gleich ausprobieren</p>
+        <h2 data-h2 className={`${titel} mt-5 text-[clamp(2.8rem,6vw,6rem)]`}>{betrieb.funktion.titel}</h2>
+        <p className="mb-10 mt-5 max-w-2xl text-lg text-white/60">{betrieb.funktion.text}</p>
+        <div data-rein>
           <BranchenFunktion betrieb={betrieb} ziel="#buchen" />
         </div>
       </section>
 
-      {/* Zahlen */}
-      <section className="relative z-10 mx-auto grid max-w-6xl gap-10 px-5 py-24 text-center sm:grid-cols-3">
-        {betrieb.zahlen.map((z, i) => (
-          <div key={z.text} data-reveal style={verzoegert(i * 150)}>
-            <p className="pro-verlauf-text text-6xl font-bold tracking-tighter sm:text-7xl">
-              <span data-zahl={z.zahl} data-komma={z.komma ?? 0}>
-                {z.zahl.toLocaleString("de-AT", { minimumFractionDigits: z.komma ?? 0 })}
+      {/* Leistungen: drei Karten in 3D und alle Zeilen mit Foto unter der Maus */}
+      <section id="leistungen" className="mx-auto max-w-7xl scroll-mt-24 px-5 pt-32 sm:px-10 sm:pt-48">
+        <p className={kick}>Leistungen & Preise</p>
+        <h2 data-h2 className={`${h2} mt-5`}>Was wir können.</h2>
+        <ul className="mt-14 grid gap-5 [perspective:1200px] md:grid-cols-3">
+          {beliebt.map((l, i) => (
+            <li
+              key={l.id}
+              data-tilt
+              data-rein
+              className={`pro-licht relative flex min-h-[380px] flex-col overflow-hidden rounded-[28px] border p-8 [transform-style:preserve-3d] ${
+                i === 1 ? "border-transparent bg-[linear-gradient(160deg,var(--pro-b),color-mix(in_srgb,var(--pro-b)_45%,black))]" : "border-white/12 bg-[linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.02))]"
+              }`}
+            >
+              <span className={`text-sm uppercase tracking-[0.2em] ${i === 1 ? "text-white" : "text-[color-mix(in_srgb,var(--pro-a)_50%,white)]"}`}>
+                {l.name}
+                {i === 1 ? " · beliebt" : ""}
               </span>
-              {z.zahl > 1000 ? "+" : ""}
-            </p>
-            <p className="mt-2 text-white/60">{z.text}</p>
-          </div>
-        ))}
+              <span className="mt-6 text-7xl font-bold tracking-[-0.06em] [transform:translateZ(50px)]">{l.preis ? `${l.preis} €` : "gratis"}</span>
+              <span className="mt-1 text-white/65">{l.preis ? "ab" : ""}{l.dauer ? ` · ${l.dauer} Min.` : ""}</span>
+              <p className="mt-6 text-white/80">✦ {l.text}</p>
+              <a href="#buchen" className={`${i === 1 ? "bg-white text-black" : "border border-white/25"} mt-auto inline-flex min-h-12 items-center justify-center rounded-full font-bold`}>
+                {betrieb.aktionKurz === "Termin" ? "Buchen" : betrieb.aktionKurz}
+              </a>
+            </li>
+          ))}
+        </ul>
+        <ul className="mt-20">
+          {betrieb.leistungen.map((l, i) => (
+            <li
+              key={l.id}
+              data-zeile
+              data-bild={foto(i)}
+              className="pro-zeile relative isolate grid grid-cols-[40px_1fr_auto] items-center gap-4 border-t border-white/12 px-1 py-7 last:border-b sm:grid-cols-[80px_1fr_auto_64px] sm:gap-8 sm:py-9"
+            >
+              <span className="text-sm text-white/50">{String(i + 1).padStart(2, "0")}</span>
+              <span>
+                <b className="block text-[clamp(1.6rem,3.2vw,3.2rem)] font-semibold leading-tight tracking-[-0.03em]">{l.name}</b>
+                <small className="text-white/60">{l.text}</small>
+              </span>
+              <span className="text-xl font-semibold sm:text-3xl">{abPreis(l.preis)}</span>
+              <span aria-hidden className="hidden h-14 w-14 place-items-center rounded-full border border-white/20 sm:grid">
+                <Icon name="pfeil" className="h-5 w-5 -rotate-45" />
+              </span>
+            </li>
+          ))}
+        </ul>
+        <div data-folgebild aria-hidden className="pointer-events-none fixed left-0 top-0 z-40 -ml-[150px] -mt-[190px] h-[380px] w-[300px] scale-[.6] overflow-hidden rounded-[22px] opacity-0">
+          <div className="h-full w-full" />
+        </div>
       </section>
 
-      {/* Einblick: breites Foto-Fenster */}
-      {betrieb.bild?.einblick && (
-        <section className="relative z-10 mx-auto max-w-6xl px-5 py-16">
-          <h2 data-reveal className="text-center text-5xl font-bold tracking-tighter sm:text-7xl">
-            Einfach mal <span className="pro-verlauf-text">reinschauen</span>.
-          </h2>
-          <div data-reveal style={verzoegert(150)} className="relative mx-auto mt-12 [perspective:1400px]">
-            <div className="pro-rahmen [transform:rotateX(8deg)]">
-              <div className="relative aspect-[4/3] overflow-hidden rounded-[calc(2rem-2px)] sm:aspect-[21/9]">
-                <div className="pro-foto h-full w-full" style={{ background: `center / cover url(${betrieb.bild.einblick})` }} />
-                <div className="absolute inset-x-0 bottom-0 flex flex-wrap gap-2 bg-gradient-to-t from-black/70 to-transparent p-3 pt-12 text-xs sm:gap-3 sm:p-6 sm:pt-24 sm:text-sm">
-                  <span className="rounded-full border border-white/15 bg-black/50 px-3 py-1.5 backdrop-blur sm:px-4 sm:py-2">📍 {betrieb.strasse}, {betrieb.plz} {betrieb.ort}</span>
-                  <span className="hidden rounded-full border border-white/15 bg-black/50 px-4 py-2 backdrop-blur sm:inline">🕒 {offen.tage} {offen.zeit}</span>
-                  <span className="hidden rounded-full border border-white/15 bg-black/50 px-4 py-2 backdrop-blur sm:inline">✦ {betrieb.vertrauen}</span>
-                </div>
-              </div>
-            </div>
+      {/* Riesenschrift-Maske: Flug in den Namen */}
+      {fotos.length > 0 && (
+        <section data-deck-sek aria-label={betrieb.vertrauen} className="relative mt-40 h-screen overflow-hidden">
+          <div aria-hidden className="absolute inset-0" style={{ background: foto(0) }} />
+          <div data-deck aria-hidden className="pro-deck absolute inset-0 grid origin-[44%_55%] place-items-center bg-[#07070c] font-bold leading-none tracking-[-0.06em] text-white" style={{ fontSize: `${Math.min(30, 120 / betrieb.marke.length)}vw` }}>
+            {betrieb.marke}
+          </div>
+          <div data-deck-text className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#07070c]/90 to-transparent px-5 pb-[12vh] pt-[30vh] text-center">
+            <p className={kick}>{betrieb.vertrauen}</p>
+            <p className="mt-4 text-[clamp(2.2rem,5vw,5rem)] font-bold tracking-[-0.04em]">{betrieb.slogan}</p>
           </div>
         </section>
       )}
 
-      {/* Leistungen */}
-      <section id="leistungen" className="relative z-10 mx-auto max-w-6xl scroll-mt-24 px-5 py-16">
-        <h2 data-reveal className="text-5xl font-bold tracking-tighter sm:text-7xl">
-          Was wir <span className="pro-verlauf-text">können</span>.
-        </h2>
-        <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {betrieb.leistungen.map((l, i) => (
-            <li key={l.id} data-reveal style={verzoegert((i % 3) * 120)} className="pro-karte p-7">
-              <p aria-hidden className="text-4xl text-violet-300">{l.symbol}</p>
-              <p className="mt-6 text-2xl font-bold">{l.name}</p>
-              <p className="mt-1 text-white/60">{l.text}</p>
-              <p className="mt-6 flex items-baseline justify-between">
-                <span className="text-sm text-white/50">{l.dauer ? `${l.dauer} Min.` : ""}</span>
-                <span className="text-2xl font-bold">{abPreis(l.preis)}</span>
-              </p>
-            </li>
-          ))}
-        </ul>
+      {/* Ablauf: Karten stapeln sich */}
+      <section id="ablauf" className="mx-auto max-w-6xl scroll-mt-24 px-5 pt-32 sm:px-10 sm:pt-48">
+        <p className={kick}>Ablauf</p>
+        <h2 data-h2 className={`${h2} mb-16 mt-5`}>So läuft es ab.</h2>
+        {ablauf.map((s, i) => (
+          <div
+            key={s.t}
+            data-stapel-karte
+            className={`sticky mb-[5vh] grid min-h-[480px] origin-top grid-rows-[minmax(0,1fr)] overflow-hidden rounded-[32px] md:h-[70vh] md:grid-cols-2 ${
+              i === 2 ? "bg-[linear-gradient(135deg,var(--pro-b),var(--pro-c))]" : i ? "bg-[color-mix(in_srgb,var(--pro-b)_16%,#0c0a10)]" : "bg-[color-mix(in_srgb,var(--pro-b)_9%,#0c0a10)]"
+            }`}
+            style={{ top: `${100 + i * 30}px` }}
+          >
+            <div className="flex flex-col justify-between p-8 sm:p-14">
+              <span className={`text-[120px] font-bold leading-[0.8] tracking-[-0.06em] sm:text-[150px] ${i === 2 ? "" : "pro-verlauf-text"}`}>0{i + 1}</span>
+              <div>
+                <h3 className="text-4xl font-semibold leading-none tracking-[-0.04em] sm:text-5xl">{s.t}</h3>
+                <p className="mt-4 max-w-md text-lg text-white/75">{s.x}</p>
+              </div>
+            </div>
+            <div aria-hidden className="hidden md:block" style={{ background: foto(i) }} />
+          </div>
+        ))}
       </section>
 
-      {/* Buchung */}
-      <section id="buchen" className="relative z-10 mx-auto max-w-6xl scroll-mt-24 px-5 py-24">
-        <div className="grid gap-10 lg:grid-cols-[1fr_1.3fr]">
-          <div data-reveal>
-            <h2 className="text-5xl font-bold tracking-tighter sm:text-6xl">
-              {betrieb.buchung.titel}
-              <br />
-              <span className="pro-verlauf-text">Ohne Anruf.</span>
-            </h2>
-            <p className="mt-6 max-w-md text-lg text-white/70">
-              {betrieb.buchung.text}
+      {/* Vorher/Nachher wischt beim Scrollen */}
+      {extras.vorherNachher && betrieb.bild?.einblick && (
+        <section data-wisch-sek aria-label="Vorher und nachher" className="relative mt-32 h-screen overflow-hidden">
+          <div aria-hidden className="absolute inset-0 brightness-[.55] contrast-[.9] grayscale" style={{ background: `center / cover url(${betrieb.bild.einblick})` }} />
+          <div data-wisch-neu aria-hidden className="absolute inset-0 [clip-path:inset(0_50%_0_0)]" style={{ background: `center / cover url(${betrieb.bild.einblick})` }} />
+          <div data-wisch-linie aria-hidden className="absolute inset-y-0 left-1/2 w-[3px] bg-gradient-to-b from-fuchsia-500 to-cyan-400 shadow-[0_0_30px_var(--pro-a)]" />
+          <span className="absolute left-5 top-24 rounded-full bg-black/50 px-4 py-2 text-xs uppercase tracking-[0.24em] backdrop-blur sm:left-10">Vorher</span>
+          <span className="absolute right-5 top-24 rounded-full bg-black/50 px-4 py-2 text-xs uppercase tracking-[0.24em] backdrop-blur sm:right-10">Nachher</span>
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#07070c] to-transparent px-5 pb-12 pt-40 sm:px-10">
+            <p className={`${titel} text-[clamp(2.6rem,6vw,6.5rem)]`}>
+              Scrollen Sie –<br />
+              <span className="pro-verlauf-text">sehen Sie den Unterschied.</span>
             </p>
-            <ul className="mt-8 space-y-3 text-white/80">
-              <li>✓ Bestätigung sofort per E-Mail</li>
-              <li>✓ Erinnerung am Vortag</li>
-              <li>✓ Umbuchen mit einem Klick</li>
-            </ul>
+            <p className="mt-3 text-sm text-white/55">{extras.vorherNachher} · Beispielbild</p>
           </div>
-          <div data-reveal style={verzoegert(150)} className="pro-karte p-6 sm:p-8">
+        </section>
+      )}
+
+      {/* Zahlen */}
+      <section className="mx-auto grid max-w-7xl gap-8 px-5 pt-32 sm:grid-cols-3 sm:px-10 sm:pt-44">
+        {betrieb.zahlen.map((z) => (
+          <div key={z.text} className="border-t border-white/12 pt-7">
+            <p className="text-[clamp(4rem,8vw,8rem)] font-bold leading-[0.9] tracking-[-0.06em]">
+              <span data-z={z.zahl} data-komma={z.komma ?? 0}>
+                {z.zahl.toLocaleString("de-AT", { minimumFractionDigits: z.komma ?? 0 })}
+              </span>
+              {z.zahl > 1000 ? "+" : ""}
+            </p>
+            <p className="mt-3 text-white/60">{z.text}</p>
+          </div>
+        ))}
+      </section>
+
+      {/* Buchung + KI-Assistentin */}
+      <section id="buchen" className="mx-auto max-w-7xl scroll-mt-24 px-5 pt-32 sm:px-10 sm:pt-48">
+        <h2 data-h2 className={h2}>
+          {betrieb.buchung.titel}
+          <br />
+          <span className="text-[var(--pro-a)]">Ohne Anruf.</span>
+        </h2>
+        <div className="mt-14 grid gap-5 lg:grid-cols-[1.25fr_1fr]">
+          <div data-rein className="rounded-[30px] border border-white/12 bg-[linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.02))] p-6 sm:p-9">
             <ProBuchung betrieb={betrieb} />
+          </div>
+          <div data-rein className="rounded-[30px] border border-white/12 bg-[linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.02))] p-6 sm:p-9">
+            <p className="font-semibold">✦ KI-Assistentin · rund um die Uhr</p>
+            <p className="mt-1 text-sm text-white/50">Beantwortet Fragen sofort – auch um Mitternacht.</p>
+            <ProDemoChat betrieb={betrieb} />
           </div>
         </div>
       </section>
 
       {/* Stimmen */}
-      <section id="stimmen" className="relative z-10 mx-auto max-w-6xl scroll-mt-24 px-5 py-16">
-        <h2 data-reveal className="text-5xl font-bold tracking-tighter sm:text-7xl">
-          <span className="pro-verlauf-text">★ {sterne}</span> von {betrieb.bewertung.anzahl}
+      <section className="mx-auto max-w-7xl px-5 pt-32 sm:px-10 sm:pt-48">
+        <h2 data-h2 className={h2}>
+          <span className="text-[var(--pro-a)]">★ {sterne(betrieb.bewertung.sterne)}</span> von {betrieb.bewertung.anzahl}.
         </h2>
-        <p className="mt-3 text-sm text-white/50">Beispielwerte</p>
-        <ul className="mt-12 grid gap-4 md:grid-cols-3">
-          {betrieb.bewertungen.map((b, i) => (
-            <li key={b.name} data-reveal style={verzoegert(i * 150)} className="pro-karte p-7">
-              <p className="text-lg leading-relaxed">„{b.text}“</p>
-              <p className="mt-6 text-sm font-semibold text-violet-300">{b.name}</p>
+        <p className="mt-4 text-sm text-white/45">Beispielwerte</p>
+        <ul className="mt-12 grid gap-5 md:grid-cols-3">
+          {betrieb.bewertungen.map((r) => (
+            <li key={r.name} data-rein data-tilt className="pro-licht relative rounded-[26px] border border-white/12 bg-white/[0.04] p-8">
+              <p className="text-[var(--pro-a)]">★★★★★</p>
+              <p className="mt-4 text-xl leading-snug">„{r.text}“</p>
+              <p className="mt-6 text-sm text-white/55">{r.name}</p>
             </li>
           ))}
         </ul>
       </section>
 
-      {/* Kontakt */}
-      <section id="kontakt" className="relative z-10 mx-auto max-w-6xl scroll-mt-24 px-5 py-24">
-        <div data-reveal className="pro-karte overflow-hidden p-8 sm:p-12">
-          <div aria-hidden className="pro-blob -right-20 -top-20 h-72 w-72 bg-fuchsia-600 opacity-40" />
-          <div className="relative grid gap-10 md:grid-cols-2">
-            <div>
-              <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl">{betrieb.abschied}</h2>
-              <p className="mt-4 text-lg text-white/70">
-                {betrieb.strasse}, {betrieb.plz} {betrieb.ort}
-              </p>
-              <a href={betrieb.telefonLink} className="mt-6 inline-block text-3xl font-bold hover:text-violet-300">
-                {betrieb.telefon}
-              </a>
-            </div>
-            <dl className="space-y-2">
-              {betrieb.oeffnungszeiten.map((o) => (
-                <div key={o.tage} className="flex justify-between gap-4 border-b border-white/10 pb-2">
-                  <dt className="text-white/60">{o.tage}</dt>
-                  <dd className="font-semibold">{o.zeit}</dd>
-                </div>
-              ))}
-            </dl>
+      {/* Schluss */}
+      <footer className="relative mt-40 overflow-hidden px-5 pb-8 pt-40 sm:px-10">
+        <div aria-hidden className="absolute left-1/2 top-[30%] h-[1100px] w-[1100px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--pro-a)_42%,transparent),transparent_60%)] blur-[40px]" />
+        <p className={`${kick} relative text-center`}>
+          {betrieb.strasse} · {betrieb.plz} {betrieb.ort}
+        </p>
+        <h2 data-h2 className={`${titel} relative mt-5 text-center text-[clamp(3rem,7vw,7.5rem)]`}>{betrieb.abschied}</h2>
+        <div className="relative mt-11 flex flex-wrap justify-center gap-3">
+          <a href="#buchen" data-magnet className={voll}>{betrieb.aktion}</a>
+          <a href={betrieb.telefonLink} data-magnet className={leer}>
+            <Icon name="tel" />
+            {betrieb.telefon}
+          </a>
+        </div>
+        <div className="relative mx-auto mt-24 grid max-w-6xl gap-8 border-t border-white/12 pt-8 text-white/60 sm:grid-cols-3">
+          <div>
+            <p className="font-semibold text-white">Heute</p>
+            <OffenStatus zeiten={betrieb.oeffnungszeiten} className="mt-2" />
+          </div>
+          <div>
+            <p className="font-semibold text-white">Öffnungszeiten</p>
+            {offen.map((o) => (
+              <p key={o.tage} className="mt-1">{o.tage} {o.zeit}</p>
+            ))}
+          </div>
+          <div>
+            <p className="font-semibold text-white">Kontakt</p>
+            <p className="mt-1">{betrieb.telefon}</p>
+            <p>{betrieb.email}</p>
           </div>
         </div>
-      </section>
-
-      <footer className="relative z-10 border-t border-white/10 py-8 text-center text-sm text-white/40">
-        © {betrieb.name} · Impressum · Datenschutz
+        <p data-riesig aria-hidden className="relative mt-24 flex justify-center overflow-hidden text-[clamp(5rem,27vw,30rem)] font-bold leading-[0.75] tracking-[-0.07em]" style={{ fontSize: `${Math.min(27, 95 / betrieb.marke.length)}vw` }}>
+          {Array.from(betrieb.marke).map((z, i) => (
+            <span key={i} className="inline-block">{z}</span>
+          ))}
+        </p>
+        <p className="relative mt-8 flex flex-wrap justify-between gap-2 text-[13px] text-white/45">
+          <span>© {betrieb.name}</span>
+          <span>Impressum · Datenschutz</span>
+        </p>
       </footer>
 
       <ProChat betrieb={betrieb} />

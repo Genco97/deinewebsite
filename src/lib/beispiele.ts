@@ -947,23 +947,120 @@ export const THEMA_INFO: Record<Thema, { label: string; kurz: string; text: stri
   },
   basic: {
     label: "Basic",
-    kurz: "Einfach & schnell",
-    text: "Eine Seite mit allem Wichtigen: Leistungen, Preise, Öffnungszeiten und Kontakt. Schnell online, schnell gefunden.",
+    kurz: "Ruhig & hochwertig",
+    text: "Eine schöne, ruhige Seite mit allem Wichtigen: Leistungen, Preise, Öffnungszeiten und Kontakt – am Handy mit Anruf-Knopf.",
     paket: "basis",
   },
   business: {
     label: "Business",
-    kurz: "Mehr Auftritt",
-    text: "Mehr Gestaltung und mehr Inhalt: Team, Bewertungen, Galerie, häufige Fragen und ein Anfrage-Formular.",
+    kurz: "Mit Werkzeugen",
+    text: "Die Seite arbeitet mit: Anfrage mit Tag und Uhrzeit, Live-Öffnungsstatus, Vorher/Nachher, Team, Galerie, Treuekarte und Gutscheine.",
     paket: "business",
   },
   pro: {
     label: "Pro",
     kurz: "Das volle Programm",
-    text: "Eigenes Design mit Animationen, Online-Buchung und einem KI-Assistenten, der Fragen Ihrer Kunden beantwortet.",
+    text: "Ein Erlebnis mit Kino-Effekten beim Scrollen, einem Foto, das auf die Maus reagiert, Online-Buchung und einer KI-Assistentin.",
     paket: "premium",
   },
 };
+
+// ---------------------------------------------------------------------------
+// Extras je Branche für Business und Pro – nur dort, wo sie zum Betrieb passen
+// ---------------------------------------------------------------------------
+
+export type Extras = {
+  /** Digitale Stempelkarte, z. B. „Jeder 10. Haarschnitt gratis“ */
+  treue?: string;
+  /** Wofür der Gutschein gilt */
+  gutschein?: string;
+  /** Vorher/Nachher mit dem Einblick-Foto (Beispielbild) */
+  vorherNachher?: string;
+};
+
+const EXTRAS: Record<BrancheId, Extras> = {
+  friseur: { treue: "Jeder 10. Haarschnitt gratis", gutschein: "für Schnitt, Farbe & Pflege", vorherNachher: "Ein Balayage-Termin" },
+  barber: { treue: "Jeder 10. Schnitt gratis", gutschein: "für Schnitt, Bart & Rasur", vorherNachher: "Ein Skin Fade mit Bart-Kontur" },
+  imbiss: { treue: "Jeder 10. Kebap gratis" },
+  cafe: { treue: "Jede 10. Melange gratis", gutschein: "für Frühstück, Brunch & Torten" },
+  handwerk: {},
+  nagel: { treue: "Jede 10. Maniküre gratis", gutschein: "für Maniküre, Gel & Pediküre", vorherNachher: "Eine Gel-Neumodellage" },
+  schneiderei: { vorherNachher: "Ein Sakko, angepasst" },
+  hundesalon: { treue: "Jedes 10. Baden gratis", gutschein: "für Baden, Schur & Pflege", vorherNachher: "Eine Komplett-Schur" },
+  kfz: { vorherNachher: "Eine Aufbereitung innen" },
+};
+
+export const extrasFuer = (b: Betrieb) => EXTRAS[b.branche];
+
+/** Fotos und Farbflächen für Galerien: echte Fotos zuerst, dann die Farbkacheln der Branche */
+export function galerieFuer(b: Betrieb): { titel: string; bild?: string; farbe: string }[] {
+  const fotos = [
+    b.bild?.einblick && { titel: "Einblick", bild: b.bild.einblick, farbe: b.heroFarbe },
+    b.bild && { titel: b.art, bild: b.bild.hero, farbe: b.heroFarbe },
+  ].filter((x) => !!x);
+  return [...fotos, ...b.galerie];
+}
+
+/** „Mila hat Salon Mila 2012 eröffnet. Heute sind sie zu dritt …“ – ohne Pronomen, passt für jede Person */
+export function ueberUns(b: Betrieb) {
+  const vorname = b.inhaberin.split(" ")[0];
+  const andere = b.team.filter((t) => t.name !== vorname).map((t) => t.name);
+  const team = andere.length ? ` Heute arbeitet das Team zu dritt: ${vorname}, ${andere.join(" und ")}.` : "";
+  return `${vorname} hat ${b.name} ${b.seit} in Wien-${b.bezirk} gegründet.${team} ${b.preisHinweis}`;
+}
+
+const WOCHENTAGE = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+
+/** Öffnungszeiten als Liste je Wochentag (0 = Sonntag): [von, bis] in Minuten oder null */
+function zeitplan(zeiten: Betrieb["oeffnungszeiten"]) {
+  const plan: ([number, number] | null)[] = Array(7).fill(null);
+  const minuten = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + (m || 0);
+  };
+  for (const z of zeiten) {
+    const [von, bis = von] = z.tage.split("–").map((t) => WOCHENTAGE.indexOf(t.trim()));
+    if (von < 0 || z.zeit === "geschlossen") continue;
+    const [a, e] = z.zeit.split("–").map((t) => minuten(t.trim()));
+    for (let i = von; ; i = (i + 1) % 7) {
+      plan[i] = [a, e];
+      if (i === bis) break;
+    }
+  }
+  return plan;
+}
+
+/** Die nächsten Tage, an denen der Betrieb offen hat (ab morgen) */
+export function offeneTage(zeiten: Betrieb["oeffnungszeiten"], ab: Date, anzahl: number) {
+  const plan = zeitplan(zeiten);
+  const tage: Date[] = [];
+  const d = new Date(ab);
+  d.setHours(12, 0, 0, 0);
+  for (let i = 0; i < 21 && tage.length < anzahl; i++) {
+    d.setDate(d.getDate() + 1);
+    if (plan[d.getDay()]) tage.push(new Date(d));
+  }
+  return tage;
+}
+
+const uhr = (min: number) => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, "0")}`;
+
+/** „Jetzt geöffnet · bis 18:30“ oder „Geschlossen · öffnet Dienstag 9:00“ – für die Wiener Zeit */
+export function offenStatus(zeiten: Betrieb["oeffnungszeiten"], jetzt: Date): { offen: boolean; text: string } {
+  const plan = zeitplan(zeiten);
+  const wien = new Date(jetzt.toLocaleString("en-US", { timeZone: "Europe/Vienna" }));
+  const tag = wien.getDay();
+  const min = wien.getHours() * 60 + wien.getMinutes();
+  const heute = plan[tag];
+  if (heute && min >= heute[0] && min < heute[1]) return { offen: true, text: `Jetzt geöffnet · bis ${uhr(heute[1])}` };
+  if (heute && min < heute[0]) return { offen: false, text: `Öffnet heute um ${uhr(heute[0])}` };
+  for (let i = 1; i <= 7; i++) {
+    const t = (tag + i) % 7;
+    const z = plan[t];
+    if (z) return { offen: false, text: `Geschlossen · öffnet ${i === 1 ? "morgen" : WOCHENTAGE[t]} ${uhr(z[0])}` };
+  }
+  return { offen: false, text: "Geschlossen" };
+}
 
 export const euroGanz = (n: number) => `${n.toLocaleString("de-AT")} €`;
 

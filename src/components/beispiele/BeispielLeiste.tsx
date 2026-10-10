@@ -14,7 +14,7 @@ export function BeispielLeiste() {
   );
   if (imRahmen) return null;
   return (
-    <div className="relative z-[60] flex items-center justify-between gap-3 bg-[#111827] px-4 py-2 font-sans text-sm text-white">
+    <div data-beispiel-leiste className="relative z-[60] flex items-center justify-between gap-3 bg-[#111827] px-4 py-2 font-sans text-sm text-white">
       <p className="min-w-0 truncate">
         <span className="font-semibold">Beispiel-Website</span>
         <span className="hidden text-white/70 sm:inline"> · erfundener Betrieb, gestaltet von Ursprung</span>

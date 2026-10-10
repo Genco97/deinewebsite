@@ -1,13 +1,11 @@
-/* Nur für die Pro-Beispielseite – alle Klassen mit „pro-“ */
+/* Nur für die Pro-Beispielseite „Kino“ – alle Klassen mit „pro-“ */
 
 .pro-seite {
-  --pro-x: 50%;
-  --pro-y: 30%;
   background: #07070c;
   color: #f4f4f8;
   font-family: var(--font-grotesk), ui-sans-serif, system-ui, sans-serif;
   overflow-x: clip;
-  /* Farben der Branche: die lila Töne des Grunddesigns werden umgefärbt */
+  /* Farben der Branche: die lila Töne der Bausteine (Buchung, Chat) werden umgefärbt */
   --color-fuchsia-500: var(--pro-a, #d946ef);
   --color-fuchsia-600: var(--pro-a, #c026d3);
   --color-violet-300: color-mix(in srgb, var(--pro-b, #8b5cf6) 55%, white);
@@ -19,96 +17,130 @@
   --color-cyan-500: var(--pro-c, #06b6d4);
 }
 
-/* Licht, das der Maus folgt */
-.pro-licht {
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  background: radial-gradient(600px circle at var(--pro-x) var(--pro-y), color-mix(in srgb, var(--pro-b, #a855f7) 13%, transparent), transparent 60%);
-}
-
-/* Polarlicht im Hero */
-.pro-blob {
-  position: absolute;
-  border-radius: 9999px;
-  filter: blur(70px);
-  opacity: 0.55;
-  animation: pro-schweben 14s ease-in-out infinite alternate;
-}
-.pro-blob-2 { animation-duration: 18s; animation-delay: -6s; }
-.pro-blob-3 { animation-duration: 22s; animation-delay: -11s; }
-
-/* Fotos: Rahmen im Markenverlauf, langsamer Zoom */
-.pro-rahmen {
-  border-radius: 2rem;
-  padding: 2px;
-  background: linear-gradient(135deg, var(--pro-a), var(--pro-b), var(--pro-c));
-  box-shadow: 0 0 80px color-mix(in srgb, var(--pro-b) 45%, transparent);
-}
-
-.pro-foto {
-  animation: pro-zoom 30s ease-in-out infinite alternate;
-}
-
-@keyframes pro-zoom {
-  from { transform: scale(1); }
-  to { transform: scale(1.12); }
-}
-
-@keyframes pro-schweben {
-  0% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(8vw, -6vh) scale(1.2); }
-  100% { transform: translate(-6vw, 5vh) scale(0.9); }
-}
+/* Weiches Scrollen (Lenis) */
+html.lenis,
+html.lenis body { height: auto; }
+.lenis.lenis-stopped { overflow: clip; }
+.lenis [data-lenis-prevent] { overscroll-behavior: contain; }
 
 .pro-verlauf-text {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--pro-a, #d946ef) 60%, white), color-mix(in srgb, var(--pro-b, #8b5cf6) 60%, white), color-mix(in srgb, var(--pro-c, #22d3ee) 60%, white), color-mix(in srgb, var(--pro-a, #d946ef) 60%, white));
-  background-size: 300% 100%;
+  background: linear-gradient(100deg, var(--pro-a), var(--pro-c) 50%, color-mix(in srgb, var(--pro-a) 45%, white));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: pro-fliessen 8s linear infinite;
-}
-@keyframes pro-fliessen {
-  to { background-position: 300% 0; }
 }
 
-/* Laufband */
-.pro-band {
-  display: flex;
-  width: max-content;
-  animation: pro-laufen 28s linear infinite;
+/* Vorspann: Zähler 0 → 100, dann öffnet sich der Vorhang. Fällt nach 4 s von selbst weg, falls JavaScript fehlt. */
+.pro-vorspann {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  animation: pro-weg 0.4s 4s forwards;
 }
-@keyframes pro-laufen {
-  to { transform: translateX(-50%); }
+.pro-vorspann i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50.5%;
+  background: #000;
+}
+.pro-vorspann i:first-child { top: 0; }
+.pro-vorspann i:nth-child(2) { bottom: 0; }
+@keyframes pro-weg {
+  to { opacity: 0; visibility: hidden; }
 }
 
-/* Einblenden beim Scrollen */
-[data-reveal] {
-  opacity: 0;
-  transform: translateY(40px);
-  transition: opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
-  transition-delay: var(--pro-delay, 0ms);
+/* Körnung über allem */
+.pro-korn {
+  position: fixed;
+  inset: -100%;
+  z-index: 90;
+  pointer-events: none;
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: pro-korn 1s steps(6) infinite;
 }
-[data-reveal].pro-sichtbar {
-  opacity: 1;
-  transform: none;
+@keyframes pro-korn {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-5%, 3%); }
+  40% { transform: translate(4%, -6%); }
+  60% { transform: translate(-3%, 5%); }
+  80% { transform: translate(6%, 2%); }
 }
 
-/* Karten mit leuchtendem Rand */
-.pro-karte {
+/* Eigener Zeiger (nur mit Maus) */
+.pro-zeiger {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 95;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 9999px;
+  background: #fff;
+  mix-blend-mode: difference;
+  pointer-events: none;
+  transition: width 0.35s, height 0.35s, margin 0.35s, opacity 0.3s;
+}
+.pro-zeiger.pro-gross { width: 88px; height: 88px; margin: -44px 0 0 -44px; }
+@media (pointer: coarse) {
+  .pro-zeiger { display: none; }
+}
+
+/* Knöpfe: weiße Fläche fährt beim Drüberfahren herein */
+.pro-knopf {
   position: relative;
-  border-radius: 1.25rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: transform 0.4s ease, border-color 0.4s ease, background 0.4s ease;
+  isolation: isolate;
+  overflow: hidden;
 }
-.pro-karte:hover {
-  transform: translateY(-6px);
-  border-color: rgba(167, 139, 250, 0.6);
-  background: rgba(167, 139, 250, 0.08);
+.pro-knopf::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: #fff;
+  transform: translateY(101%);
+  transition: transform 0.5s cubic-bezier(0.7, 0, 0.2, 1);
 }
+.pro-knopf:hover::before { transform: none; }
+.pro-knopf:hover { color: #07070c; }
+
+/* Laufband und hohle Schrift */
+.pro-hohl {
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.5);
+}
+
+/* Leistungs-Zeilen färben sich von unten */
+.pro-zeile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, var(--pro-a), var(--pro-c));
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 0.5s cubic-bezier(0.7, 0, 0.2, 1);
+}
+.pro-zeile:hover::before { transform: none; }
+
+/* Karten mit Licht unter der Maus */
+.pro-licht::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(500px circle at var(--mx, 50%) var(--my, -20%), rgba(255, 255, 255, 0.14), transparent 45%);
+}
+
+/* Riesenschrift-Maske: weiße Schrift zeigt das Foto, Schwarz verdeckt es */
+.pro-deck { mix-blend-mode: multiply; }
 
 .pro-tippen span {
   display: inline-block;
@@ -121,26 +153,19 @@
 }
 .pro-tippen span:nth-child(2) { animation-delay: 0.15s; }
 .pro-tippen span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes pro-auf {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+}
 @keyframes pro-punkt {
   0%, 100% { opacity: 0.3; transform: translateY(0); }
   50% { opacity: 1; transform: translateY(-3px); }
 }
 
+.pro-zeile-text { display: block; overflow: hidden; }
+
 @media (prefers-reduced-motion: reduce) {
-  .pro-blob,
-  .pro-foto,
-  .pro-verlauf-text,
-  .pro-band,
-  .pro-tippen span {
-    animation: none;
-  }
-  [data-reveal] {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
-  .pro-karte,
-  .pro-karte:hover {
-    transform: none;
-  }
+  .pro-vorspann,
+  .pro-korn,
+  .pro-zeiger { display: none; }
+  .pro-tippen span { animation: none; }
 }
