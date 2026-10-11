@@ -6,7 +6,7 @@ import { vorschauLink } from "./VorschauGenerator";
 /** Hero-Bild: am Handy ein Handy, am Computer ein Browserfenster mit Handy davor. Beide zeigen dieselbe Beispielseite. */
 export function HeroVorschau() {
   const handy = useHandyBreite();
-  const src = vorschauLink("business", "friseur", "");
+  const src = vorschauLink("pro", "friseur", "");
   return (
     <div>
       {/* Computer: Fenster und Handy überlappen */}
