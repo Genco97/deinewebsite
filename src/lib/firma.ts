@@ -8,7 +8,7 @@ export const FIRMA = {
   rechtsform: null as string | null,
   /** Bei e.U.: Vor- und Nachname der Inhaberin/des Inhabers; bei OG/GmbH: Gesellschafter bzw. Geschäftsführung */
   vertretung: null as string | null,
-  strasse: null as string | null,
+  strasse: "Hofherr-Schrantz-Gasse 2" as string | null,
   plz: null as string | null,
   ort: "Wien",
   land: "Österreich",
@@ -28,7 +28,7 @@ export const FIRMA = {
   /** Pfad zum Teamfoto in public/, z. B. "/team.jpg" – solange null, steht dort die Markenkarte */
   teamfoto: null as string | null,
   /** true = Kleinunternehmer (keine USt.), false = Preise mit USt., null = noch offen */
-  kleinunternehmer: null as boolean | null,
+  kleinunternehmer: true as boolean | null,
   /** Hosting & Wartung pro Monat bei Basic und Business (inkl. Domain) */
   hostingProMonat: "19 €" as string | null,
   /** Hosting & Wartung pro Monat bei Pro (inkl. Buchungssystem) */
