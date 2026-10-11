@@ -6,7 +6,7 @@ import { Hinweis, Karte, buttonClass } from "@/components/ui";
 import { holeProfil } from "@/lib/crm";
 import { createClient } from "@/lib/supabase/server";
 import { kalenderLinkNeu } from "./actions";
-import { NameFormular, PasswortFormular, TageszielFormular } from "./ProfilFormulare";
+import { KontaktFormular, NameFormular, PasswortFormular, TageszielFormular } from "./ProfilFormulare";
 
 export const metadata: Metadata = { title: "Mein Profil" };
 
@@ -18,6 +18,11 @@ export default async function Profil({ searchParams }: PageProps<"/crm/profil">)
   const link = `${site}/registrieren?code=${profil.einladungscode}`;
   const supabase = await createClient();
   const { data: abo } = await supabase.from("kalender_abos").select("token").eq("profil_id", profil.id).maybeSingle();
+  const { data: kontakt } = await supabase
+    .from("profiles")
+    .select("kontakt_telefon, kontakt_email, kontakt_oeffentlich")
+    .eq("id", profil.id)
+    .single();
   const kalender = abo ? `${site}/kalender/${abo.token}.ics` : null;
   const webcal = kalender?.replace(/^https?:\/\//, "webcal://");
 
@@ -59,6 +64,22 @@ export default async function Profil({ searchParams }: PageProps<"/crm/profil">)
               : "Wer sich über diesen Link registriert, kommt in dein Team. Die Person bekommt 20 % auf ihre eigenen Verkäufe, du zusätzlich 5 % vom Verkaufsbetrag."}
           </p>
           <KopierFeld wert={link} label="Einladungslink" />
+        </Karte>
+
+        <Karte className="p-5 lg:col-span-2">
+          <h2 className="mb-1 font-bold text-ink">Kontaktdaten für Kunden</h2>
+          <p className="mb-4 text-sm text-muted">
+            Auf der Website gibt es den Bereich „Direkt erreichbar“. Wenn du hier deine Nummer und E-Mail einträgst und das
+            Häkchen setzt, können Kunden dich direkt anrufen, per WhatsApp oder E-Mail erreichen. Ohne eigene E-Mail landet alles
+            bei der Firmen-E-Mail.
+          </p>
+          <div className="max-w-xl">
+            <KontaktFormular
+              telefon={kontakt?.kontakt_telefon ?? ""}
+              email={kontakt?.kontakt_email ?? ""}
+              oeffentlich={kontakt?.kontakt_oeffentlich ?? false}
+            />
+          </div>
         </Karte>
 
         <Karte className="p-5 lg:col-span-2">

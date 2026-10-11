@@ -37,8 +37,12 @@ export function Header() {
           </Link>
         </div>
 
-        {/* Mobil: Menü ohne JavaScript */}
-        <details className="group relative md:hidden">
+        {/* Mobil: Gratis-Demo immer griffbereit, daneben das Menü (ohne JavaScript) */}
+        <div className="flex items-center gap-2 md:hidden">
+        <Link href="/demo?paket=business" className={buttonClass("primary", "min-h-11 px-4 text-sm")}>
+          Gratis-Demo
+        </Link>
+        <details className="group relative">
           <summary className="flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-lg border border-line px-3 text-sm font-semibold text-ink [&::-webkit-details-marker]:hidden">
             <span className="group-open:hidden">Menü</span>
             <span className="hidden group-open:inline">Schließen</span>
@@ -66,6 +70,7 @@ export function Header() {
             </nav>
           </div>
         </details>
+        </div>
       </div>
     </header>
   );

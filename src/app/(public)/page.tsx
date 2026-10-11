@@ -2,10 +2,12 @@ import Link from "next/link";
 import { RueckrufFormular } from "@/components/public/RueckrufFormular";
 import { Karte, buttonClass } from "@/components/ui";
 import { Angabe } from "@/components/public/Angabe";
+import { Kontaktblock } from "@/components/public/Kontaktblock";
 import { BeispielUmschalter } from "@/components/public/BeispielUmschalter";
 import { PaketAuswahl } from "@/components/public/PaketAuswahl";
+import { PaketVergleich } from "@/components/public/PaketVergleich";
 import { PaketQuiz } from "@/components/public/PaketQuiz";
-import { VorschauGenerator } from "@/components/public/VorschauGenerator";
+import { HeroVorschau } from "@/components/public/HeroVorschau";
 import { FIRMA, preisHinweis } from "@/lib/firma";
 import { PAKETE } from "@/lib/pakete";
 
@@ -16,6 +18,12 @@ const SYMBOL = {
   ort: "M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11Z M12 7.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z",
   schluessel: "M15 7a4 4 0 1 1-3.9 4.9L4 19v2h3v-2h2v-2h2l1.1-1.1A4 4 0 0 1 15 7Z M16 9.5h.01",
 };
+
+const HERO_PUNKTE = [
+  "Gratis-Demo in 48 Stunden",
+  `Fixpreis ab ${PAKETE[0].preisText}, kein Abo`,
+  "Domain und Inhalte gehören Ihnen",
+];
 
 const VERTRAUEN = [
   { titel: "Erst zahlen, wenn's passt", text: "Sie sehen Ihre Website als Demo, bevor Sie etwas bezahlen.", symbol: SYMBOL.auge },
@@ -135,22 +143,44 @@ function Abschnitt({
   );
 }
 
+/** Kontaktdaten aus dem CRM: alle 5 Minuten neu laden */
+export const revalidate = 300;
+
 export default function Startseite() {
   return (
     <>
-      {/* Hero mit Live-Vorschau (A2) */}
+      {/* Hero: kurz und klar, rechts die Vorschau */}
       <section className="relative isolate overflow-hidden">
         <div aria-hidden className="absolute inset-x-0 top-0 -z-10 h-[520px] bg-gradient-to-b from-brand-light to-transparent" />
-        <div className="mx-auto w-full max-w-6xl px-4 pb-12 pt-8 sm:pb-20 sm:pt-16">
-          <VorschauGenerator>
-            <h1 className="font-serif text-[2.1rem] font-semibold leading-[1.1] tracking-tight text-ink sm:text-5xl xl:text-6xl">
-              Eine Website für Ihren Betrieb. <span className="text-brand">Erst ansehen, dann zahlen.</span>
-            </h1>
-            <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted sm:mt-5 sm:text-xl">
-              Wir erstellen Ihnen eine kostenlose Demo Ihrer neuen Website. Wenn sie Ihnen gefällt, zahlen Sie einen
-              fixen Preis. Wenn nicht, zahlen Sie nichts.
+        <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-4 pb-12 pt-8 sm:pb-20 sm:pt-14 lg:grid-cols-[1fr_minmax(0,560px)] lg:gap-8">
+          <div>
+            <p className="inline-flex items-center gap-2 rounded-full bg-brand-light px-3 py-1 text-sm font-semibold text-brand">
+              <span aria-hidden className="h-2 w-2 rounded-full bg-brand" />
+              Websites für Betriebe in {FIRMA.ort}
             </p>
-          </VorschauGenerator>
+            <h1 className="mt-4 font-serif text-[2.1rem] font-semibold leading-[1.1] tracking-tight text-ink sm:text-5xl xl:text-6xl">
+              Ihre neue Website – <span className="text-brand">erst ansehen, dann zahlen.</span>
+            </h1>
+            <ul className="mt-5 space-y-2.5 text-base text-ink sm:text-lg">
+              {HERO_PUNKTE.map((t) => (
+                <li key={t} className="flex items-center gap-3">
+                  <span aria-hidden className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-ok-light text-sm font-bold text-ok">
+                    ✓
+                  </span>
+                  {t}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Link href="/demo?paket=business" className={buttonClass("primary", "sm:px-7")}>
+                Gratis-Demo anfordern
+              </Link>
+              <Link href="/#beispiele" className={buttonClass("secondary", "sm:px-7")}>
+                Beispiele ansehen
+              </Link>
+            </div>
+          </div>
+          <HeroVorschau />
         </div>
       </section>
 
@@ -222,6 +252,10 @@ export default function Startseite() {
         titel="Pakete mit Fixpreis"
         einleitung="Ohne Abo-Falle und ohne Werbebudget. Sie wissen vorher, was es kostet."
       >
+        <div className="hidden lg:block">
+          <PaketVergleich />
+        </div>
+        <div className="lg:hidden">
         <PaketAuswahl namen={PAKETE.map((p) => p.name)} start={PAKETE.findIndex((p) => p.id === "business")}>
           {PAKETE.map((p) => {
             const hervorgehoben = p.id === "business";
@@ -262,6 +296,7 @@ export default function Startseite() {
             );
           })}
         </PaketAuswahl>
+        </div>
         <p className="mt-6 text-sm text-muted">
           Nach der Fertigstellung gehört die Website Ihnen: Wir übergeben sie samt Domain auf Ihren Namen – kein Abo
           nötig. Optional: Sorglos-Paket um {hosting} pro Monat (Pro {hostingPro}) mit Hosting, Domain, Updates und
@@ -353,6 +388,7 @@ export default function Startseite() {
         einleitung="Hinterlassen Sie Ihre Nummer. Wir rufen Sie zurück – unverbindlich und ohne Verkaufsdruck."
         seitlich
       >
+        <Kontaktblock />
         <Karte className="p-5 sm:p-8">
           <RueckrufFormular />
         </Karte>

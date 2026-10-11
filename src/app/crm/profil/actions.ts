@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { holeProfil } from "@/lib/crm";
 import { createClient } from "@/lib/supabase/server";
-import { text } from "@/lib/validierung";
+import { istEmail, istTelefon, text } from "@/lib/validierung";
 
 export type ProfilStatus = { ok?: boolean; meldung?: string };
 
@@ -27,6 +27,29 @@ export async function tageszielSpeichern(_v: ProfilStatus, fd: FormData): Promis
   if (error) return { meldung: "Das Tagesziel konnte nicht gespeichert werden." };
   revalidatePath("/crm", "layout");
   return { ok: true, meldung: `Tagesziel gespeichert: ${ziel} Kontakte pro Tag.` };
+}
+
+export async function kontaktSpeichern(_v: ProfilStatus, fd: FormData): Promise<ProfilStatus> {
+  const profil = await holeProfil();
+  const telefon = text(fd, "telefon", 40);
+  const email = text(fd, "email", 200);
+  const oeffentlich = fd.get("oeffentlich") === "on";
+  if (telefon && !istTelefon(telefon)) return { meldung: "Bitte prüf deine Telefonnummer (nur Ziffern, + und Leerzeichen)." };
+  if (email && !istEmail(email)) return { meldung: "Bitte prüf deine E-Mail-Adresse." };
+  if (oeffentlich && !telefon && !email) return { meldung: "Zum Veröffentlichen trag mindestens eine Telefonnummer oder E-Mail ein." };
+  if (oeffentlich && profil.name.trim().length < 2) return { meldung: "Trag oben zuerst deinen Namen ein – er steht neben deinen Kontaktdaten." };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ kontakt_telefon: telefon || null, kontakt_email: email || null, kontakt_oeffentlich: oeffentlich })
+    .eq("id", profil.id);
+  if (error) return { meldung: "Die Kontaktdaten konnten nicht gespeichert werden." };
+  revalidatePath("/crm/profil");
+  revalidatePath("/");
+  return {
+    ok: true,
+    meldung: oeffentlich ? "Gespeichert – du stehst jetzt auf der Website." : "Gespeichert. Du stehst nicht auf der Website.",
+  };
 }
 
 export async function passwortAendern(_v: ProfilStatus, fd: FormData): Promise<ProfilStatus> {
