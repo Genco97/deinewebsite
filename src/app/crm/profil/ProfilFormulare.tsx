@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { nameSpeichern, passwortAendern, tageszielSpeichern, type ProfilStatus } from "./actions";
+import { kontaktSpeichern, nameSpeichern, passwortAendern, tageszielSpeichern, type ProfilStatus } from "./actions";
 import { Feld, Hinweis, Input, buttonClass } from "@/components/ui";
 
 export function NameFormular({ name }: { name: string }) {
@@ -51,6 +51,31 @@ export function PasswortFormular() {
       </Feld>
       <button disabled={laeuft} className={buttonClass("secondary", "w-full sm:w-auto")}>
         {laeuft ? "Speichert …" : "Passwort ändern"}
+      </button>
+    </form>
+  );
+}
+
+export function KontaktFormular({ telefon, email, oeffentlich }: { telefon: string; email: string; oeffentlich: boolean }) {
+  const [s, aktion, laeuft] = useActionState<ProfilStatus, FormData>(kontaktSpeichern, {});
+  return (
+    <form action={aktion} className="space-y-3">
+      {s.meldung ? <Hinweis art={s.ok ? "ok" : "fehler"}>{s.meldung}</Hinweis> : null}
+      <Feld label="Telefon / WhatsApp" name="telefon" hinweis="Zum Beispiel +43 660 1234567. Kunden können dich anrufen oder per WhatsApp schreiben.">
+        <Input name="telefon" type="tel" inputMode="tel" autoComplete="tel" defaultValue={telefon} />
+      </Feld>
+      <Feld label="E-Mail für Kunden" name="email" hinweis="Leer lassen? Dann gehen E-Mails an die Firmen-E-Mail.">
+        <Input name="email" type="email" inputMode="email" defaultValue={email} />
+      </Feld>
+      <label className="flex min-h-11 items-start gap-3 text-sm text-ink">
+        <input type="checkbox" name="oeffentlich" defaultChecked={oeffentlich} className="mt-1 h-5 w-5 shrink-0 accent-brand" />
+        <span>
+          Auf der Website anzeigen (Bereich „Direkt erreichbar“). Dort stehen dein Name, deine Nummer und deine E-Mail – für
+          alle sichtbar. Du kannst das Häkchen jederzeit wieder entfernen.
+        </span>
+      </label>
+      <button disabled={laeuft} className={buttonClass("primary", "w-full sm:w-auto")}>
+        {laeuft ? "Speichert …" : "Kontaktdaten speichern"}
       </button>
     </form>
   );

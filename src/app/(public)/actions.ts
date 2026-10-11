@@ -26,8 +26,8 @@ export async function demoAnfordern(_vorher: FormStatus, fd: FormData): Promise<
   const werte = {
     firma: text(fd, "firma"),
     name: text(fd, "name"),
-    email: text(fd, "email"),
-    telefon: text(fd, "telefon", 50),
+    erreichbar: text(fd, "erreichbar", 200),
+    zweit: text(fd, "zweit", 200),
     branche: text(fd, "branche"),
     wuensche: text(fd, "wuensche", 4000),
     kontakt: fd.get("kontakt") === "on" ? "on" : "",
@@ -38,9 +38,23 @@ export async function demoAnfordern(_vorher: FormStatus, fd: FormData): Promise<
   const fehler: Fehler = {};
   if (!werte.firma) fehler.firma = "Bitte geben Sie den Namen Ihres Betriebs an.";
   if (!werte.name) fehler.name = "Bitte geben Sie Ihren Namen an.";
-  if (!istEmail(werte.email)) fehler.email = "Bitte geben Sie eine gültige E-Mail-Adresse an.";
-  if (werte.telefon && !istTelefon(werte.telefon))
-    fehler.telefon = "Bitte prüfen Sie die Telefonnummer.";
+
+  // „Telefon oder E-Mail“ in einem Feld: am @ erkennen wir, was es ist
+  let email = "";
+  let telefon = "";
+  const ordne = (wert: string, feld: "erreichbar" | "zweit") => {
+    if (!wert) return;
+    if (istEmail(wert)) {
+      if (!email) email = wert;
+    } else if (istTelefon(wert)) {
+      if (!telefon) telefon = wert;
+    } else {
+      fehler[feld] = "Bitte geben Sie eine Telefonnummer oder eine gültige E-Mail-Adresse an.";
+    }
+  };
+  if (!werte.erreichbar) fehler.erreichbar = "Bitte geben Sie eine Telefonnummer oder E-Mail-Adresse an.";
+  ordne(werte.erreichbar, "erreichbar");
+  ordne(werte.zweit, "zweit");
   if (fd.get("agb") !== "on") fehler.agb = "Bitte bestätigen Sie die AGB und die Datenschutzerklärung.";
 
   if (Object.keys(fehler).length > 0) {
@@ -53,8 +67,8 @@ export async function demoAnfordern(_vorher: FormStatus, fd: FormData): Promise<
     paket,
     firma: werte.firma,
     name: werte.name,
-    email: werte.email,
-    telefon: werte.telefon || null,
+    email: email || null,
+    telefon: telefon || null,
     branche: werte.branche || null,
     wuensche: werte.wuensche || null,
     einwilligung_kontakt: werte.kontakt === "on",
