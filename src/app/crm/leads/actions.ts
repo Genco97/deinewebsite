@@ -337,3 +337,25 @@ export async function leadsZuteilen(fd: FormData) {
   ids.forEach((id) => revalidatePath(`/crm/leads/${id}`));
   redirect(`${ziel}${ziel.includes("?") ? "&" : "?"}ok=${encodeURIComponent(`${ids.length} ${ids.length === 1 ? "Lead" : "Leads"} an ${an} zugeteilt.`)}`);
 }
+
+/**
+ * Hält fest, dass eine WhatsApp-Nachricht gesendet wurde. Nur mit eingetragener Einwilligung (§ 174 TKG),
+ * und nur für Leads, die man sehen darf (RLS). Steht als „system“ im Verlauf, zählt also nicht als Kontakt.
+ */
+export async function whatsappGesendet(leadId: string, titel: string): Promise<{ ok: boolean; meldung?: string }> {
+  const profil = await holeProfil();
+  const id = leadId.slice(0, 50);
+  const supabase = await createClient();
+  const { data: lead } = await supabase.from("leads").select("id, status, einwilligung_wie").eq("id", id).maybeSingle();
+  if (!lead) return { ok: false, meldung: "Lead nicht gefunden." };
+  if (lead.status === "nicht_anrufen" || !lead.einwilligung_wie)
+    return { ok: false, meldung: "Ohne Einwilligung ist keine WhatsApp erlaubt." };
+  const name = titel.trim().slice(0, 100) || "eigener Text";
+  const { error } = await supabase
+    .from("lead_verlauf")
+    .insert({ lead_id: id, autor_id: profil.id, art: "system", text: `WhatsApp gesendet: „${name}“` });
+  if (error) return { ok: false, meldung: "Konnte nicht eingetragen werden." };
+  revalidatePath(`/crm/leads/${id}`);
+  revalidatePath("/crm/leads");
+  return { ok: true };
+}

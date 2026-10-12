@@ -5,6 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import { anrufErgebnis, type Ergebnis } from "@/app/crm/anrufen/actions";
 import { Gespraechshilfe } from "@/components/crm/Gespraechshilfe";
 import { StatusBadge } from "@/components/crm/StatusBadge";
+import { WhatsAppInhalt, type WaDaten } from "@/components/crm/WhatsApp";
 import { Karte, buttonClass } from "@/components/ui";
 import type { LeadStatus } from "@/lib/status";
 import { heuteWien, isoZuWienLokal, tagVerschieben } from "@/lib/zeit";
@@ -57,12 +58,14 @@ export function AnrufModus({
   heuteKontakte,
   meinName,
   ohneEinwilligung,
+  wa,
 }: {
   leads: AnrufLead[];
   tagesziel: number;
   heuteKontakte: number;
   meinName: string;
   ohneEinwilligung: number;
+  wa: WaDaten;
 }) {
   // Eigene Kopie: Die Liste bleibt stabil, auch wenn der Server nach jedem Speichern neu lädt
   const [leads] = useState(start);
@@ -74,6 +77,8 @@ export function AnrufModus({
   const [meldung, setMeldung] = useState<string | null>(null);
   const [zuletzt, setZuletzt] = useState<string | null>(null);
   const [laeuft, starten] = useTransition();
+  // Nach „Interessiert“ / „Nicht erreicht“ kurz anbieten: gleich eine WhatsApp schicken?
+  const [waFuer, setWaFuer] = useState<{ text: string; anlass: "gespraech" | "nicht_erreicht" } | null>(null);
 
   const lead = leads[nr];
   const kontakte = heuteKontakte + erledigt;
@@ -89,7 +94,7 @@ export function AnrufModus({
   }
 
   function speichern(ergebnis: Ergebnis, zeit = wann) {
-    if (!lead || laeuft) return;
+    if (!lead || laeuft || waFuer) return;
     if ((ergebnis === "rueckruf" || ergebnis === "interessiert") && !zeit) {
       setWahl(ergebnis);
       return;
@@ -98,6 +103,10 @@ export function AnrufModus({
       const r = await anrufErgebnis({ id: lead.id, ergebnis, notiz, wann: zeit || undefined });
       if (!r.ok) return setMeldung(r.meldung);
       setErledigt((e) => e + 1);
+      if ((ergebnis === "interessiert" || ergebnis === "nicht_erreicht") && wa.vorlagen.length > 0) {
+        setWaFuer({ text: r.text, anlass: ergebnis === "interessiert" ? "gespraech" : "nicht_erreicht" });
+        return;
+      }
       weiter(r.text);
     });
   }
@@ -106,7 +115,7 @@ export function AnrufModus({
   useEffect(() => {
     const taste = (e: KeyboardEvent) => {
       const ziel = e.target as HTMLElement;
-      if (ziel.closest("input, textarea, select") || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (waFuer || ziel.closest("input, textarea, select") || e.metaKey || e.ctrlKey || e.altKey) return;
       const k = KNOEPFE.find((x) => x.taste === e.key);
       if (k) {
         e.preventDefault();
@@ -136,6 +145,36 @@ export function AnrufModus({
           </Link>
         </div>
       </Karte>
+    );
+  }
+
+  if (waFuer) {
+    const fertig = () => {
+      const t = waFuer.text;
+      setWaFuer(null);
+      weiter(t);
+    };
+    return (
+      <div className="mx-auto max-w-xl space-y-4">
+        <Karte className="p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Gerade angerufen</p>
+          <p className="mt-1 font-serif text-2xl font-semibold text-ink">{lead.firma}</p>
+          <p className="text-sm text-muted">{[lead.ansprechpartner, lead.bezirk].filter(Boolean).join(" · ")}</p>
+        </Karte>
+        <p role="status" className="rounded-lg bg-ok-light px-4 py-3 font-semibold text-ok">
+          ✓ Gespeichert – {waFuer.text}
+        </p>
+        <Karte className="p-5">
+          <h2 className="mb-3 font-bold text-ink">Gleich eine WhatsApp schicken?</h2>
+          <WhatsAppInhalt
+            lead={{ id: lead.id, firma: lead.firma, ansprechpartner: lead.ansprechpartner, telefon: lead.telefon, erlaubt: true }}
+            daten={wa}
+            anlass={waFuer.anlass}
+            onFertig={fertig}
+            ueberspringen={{ text: "Überspringen, nächster Lead", onClick: fertig }}
+          />
+        </Karte>
+      </div>
     );
   }
 

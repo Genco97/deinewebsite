@@ -1,4 +1,5 @@
-export type Vorlage = { id: string; titel: string; betreff: string; text: string; reihenfolge: number };
+export type Kanal = "email" | "whatsapp";
+export type Vorlage = { id: string; titel: string; betreff: string; text: string; reihenfolge: number; kanal: Kanal };
 
 export const PLATZHALTER = [
   ["{anrede}", "„Guten Tag Frau/Herr …“ bzw. „Guten Tag“"],

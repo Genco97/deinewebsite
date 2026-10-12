@@ -103,5 +103,22 @@ export default async function Anrufen() {
     );
   }
 
-  return <AnrufModus leads={leads} tagesziel={profil.tagesziel} heuteKontakte={heuteKontakte} meinName={anzeigename(profil)} ohneEinwilligung={ohne} />;
+  // WhatsApp-Vorlagen für den Moment nach dem Anruf
+  const { data: waRoh } = await supabase.from("vorlagen").select("id, titel, text").eq("kanal", "whatsapp").order("reihenfolge");
+  const wa = {
+    vorlagen: (waRoh ?? []) as { id: string; titel: string; text: string }[],
+    site: (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, ""),
+    meinName: profil.name.trim() || profil.email,
+  };
+
+  return (
+    <AnrufModus
+      leads={leads}
+      tagesziel={profil.tagesziel}
+      heuteKontakte={heuteKontakte}
+      meinName={anzeigename(profil)}
+      ohneEinwilligung={ohne}
+      wa={wa}
+    />
+  );
 }

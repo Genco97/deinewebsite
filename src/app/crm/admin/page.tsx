@@ -702,16 +702,23 @@ function Export() {
 // ---------------------------------------------------------------------------
 async function Vorlagen() {
   const supabase = await createClient();
-  const { data } = await supabase.from("vorlagen").select("id, titel, betreff, text, reihenfolge").order("reihenfolge");
+  const { data } = await supabase.from("vorlagen").select("id, titel, betreff, text, reihenfolge, kanal").order("reihenfolge");
   const vorlagen = (data ?? []) as Vorlage[];
 
   const formular = (v?: Vorlage) => (
     <form action={vorlageSpeichern} className="space-y-3">
       {v ? <input type="hidden" name="id" value={v.id} /> : null}
-      <div className="grid gap-3 sm:grid-cols-[1fr_8rem]">
+      <div className="grid gap-3 sm:grid-cols-[1fr_10rem_8rem]">
         <label className="block text-sm font-semibold text-ink">
           Titel (Knopf beim Lead)
           <input name="titel" defaultValue={v?.titel} required maxLength={100} className={`${inputClass} mt-1`} />
+        </label>
+        <label className="block text-sm font-semibold text-ink">
+          Kanal
+          <select name="kanal" defaultValue={v?.kanal ?? "email"} className={`${inputClass} mt-1`}>
+            <option value="email">E-Mail</option>
+            <option value="whatsapp">WhatsApp</option>
+          </select>
         </label>
         <label className="block text-sm font-semibold text-ink">
           Reihenfolge
@@ -719,8 +726,8 @@ async function Vorlagen() {
         </label>
       </div>
       <label className="block text-sm font-semibold text-ink">
-        Betreff
-        <input name="betreff" defaultValue={v?.betreff} required maxLength={200} className={`${inputClass} mt-1`} />
+        Betreff <span className="font-normal text-muted">(nur bei E-Mail, bei WhatsApp egal)</span>
+        <input name="betreff" defaultValue={v?.kanal === "whatsapp" ? "" : v?.betreff} maxLength={200} className={`${inputClass} mt-1`} />
       </label>
       <label className="block text-sm font-semibold text-ink">
         Text
@@ -733,8 +740,9 @@ async function Vorlagen() {
   return (
     <section className="space-y-4">
       <p className="text-muted">
-        Diese Vorlagen erscheinen bei jedem Lead unter „E-Mail schreiben“ und öffnen das E-Mail-Programm mit fertigem
-        Text. Platzhalter werden automatisch ersetzt:
+        E-Mail-Vorlagen erscheinen bei jedem Lead unter „E-Mail schreiben“ und öffnen das E-Mail-Programm mit fertigem
+        Text. WhatsApp-Vorlagen öffnen WhatsApp mit fertigem Text, das Senden bleibt ein Tipp der Person. Platzhalter
+        werden automatisch ersetzt:
       </p>
       <ul className="flex flex-wrap gap-2 text-sm">
         {PLATZHALTER.map(([p, erklaerung]) => (
@@ -749,8 +757,13 @@ async function Vorlagen() {
           <details>
             <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-2">
               <span>
-                <span className="font-semibold text-ink">{v.titel}</span>
-                <span className="block text-sm text-muted">{v.betreff}</span>
+                <span className="font-semibold text-ink">
+                  {v.titel}{" "}
+                  <span className={`rounded-full px-2 py-0.5 text-xs ${v.kanal === "whatsapp" ? "bg-[#dcf8c6] text-[#0b5d3b]" : "bg-brand-light text-brand"}`}>
+                    {v.kanal === "whatsapp" ? "WhatsApp" : "E-Mail"}
+                  </span>
+                </span>
+                <span className="block text-sm text-muted">{v.kanal === "whatsapp" ? v.text.slice(0, 70) + "…" : v.betreff}</span>
               </span>
               <span className="text-sm font-semibold text-brand">Bearbeiten</span>
             </summary>

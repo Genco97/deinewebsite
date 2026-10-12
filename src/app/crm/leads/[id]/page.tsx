@@ -7,6 +7,7 @@ import { Gespraechshilfe } from "@/components/crm/Gespraechshilfe";
 import { KundenLinkBox, type Rueckmeldung } from "@/components/crm/Rueckmeldungen";
 import { StatusBadge } from "@/components/crm/StatusBadge";
 import { VerkaufFormular } from "@/components/crm/VerkaufFormular";
+import { WhatsAppKnopf } from "@/components/crm/WhatsApp";
 import { Hinweis, Karte, Select, Textarea, buttonClass } from "@/components/ui";
 import { aktivePersonen, anzeigename, holeProfil } from "@/lib/crm";
 import { mapsSuche } from "@/lib/besuche";
@@ -74,7 +75,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
       .select("id, paket, betrag, status, projekt_phase, website_url, created_at, kunden_code, kunden_feedback(id, art, text, name, erledigt, created_at)")
       .eq("lead_id", id)
       .order("created_at"),
-    supabase.from("vorlagen").select("id, titel, betreff, text, reihenfolge").order("reihenfolge"),
+    supabase.from("vorlagen").select("id, titel, betreff, text, reihenfolge, kanal").order("reihenfolge"),
   ]);
 
   const letzteNotiz = (verlauf ?? []).find((v) => v.art === "notiz") ?? null;
@@ -105,7 +106,9 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
     demo_link: `${site}/demo`,
     website,
   };
-  const mails = ((vorlagenRoh ?? []) as Vorlage[]).map((v) => ({
+  const alleVorlagen = (vorlagenRoh ?? []) as Vorlage[];
+  const waVorlagen = alleVorlagen.filter((v) => v.kanal === "whatsapp").map((v) => ({ id: v.id, titel: v.titel, text: v.text }));
+  const mails = alleVorlagen.filter((v) => v.kanal !== "whatsapp").map((v) => ({
     ...v,
     link: lead.email
       ? mailtoLink(lead.email, vorlageFuellen(v.betreff, platzhalter), vorlageFuellen(v.text, platzhalter))
@@ -266,10 +269,17 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
                     <span
                       aria-hidden
                       className={`absolute -left-[23px] top-1.5 h-3 w-3 rounded-full border-2 border-surface ${
-                        v.art === "notiz" ? "bg-brand" : "bg-line"
+                        v.art === "notiz" ? "bg-brand" : v.text.startsWith("WhatsApp gesendet") ? "bg-[#25D366]" : "bg-line"
                       }`}
                     />
-                    <p className={`whitespace-pre-wrap ${v.art === "notiz" ? "text-ink" : "text-sm text-muted"}`}>{v.text}</p>
+                    <p
+                      className={`whitespace-pre-wrap ${
+                        v.art === "notiz" ? "text-ink" : v.text.startsWith("WhatsApp gesendet") ? "text-sm font-semibold text-[#0b5d3b]" : "text-sm text-muted"
+                      }`}
+                    >
+                      {v.text.startsWith("WhatsApp gesendet") ? "💬 " : ""}
+                      {v.text}
+                    </p>
                     <p className="mt-0.5 text-xs text-muted">
                       {datumZeit(v.created_at)}
                       {autor ? ` · ${autor}` : ""}
@@ -382,6 +392,31 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
                   <button className={buttonClass("secondary")}>Einwilligung eintragen</button>
                 </form>
               )}
+            </Abschnitt>
+          ) : null}
+
+          {!gesperrt && lead.telefon ? (
+            <Abschnitt titel="WhatsApp schreiben">
+              <p className="mb-3 text-sm text-muted">
+                Öffnet WhatsApp mit fertigem Text. Du tippst dort nur noch auf „Senden“. Danach trägt das CRM es im Verlauf ein.
+              </p>
+              {!lead.einwilligung_wie ? (
+                <p className="mb-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+                  Werbenachrichten per WhatsApp sind nur mit Einwilligung erlaubt (§ 174 TKG). Trag sie unter „Einwilligung“ ein.
+                </p>
+              ) : null}
+              <WhatsAppKnopf
+                lead={{
+                  id: lead.id,
+                  firma: lead.firma,
+                  ansprechpartner: lead.ansprechpartner,
+                  telefon: lead.telefon,
+                  erlaubt: !!lead.einwilligung_wie,
+                  website: website === "[Link einfügen]" ? undefined : website,
+                }}
+                daten={{ vorlagen: waVorlagen, site, meinName: platzhalter.mein_name }}
+                anlass={status === "demo" ? "demo" : status === "nicht_erreicht" ? "nicht_erreicht" : "gespraech"}
+              />
             </Abschnitt>
           ) : null}
 
