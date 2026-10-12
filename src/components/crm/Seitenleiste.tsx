@@ -104,8 +104,8 @@ export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin
   const inhalt = (id: string) => (
     <>
       <div className="flex h-16 shrink-0 items-center justify-between gap-2 px-5">
-        <Link href="/crm" onClick={() => setOffen(false)} className="inline-flex min-h-11 items-center gap-2.5 text-lg font-extrabold tracking-[-0.04em]">
-          <LogoMark className="h-7 w-7" verlaufId={`verlauf-${id}`} />
+        <Link href="/crm" onClick={() => setOffen(false)} className="inline-flex min-h-11 items-center gap-2.5 font-serif text-lg font-bold uppercase tracking-[0.04em] text-[#0B1B3F]">
+          <LogoMark className="h-8" />
           Ursprung
         </Link>
         {id === "handy" && (
@@ -197,8 +197,8 @@ export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin
           <Icon name="menue" className="h-6 w-6" />
           {faellig > 0 && <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-danger ring-2 ring-surface" aria-hidden />}
         </button>
-        <Link href="/crm" className="inline-flex min-h-11 items-center gap-2 font-extrabold tracking-[-0.04em]">
-          <LogoMark className="h-6 w-6" verlaufId="verlauf-kopf" />
+        <Link href="/crm" className="inline-flex min-h-11 items-center gap-2 font-serif font-bold uppercase tracking-[0.04em] text-[#0B1B3F]">
+          <LogoMark className="h-7" />
           Ursprung
         </Link>
         {faellig > 0 && (

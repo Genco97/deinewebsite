@@ -24,8 +24,8 @@ export function Footer() {
     <footer className="mt-auto border-t border-line bg-surface">
       <div className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-x-6 gap-y-7 px-4 py-8 sm:py-12 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div className="col-span-2 space-y-2 md:col-span-1">
-          <p className="flex items-center gap-2 font-extrabold tracking-[-0.04em] text-ink">
-            <LogoMark className="h-5 w-5" /> Ursprung
+          <p className="flex items-center gap-2 font-serif text-lg font-bold uppercase tracking-[0.04em] text-[#0B1B3F]">
+            <LogoMark className="h-7" /> Ursprung
           </p>
           <p className="max-w-xs text-sm text-muted">Websites für Betriebe – persönlich aus Wien.</p>
         </div>
