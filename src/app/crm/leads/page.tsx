@@ -109,7 +109,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
     besitzer: { name: string } | null;
   }[];
   // Letzte Notiz je Lead: wie man verblieben ist
-  const notizen = new Map<string, { text: string; am: string }>();
+  const notizen = new Map<string, { text: string; am: string }[]>();
   if (leads.length) {
     const { data: n } = await supabase
       .from("lead_verlauf")
@@ -118,11 +118,15 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
       .eq("art", "notiz")
       .order("created_at", { ascending: false })
       .limit(2000);
-    for (const z of n ?? []) if (!notizen.has(z.lead_id as string)) notizen.set(z.lead_id as string, { text: z.text as string, am: z.created_at as string });
+    for (const z of n ?? []) {
+      const liste = notizen.get(z.lead_id as string) ?? [];
+      if (liste.length < 3) liste.push({ text: z.text as string, am: z.created_at as string });
+      notizen.set(z.lead_id as string, liste);
+    }
   }
   const notizFeld = (l: { id: string; firma: string }) => {
-    const n = notizen.get(l.id);
-    return <NotizSchnell id={l.id} firma={l.firma} notiz={n?.text ?? null} am={n ? datum(n.am) : null} />;
+    const n = notizen.get(l.id) ?? [];
+    return <NotizSchnell id={l.id} firma={l.firma} notizen={n.map((z) => ({ text: z.text, am: datum(z.am) }))} />;
   };
   const heute = heuteWien();
   const jetztIso = new Date().toISOString();
