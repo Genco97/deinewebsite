@@ -5,9 +5,6 @@ import { aktivePersonen, nurAdmin } from "@/lib/crm";
 
 export const metadata: Metadata = { title: "Lead Finder" };
 
-// Die Suche bei OpenStreetMap kann länger dauern
-export const maxDuration = 60;
-
 export default async function LeadFinderSeite() {
   const profil = await nurAdmin();
   const personen = await aktivePersonen();

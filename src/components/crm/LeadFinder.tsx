@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { fundeImportieren, leadsSuchen } from "@/app/crm/leadfinder/actions";
+import { fundeAbgleichen, fundeImportieren } from "@/app/crm/leadfinder/actions";
 import { Hinweis, Input, Karte, Select, buttonClass } from "@/components/ui";
 import type { Person } from "@/lib/crm";
 import { GRUPPEN_NAMEN, type Fund } from "@/lib/leadfinder-gruppen";
+import { SuchFehler, funde as osmFunde, gebietSuchen } from "@/lib/leadfinder-suche";
 
 export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: string }) {
   const [ort, setOrt] = useState("Wien");
@@ -27,23 +28,50 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
 
   function suchen() {
     setMeldung(null);
+    const suchort = ort.trim();
+    if (suchort.length < 2) return setMeldung({ art: "fehler", text: "Bitte gib einen Ort ein, z. B. „Wien“ oder „Neubau, Wien“." });
+    if (gruppen.length === 0) return setMeldung({ art: "fehler", text: "Bitte wähle mindestens eine Branche." });
     sucheStarten(async () => {
-      const r = await leadsSuchen(ort, gruppen, nurTelefon, ohneSocial);
-      if (!r.ok) {
+      try {
+        // Die Anfragen an OpenStreetMap laufen direkt von hier (Browser) – von Servern aus werden sie oft abgelehnt
+        const g = await gebietSuchen(suchort);
+        if (!g) {
+          setFunde([]);
+          setMeldung({ art: "fehler", text: `Zu „${suchort}“ habe ich kein Gebiet gefunden. Probier z. B. „Graz, Österreich“.` });
+          return;
+        }
+        const { liste, limit } = await osmFunde(g.areaId, gruppen);
+        const gesehen = new Set<string>();
+        const gefiltert = liste.filter((f) => {
+          if (nurTelefon && !f.telefon) return false;
+          if (ohneSocial && f.social) return false;
+          const k = `${f.firma}|${f.adresse}`.toLowerCase();
+          if (gesehen.has(k)) return false;
+          gesehen.add(k);
+          return true;
+        });
+        const schonDa = new Set(await fundeAbgleichen(gefiltert.map(({ key, firma, telefon }) => ({ key, firma, telefon }))));
+        const ergebnis = gefiltert
+          .map((f) => ({ ...f, vorhanden: schonDa.has(f.key) }))
+          .sort(
+            (a, c) =>
+              Number(a.vorhanden) - Number(c.vorhanden) || Number(!!c.telefon) - Number(!!a.telefon) || a.firma.localeCompare(c.firma, "de"),
+          );
+        setFunde(ergebnis);
+        setGebiet(g.name);
+        // Vorausgewählt: alles, was es im CRM noch nicht gibt
+        setGewaehlt(new Set(ergebnis.filter((f) => !f.vorhanden).map((f) => f.key)));
+        const text = `${ergebnis.length} Betriebe ohne Website-Eintrag gefunden.`;
+        setMeldung({ art: "info", text: limit ? `${text} Das Limit ist erreicht – such für mehr einzelne Bezirke.` : text });
+      } catch (e) {
         setFunde([]);
         setGewaehlt(new Set());
-        setMeldung({ art: "fehler", text: r.meldung });
-        return;
+        const detail = e instanceof SuchFehler ? e.message : e instanceof Error ? e.message : "unbekannter Fehler";
+        setMeldung({
+          art: "fehler",
+          text: `Die Suche hat nicht geklappt – ${detail}. Probier es gleich nochmal oder such einen einzelnen Bezirk (z. B. „Neubau, Wien“).`,
+        });
       }
-      const liste = r.funde ?? [];
-      setFunde(liste);
-      setGebiet(r.gebiet ?? "");
-      // Vorausgewählt: alles, was es im CRM noch nicht gibt
-      setGewaehlt(new Set(liste.filter((f) => !f.vorhanden).map((f) => f.key)));
-      setMeldung({
-        art: "info",
-        text: r.limit ? `${r.meldung} Das Limit ist erreicht – such für mehr einzelne Bezirke.` : r.meldung,
-      });
     });
   }
 

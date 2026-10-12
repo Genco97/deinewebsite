@@ -2,18 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { nurAdmin } from "@/lib/crm";
-import { SuchFehler, funde, firmaNorm, gebietSuchen, telNorm } from "@/lib/leadfinder";
-import { GRUPPEN_NAMEN, type Fund } from "@/lib/leadfinder-gruppen";
+import { firmaNorm, telNorm } from "@/lib/leadfinder";
+import type { Fund } from "@/lib/leadfinder-gruppen";
 import { createClient } from "@/lib/supabase/server";
 import { istEmail } from "@/lib/validierung";
-
-export type SuchErgebnis = {
-  ok: boolean;
-  meldung: string;
-  gebiet?: string;
-  funde?: Fund[];
-  limit?: boolean;
-};
 
 /** Telefonnummern und Namen aller Leads im CRM (Gründer sehen alle) */
 async function bestehende() {
@@ -41,54 +33,17 @@ const istDoppelt = (f: { firma: string; telefon: string }, b: { tel: Set<string>
 };
 
 // ---------------------------------------------------------------------------
-// Suchen (nur Gründer)
+// Abgleich mit dem CRM (nur Gründer) – die Suche selbst läuft im Browser
 // ---------------------------------------------------------------------------
-export async function leadsSuchen(
-  ort: string,
-  gruppen: string[],
-  nurMitTelefon: boolean,
-  ohneSocial: boolean,
-): Promise<SuchErgebnis> {
+/** Gibt die Schlüssel der Treffer zurück, die es im CRM schon gibt */
+export async function fundeAbgleichen(liste: { key: string; firma: string; telefon: string }[]): Promise<string[]> {
   await nurAdmin();
-  const suchort = typeof ort === "string" ? ort.trim().slice(0, 100) : "";
-  const auswahl = Array.isArray(gruppen) ? gruppen.filter((g) => GRUPPEN_NAMEN.includes(g)) : [];
-  if (suchort.length < 2) return { ok: false, meldung: "Bitte gib einen Ort ein, z. B. „Wien“ oder „Neubau, Wien“." };
-  if (auswahl.length === 0) return { ok: false, meldung: "Bitte wähle mindestens eine Branche." };
-
-  try {
-    const gebiet = await gebietSuchen(suchort);
-    if (!gebiet) return { ok: false, meldung: `Zu „${suchort}“ habe ich kein Gebiet gefunden. Probier z. B. „Graz, Österreich“.` };
-
-    const { liste, limit } = await funde(gebiet.areaId, auswahl);
-    const b = await bestehende();
-    const gesehen = new Set<string>();
-    const ergebnis = liste
-      .filter((f) => {
-        if (nurMitTelefon && !f.telefon) return false;
-        if (ohneSocial && f.social) return false;
-        const k = `${f.firma}|${f.adresse}`.toLowerCase();
-        if (gesehen.has(k)) return false;
-        gesehen.add(k);
-        return true;
-      })
-      .map((f) => ({ ...f, vorhanden: istDoppelt(f, b) }))
-      .sort((a, c) => Number(a.vorhanden) - Number(c.vorhanden) || Number(!!c.telefon) - Number(!!a.telefon) || a.firma.localeCompare(c.firma, "de"));
-
-    return {
-      ok: true,
-      gebiet: gebiet.name,
-      funde: ergebnis,
-      limit,
-      meldung: `${ergebnis.length} Betriebe ohne Website-Eintrag gefunden.`,
-    };
-  } catch (e) {
-    console.error("[leadfinder] Suche", e);
-    const detail = e instanceof SuchFehler ? e.message : "unbekannter Fehler";
-    return {
-      ok: false,
-      meldung: `Die Suche hat nicht geklappt – ${detail}. Probier es gleich nochmal oder such einen einzelnen Bezirk (z. B. „Neubau, Wien“).`,
-    };
-  }
+  if (!Array.isArray(liste)) return [];
+  const b = await bestehende();
+  return liste
+    .slice(0, 2000)
+    .filter((f) => typeof f?.key === "string" && istDoppelt({ firma: String(f.firma ?? ""), telefon: String(f.telefon ?? "") }, b))
+    .map((f) => f.key);
 }
 
 // ---------------------------------------------------------------------------
