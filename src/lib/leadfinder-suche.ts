@@ -178,6 +178,9 @@ function abfrage(areaId: number, gruppen: string[], bbox?: Bbox) {
   return `[out:json][timeout:25];${o.kopf}(${teile.join("")});out center tags ${MAX_FUNDE};`;
 }
 
+/** Merkt sich während einer Suche, welche Server versagen und welcher gut antwortet */
+type Zustand = { schlecht: Set<string>; gut?: string };
+
 /**
  * Fragt die Overpass-Server nacheinander. Eine leere Liste glaubt sie nicht sofort (manche Server
  * liefern bei Überlast oder ohne Gebietsindex leer statt Fehler) – erst wenn kein Server etwas findet, gilt „leer“.
@@ -187,10 +190,15 @@ async function overpass(
   headers: Record<string, string>,
   ende: number,
   leerPruefen: boolean,
+  z: Zustand = { schlecht: new Set() },
 ): Promise<{ elemente: OsmElement[]; server: string }> {
   const fehler: string[] = [];
   let leerVon: string | null = null;
-  for (const ep of OVERPASS) {
+  // Zuletzt guten Server zuerst, schon versagende überspringen (sind alle durch, von vorn)
+  let reihe = [...OVERPASS].sort((a, b) => Number(new URL(b).host === z.gut) - Number(new URL(a).host === z.gut));
+  if (reihe.every((ep) => z.schlecht.has(new URL(ep).host))) z.schlecht.clear();
+  reihe = reihe.filter((ep) => !z.schlecht.has(new URL(ep).host));
+  for (const ep of reihe) {
     const rest = ende - Date.now();
     if (rest < 3_000) break;
     const host = new URL(ep).host;
@@ -204,6 +212,7 @@ async function overpass(
       });
       if (!r.ok) {
         fehler.push(`${host} ${r.status}`);
+        z.schlecht.add(host);
         continue;
       }
       const j = (await r.json()) as { elements?: OsmElement[]; remark?: string };
@@ -211,15 +220,18 @@ async function overpass(
       // Überlastete Server antworten oft mit Status 200, leerer Liste und einem Hinweis – das ist kein „0 Treffer“
       if (j.remark && !el.length && /error|busy|timed out|memory|too many/i.test(j.remark)) {
         fehler.push(`${host} überlastet`);
+        z.schlecht.add(host);
         continue;
       }
       if (!el.length && leerPruefen) {
         leerVon ??= host;
         continue;
       }
+      z.gut = host;
       return { elemente: el, server: host };
     } catch (e) {
       fehler.push(`${host} ${grund(e)}`);
+      z.schlecht.add(host);
     }
   }
   if (leerVon) return { elemente: [], server: leerVon };
@@ -228,11 +240,11 @@ async function overpass(
 }
 
 /** Wie viele Betriebe dieser Branchen gibt es im Gebiet insgesamt (mit und ohne Website)? */
-async function zaehlen(areaId: number, gruppen: string[], headers: Record<string, string>, ende: number, bbox?: Bbox): Promise<number | null> {
+async function zaehlen(areaId: number, gruppen: string[], headers: Record<string, string>, ende: number, z: Zustand, bbox?: Bbox): Promise<number | null> {
   const o = ortsfilter(areaId, bbox);
   const teile = gruppen.flatMap((g) => (GRUPPEN[g] ?? []).map((sel) => `nwr${sel}["name"]${o.filter};`));
   try {
-    const { elemente } = await overpass(`[out:json][timeout:25];${o.kopf}(${teile.join("")});out count;`, headers, ende, false);
+    const { elemente } = await overpass(`[out:json][timeout:25];${o.kopf}(${teile.join("")});out count;`, headers, ende, false, z);
     const t = elemente.find((e) => e.type === "count")?.tags?.total;
     return t !== undefined && Number.isFinite(Number(t)) ? Number(t) : null;
   } catch {
@@ -259,21 +271,32 @@ async function sammeln(
   gruppen: string[],
   headers: Record<string, string>,
   ende: number,
+  z: Zustand,
   bbox?: Bbox,
 ): Promise<{ elemente: OsmElement[]; server: string; fehlend: string[] }> {
   const alle = new Map<string, OsmElement>();
-  const fehlend: string[] = [];
+  let fehlend: string[] = [];
   let server = "";
   let ersterFehler: unknown;
-  for (const g of gruppen) {
-    try {
-      const r = await overpass(abfrage(areaId, [g], bbox), headers, ende, false);
-      server = r.server;
-      for (const e of r.elemente) alle.set(`${e.type}/${e.id}`, e);
-    } catch (e) {
-      fehlend.push(g);
-      ersterFehler ??= e;
+  const durchgang = async (liste: string[]) => {
+    const nochOffen: string[] = [];
+    for (const g of liste) {
+      try {
+        const r = await overpass(abfrage(areaId, [g], bbox), headers, ende, false, z);
+        server = r.server;
+        for (const e of r.elemente) alle.set(`${e.type}/${e.id}`, e);
+      } catch (e) {
+        nochOffen.push(g);
+        ersterFehler ??= e;
+      }
     }
+    return nochOffen;
+  };
+  fehlend = await durchgang(gruppen);
+  // Gescheiterte Branchen noch einmal versuchen (Server erholen sich oft nach kurzer Zeit)
+  if (fehlend.length > 0 && fehlend.length < gruppen.length && ende - Date.now() > 5_000) {
+    z.schlecht.clear();
+    fehlend = await durchgang(fehlend);
   }
   if (fehlend.length === gruppen.length) throw ersterFehler;
   return { elemente: [...alle.values()], server, fehlend };
@@ -286,14 +309,15 @@ export async function funde(
   opts: { headers?: Record<string, string>; budgetMs?: number; bbox?: Bbox } = {},
 ): Promise<FundeErgebnis> {
   const headers = opts.headers ?? {};
-  const ende = Date.now() + (opts.budgetMs ?? 45_000);
-  let { elemente, server, fehlend } = await sammeln(areaId, gruppen, headers, ende);
+  const ende = Date.now() + (opts.budgetMs ?? 90_000);
+  const z: Zustand = { schlecht: new Set() };
+  let { elemente, server, fehlend } = await sammeln(areaId, gruppen, headers, ende, z);
   let ausschnitt = false;
   if (elemente.length === 0) {
     // Nichts gefunden: nicht gleich glauben. Manche Server liefern bei Überlast oder ohne Gebietsindex „leer“.
     // Darum einmal die gesamte Abfrage bei mehreren Servern gegenprüfen …
     try {
-      const r = await overpass(abfrage(areaId, gruppen), headers, ende, true);
+      const r = await overpass(abfrage(areaId, gruppen), headers, ende, true, z);
       ({ elemente, server } = r);
     } catch {
       /* bleibt bei „leer“ */
@@ -301,7 +325,7 @@ export async function funde(
     // … und sonst über den Kartenausschnitt statt über das Gebiet suchen
     if (elemente.length === 0 && opts.bbox) {
       try {
-        const r2 = await overpass(abfrage(areaId, gruppen, opts.bbox), headers, ende, true);
+        const r2 = await overpass(abfrage(areaId, gruppen, opts.bbox), headers, ende, true, z);
         if (r2.elemente.length > 0) {
           ({ elemente, server } = r2);
           ausschnitt = true;
@@ -333,6 +357,6 @@ export async function funde(
         vorhanden: false,
       };
     });
-  const gesamt = liste.length === 0 ? await zaehlen(areaId, gruppen, headers, Math.max(ende, Date.now() + 8_000), opts.bbox) : undefined;
+  const gesamt = liste.length === 0 ? await zaehlen(areaId, gruppen, headers, Math.max(ende, Date.now() + 8_000), z, opts.bbox) : undefined;
   return { liste, limit: elemente.length >= MAX_FUNDE * gruppen.length, gesamt, server, ausschnitt, fehlend };
 }

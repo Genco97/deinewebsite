@@ -10,7 +10,7 @@ import { SuchFehler, funde as osmFunde, gebietSuchen } from "@/lib/leadfinder-su
 export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: string }) {
   const [ort, setOrt] = useState("Wien");
   const [gruppen, setGruppen] = useState<string[]>(GRUPPEN_NAMEN);
-  const [nurTelefon, setNurTelefon] = useState(true);
+  const [nurTelefon, setNurTelefon] = useState(false);
   const [ohneSocial, setOhneSocial] = useState(false);
   const [besitzer, setBesitzer] = useState(ichId);
   const [funde, setFunde] = useState<Fund[]>([]);
@@ -88,6 +88,8 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
         } else if (ergebnis.length === 0) {
           text = `${liste.length} Betriebe ohne Website-Eintrag gefunden, aber keiner passt zu deinen Haken (Telefonnummer / Social). Nimm die Haken weg.`;
         }
+        const ohneNummer = liste.filter((f) => !f.telefon).length;
+        if (nurTelefon && ohneNummer > 0) text += ` ${ohneNummer} weitere ohne Telefonnummer sind ausgeblendet – nimm den Haken „nur mit Telefonnummer“ weg, um sie zu sehen.`;
         if (ausschnitt && liste.length > 0) text += " Das Gebiet selbst lieferte nichts, deshalb habe ich den Kartenausschnitt durchsucht – das kann Nachbarorte enthalten.";
         if (limit) text += " Das Limit ist erreicht – such für mehr einzelne Bezirke.";
         if (fehlend && fehlend.length > 0) text += ` Nicht abgefragt werden konnten: ${fehlend.join(", ")} – such diese gleich nochmal einzeln.`;
