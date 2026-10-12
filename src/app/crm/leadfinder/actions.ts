@@ -51,7 +51,7 @@ export async function fundeAbgleichen(liste: { key: string; firma: string; telef
 export async function fundeVomServer(
   areaId: number,
   gruppen: string[],
-): Promise<{ ok: true; liste: Fund[]; limit: boolean } | { ok: false; meldung: string }> {
+): Promise<{ ok: true; liste: Fund[]; limit: boolean; gesamt?: number | null } | { ok: false; meldung: string }> {
   await nurAdmin();
   if (!Number.isInteger(areaId) || areaId < 3_600_000_000 || areaId >= 3_700_000_000) return { ok: false, meldung: "ungültiges Gebiet" };
   const auswahl = Array.isArray(gruppen) ? gruppen.filter((g) => GRUPPEN_NAMEN.includes(g)) : [];
