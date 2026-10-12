@@ -154,7 +154,8 @@ export async function fundeImportieren(
     const notizen = data.map((d, j) => ({
       lead_id: d.id as string,
       autor_id: profil.id,
-      art: "notiz",
+      // „system“, nicht „notiz“: Notizen zählen im Dashboard als Kontakt (Tagesziel, „Heute erledigt“)
+      art: "system",
       text:
         "Über den Lead Finder gefunden (OpenStreetMap). Dort ist keine Website eingetragen – vor dem Kontakt kurz googeln." +
         (block[j]?.osm ? `\n${block[j].osm}` : ""),
