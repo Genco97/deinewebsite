@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { nurAdmin } from "@/lib/crm";
 import { firmaNorm, telNorm } from "@/lib/leadfinder";
 import { GRUPPEN_NAMEN, type Fund } from "@/lib/leadfinder-gruppen";
-import { funde as osmFunde } from "@/lib/leadfinder-suche";
+import { funde as osmFunde, type Bbox, type FundeErgebnis } from "@/lib/leadfinder-suche";
 import { createClient } from "@/lib/supabase/server";
 import { istEmail } from "@/lib/validierung";
 
@@ -51,15 +51,23 @@ export async function fundeAbgleichen(liste: { key: string; firma: string; telef
 export async function fundeVomServer(
   areaId: number,
   gruppen: string[],
-): Promise<{ ok: true; liste: Fund[]; limit: boolean; gesamt?: number | null } | { ok: false; meldung: string }> {
+  bbox?: Bbox,
+): Promise<({ ok: true } & FundeErgebnis) | { ok: false; meldung: string }> {
   await nurAdmin();
   if (!Number.isInteger(areaId) || areaId < 3_600_000_000 || areaId >= 3_700_000_000) return { ok: false, meldung: "ungültiges Gebiet" };
   const auswahl = Array.isArray(gruppen) ? gruppen.filter((g) => GRUPPEN_NAMEN.includes(g)) : [];
   if (auswahl.length === 0) return { ok: false, meldung: "keine Branche gewählt" };
+  // Kartenausschnitt nur annehmen, wenn er plausibel und nicht riesig ist
+  let box: Bbox | undefined;
+  if (Array.isArray(bbox) && bbox.length === 4 && bbox.every((n) => typeof n === "number" && Number.isFinite(n))) {
+    const [sued, west, nord, ost] = bbox;
+    if (sued >= -90 && nord <= 90 && west >= -180 && ost <= 180 && sued < nord && west < ost && nord - sued <= 3 && ost - west <= 4) box = bbox;
+  }
   try {
     const r = await osmFunde(areaId, auswahl, {
       headers: { "User-Agent": "UrsprungCRM/1.0 (Lead Finder)", Accept: "application/json" },
-      budgetMs: 45_000,
+      budgetMs: 50_000,
+      bbox: box,
     });
     return { ok: true, ...r };
   } catch (e) {

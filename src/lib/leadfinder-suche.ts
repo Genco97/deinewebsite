@@ -93,7 +93,15 @@ function grund(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
-type Gebiet = { areaId: number; name: string };
+/** Kartenausschnitt: Süd, West, Nord, Ost */
+export type Bbox = [number, number, number, number];
+type Gebiet = { areaId: number; name: string; bbox?: Bbox };
+
+function bboxVon(v: unknown): Bbox | undefined {
+  if (!Array.isArray(v) || v.length !== 4) return undefined;
+  const z = v.map(Number);
+  return z.every(Number.isFinite) ? (z as Bbox) : undefined;
+}
 
 async function nominatim(ort: string): Promise<Gebiet | null> {
   const url =
@@ -104,10 +112,12 @@ async function nominatim(ort: string): Promise<Gebiet | null> {
     cache: "no-store",
   });
   if (!r.ok) throw new SuchFehler(`Nominatim ${r.status}`);
-  const liste = (await r.json()) as { osm_type?: string; osm_id?: number; display_name?: string }[];
+  const liste = (await r.json()) as { osm_type?: string; osm_id?: number; display_name?: string; boundingbox?: string[] }[];
   const rel = liste.find((x) => x.osm_type === "relation" && typeof x.osm_id === "number");
   if (!rel || typeof rel.osm_id !== "number") return null;
-  return { areaId: 3_600_000_000 + rel.osm_id, name: rel.display_name ?? ort };
+  // Nominatim: [Süd, Nord, West, Ost]
+  const bb = rel.boundingbox;
+  return { areaId: 3_600_000_000 + rel.osm_id, name: rel.display_name ?? ort, bbox: bb ? bboxVon([bb[0], bb[2], bb[1], bb[3]]) : undefined };
 }
 
 /** Ersatz, falls Nominatim Anfragen vom Server ablehnt */
@@ -116,13 +126,19 @@ async function photon(ort: string): Promise<Gebiet | null> {
   const r = await fetch(url, { signal: AbortSignal.timeout(10_000), cache: "no-store" });
   if (!r.ok) throw new SuchFehler(`Photon ${r.status}`);
   const j = (await r.json()) as {
-    features?: { properties?: { osm_type?: string; osm_id?: number; name?: string; countrycode?: string; state?: string; country?: string } }[];
+    features?: { properties?: { osm_type?: string; osm_id?: number; name?: string; countrycode?: string; state?: string; country?: string; extent?: number[] } }[];
   };
   const p = (j.features ?? [])
     .map((f) => f.properties ?? {})
     .find((x) => x.osm_type === "R" && typeof x.osm_id === "number" && ["AT", "DE", "CH", "LI"].includes((x.countrycode ?? "").toUpperCase()));
   if (!p || typeof p.osm_id !== "number") return null;
-  return { areaId: 3_600_000_000 + p.osm_id, name: [p.name, p.state, p.country].filter(Boolean).join(", ") || ort };
+  // Photon: [West, Nord, Ost, Süd]
+  const ex = p.extent;
+  return {
+    areaId: 3_600_000_000 + p.osm_id,
+    name: [p.name, p.state, p.country].filter(Boolean).join(", ") || ort,
+    bbox: ex && ex.length === 4 ? bboxVon([ex[3], ex[0], ex[1], ex[2]]) : undefined,
+  };
 }
 
 /** Gebiet zu einem Ortsnamen (Stadt, Bezirk, Gemeinde) in AT, DE, CH oder LI */
@@ -150,18 +166,33 @@ type OsmElement = {
   tags?: Record<string, string>;
 };
 
-function abfrage(areaId: number, gruppen: string[]) {
-  const filter = '[!"website"][!"contact:website"][!"url"][!"contact:url"]["name"]';
-  const teile = gruppen.flatMap((g) => (GRUPPEN[g] ?? []).map((sel) => `nwr${sel}${filter}(area.a);`));
-  return `[out:json][timeout:25];area(${areaId})->.a;(${teile.join("")});out center tags ${MAX_FUNDE};`;
+/** Kopf und Ortsfilter der Abfrage: über das Gebiet (area) oder über den Kartenausschnitt */
+function ortsfilter(areaId: number, bbox?: Bbox) {
+  return bbox ? { kopf: "", filter: `(${bbox.join(",")})` } : { kopf: `area(${areaId})->.a;`, filter: "(area.a)" };
 }
 
-async function overpass(q: string, headers: Record<string, string>, budgetMs: number): Promise<OsmElement[]> {
+function abfrage(areaId: number, gruppen: string[], bbox?: Bbox) {
+  const o = ortsfilter(areaId, bbox);
+  const filter = '[!"website"][!"contact:website"][!"url"][!"contact:url"]["name"]';
+  const teile = gruppen.flatMap((g) => (GRUPPEN[g] ?? []).map((sel) => `nwr${sel}${filter}${o.filter};`));
+  return `[out:json][timeout:25];${o.kopf}(${teile.join("")});out center tags ${MAX_FUNDE};`;
+}
+
+/**
+ * Fragt die Overpass-Server nacheinander. Eine leere Liste glaubt sie nicht sofort (manche Server
+ * liefern bei Überlast oder ohne Gebietsindex leer statt Fehler) – erst wenn kein Server etwas findet, gilt „leer“.
+ */
+async function overpass(
+  q: string,
+  headers: Record<string, string>,
+  ende: number,
+  leerPruefen: boolean,
+): Promise<{ elemente: OsmElement[]; server: string }> {
   const fehler: string[] = [];
-  const ende = Date.now() + budgetMs;
+  let leerVon: string | null = null;
   for (const ep of OVERPASS) {
     const rest = ende - Date.now();
-    if (rest < 5_000) break;
+    if (rest < 3_000) break;
     const host = new URL(ep).host;
     try {
       const r = await fetch(ep, {
@@ -176,39 +207,110 @@ async function overpass(q: string, headers: Record<string, string>, budgetMs: nu
         continue;
       }
       const j = (await r.json()) as { elements?: OsmElement[]; remark?: string };
+      const el = j.elements ?? [];
       // Überlastete Server antworten oft mit Status 200, leerer Liste und einem Hinweis – das ist kein „0 Treffer“
-      if (j.remark && !(j.elements ?? []).length && /error|busy|timed out|memory|too many/i.test(j.remark)) {
+      if (j.remark && !el.length && /error|busy|timed out|memory|too many/i.test(j.remark)) {
         fehler.push(`${host} überlastet`);
         continue;
       }
-      return j.elements ?? [];
+      if (!el.length && leerPruefen) {
+        leerVon ??= host;
+        continue;
+      }
+      return { elemente: el, server: host };
     } catch (e) {
       fehler.push(`${host} ${grund(e)}`);
     }
   }
+  if (leerVon) return { elemente: [], server: leerVon };
   console.error("[leadfinder] Overpass", fehler);
   throw new SuchFehler(`OpenStreetMap nicht erreichbar (${fehler.join(", ") || "Zeitlimit"})`);
 }
 
 /** Wie viele Betriebe dieser Branchen gibt es im Gebiet insgesamt (mit und ohne Website)? */
-async function zaehlen(areaId: number, gruppen: string[], headers: Record<string, string>, budgetMs: number): Promise<number | null> {
-  const teile = gruppen.flatMap((g) => (GRUPPEN[g] ?? []).map((sel) => `nwr${sel}["name"](area.a);`));
+async function zaehlen(areaId: number, gruppen: string[], headers: Record<string, string>, ende: number, bbox?: Bbox): Promise<number | null> {
+  const o = ortsfilter(areaId, bbox);
+  const teile = gruppen.flatMap((g) => (GRUPPEN[g] ?? []).map((sel) => `nwr${sel}["name"]${o.filter};`));
   try {
-    const el = await overpass(`[out:json][timeout:25];area(${areaId})->.a;(${teile.join("")});out count;`, headers, budgetMs);
-    const t = el.find((e) => e.type === "count")?.tags?.total;
+    const { elemente } = await overpass(`[out:json][timeout:25];${o.kopf}(${teile.join("")});out count;`, headers, ende, false);
+    const t = elemente.find((e) => e.type === "count")?.tags?.total;
     return t !== undefined && Number.isFinite(Number(t)) ? Number(t) : null;
   } catch {
     return null;
   }
 }
 
+export type FundeErgebnis = {
+  liste: Fund[];
+  limit: boolean;
+  /** nur bei 0 Treffern: Betriebe dieser Branchen im Gebiet insgesamt */
+  gesamt?: number | null;
+  /** welcher Overpass-Server geantwortet hat */
+  server?: string;
+  /** Treffer stammen aus dem Kartenausschnitt (kann Nachbarorte enthalten) */
+  ausschnitt?: boolean;
+  /** Branchen, die nicht abgefragt werden konnten (Server überlastet / Zeitlimit) */
+  fehlend?: string[];
+};
+
+/** Eine kleine Abfrage pro Branche statt einer riesigen – das schaffen auch die kostenlosen Server */
+async function sammeln(
+  areaId: number,
+  gruppen: string[],
+  headers: Record<string, string>,
+  ende: number,
+  bbox?: Bbox,
+): Promise<{ elemente: OsmElement[]; server: string; fehlend: string[] }> {
+  const alle = new Map<string, OsmElement>();
+  const fehlend: string[] = [];
+  let server = "";
+  let ersterFehler: unknown;
+  for (const g of gruppen) {
+    try {
+      const r = await overpass(abfrage(areaId, [g], bbox), headers, ende, false);
+      server = r.server;
+      for (const e of r.elemente) alle.set(`${e.type}/${e.id}`, e);
+    } catch (e) {
+      fehlend.push(g);
+      ersterFehler ??= e;
+    }
+  }
+  if (fehlend.length === gruppen.length) throw ersterFehler;
+  return { elemente: [...alle.values()], server, fehlend };
+}
+
 /** Betriebe ohne Website-Eintrag in OSM – noch ohne Abgleich mit dem CRM */
 export async function funde(
   areaId: number,
   gruppen: string[],
-  opts: { headers?: Record<string, string>; budgetMs?: number } = {},
-): Promise<{ liste: Fund[]; limit: boolean; gesamt?: number | null }> {
-  const elemente = await overpass(abfrage(areaId, gruppen), opts.headers ?? {}, opts.budgetMs ?? 30_000);
+  opts: { headers?: Record<string, string>; budgetMs?: number; bbox?: Bbox } = {},
+): Promise<FundeErgebnis> {
+  const headers = opts.headers ?? {};
+  const ende = Date.now() + (opts.budgetMs ?? 45_000);
+  let { elemente, server, fehlend } = await sammeln(areaId, gruppen, headers, ende);
+  let ausschnitt = false;
+  if (elemente.length === 0) {
+    // Nichts gefunden: nicht gleich glauben. Manche Server liefern bei Überlast oder ohne Gebietsindex „leer“.
+    // Darum einmal die gesamte Abfrage bei mehreren Servern gegenprüfen …
+    try {
+      const r = await overpass(abfrage(areaId, gruppen), headers, ende, true);
+      ({ elemente, server } = r);
+    } catch {
+      /* bleibt bei „leer“ */
+    }
+    // … und sonst über den Kartenausschnitt statt über das Gebiet suchen
+    if (elemente.length === 0 && opts.bbox) {
+      try {
+        const r2 = await overpass(abfrage(areaId, gruppen, opts.bbox), headers, ende, true);
+        if (r2.elemente.length > 0) {
+          ({ elemente, server } = r2);
+          ausschnitt = true;
+        }
+      } catch {
+        /* bleibt bei „leer“ */
+      }
+    }
+  }
   const liste = elemente
     .filter((e) => e.tags?.name)
     .map((e): Fund => {
@@ -231,6 +333,6 @@ export async function funde(
         vorhanden: false,
       };
     });
-  const gesamt = liste.length === 0 ? await zaehlen(areaId, gruppen, opts.headers ?? {}, opts.budgetMs ?? 30_000) : undefined;
-  return { liste, limit: elemente.length >= MAX_FUNDE, gesamt };
+  const gesamt = liste.length === 0 ? await zaehlen(areaId, gruppen, headers, Math.max(ende, Date.now() + 8_000), opts.bbox) : undefined;
+  return { liste, limit: elemente.length >= MAX_FUNDE * gruppen.length, gesamt, server, ausschnitt, fehlend };
 }
