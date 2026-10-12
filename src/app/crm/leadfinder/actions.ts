@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { nurAdmin } from "@/lib/crm";
 import { firmaNorm, telNorm } from "@/lib/leadfinder";
-import type { Fund } from "@/lib/leadfinder-gruppen";
+import { GRUPPEN_NAMEN, type Fund } from "@/lib/leadfinder-gruppen";
+import { funde as osmFunde } from "@/lib/leadfinder-suche";
 import { createClient } from "@/lib/supabase/server";
 import { istEmail } from "@/lib/validierung";
 
@@ -44,6 +45,26 @@ export async function fundeAbgleichen(liste: { key: string; firma: string; telef
     .slice(0, 2000)
     .filter((f) => typeof f?.key === "string" && istDoppelt({ firma: String(f.firma ?? ""), telefon: String(f.telefon ?? "") }, b))
     .map((f) => f.key);
+}
+
+/** Ersatzweg, falls der Browser OpenStreetMap nicht erreicht: dieselbe Abfrage vom Server aus */
+export async function fundeVomServer(
+  areaId: number,
+  gruppen: string[],
+): Promise<{ ok: true; liste: Fund[]; limit: boolean } | { ok: false; meldung: string }> {
+  await nurAdmin();
+  if (!Number.isInteger(areaId) || areaId < 3_600_000_000 || areaId >= 3_700_000_000) return { ok: false, meldung: "ungültiges Gebiet" };
+  const auswahl = Array.isArray(gruppen) ? gruppen.filter((g) => GRUPPEN_NAMEN.includes(g)) : [];
+  if (auswahl.length === 0) return { ok: false, meldung: "keine Branche gewählt" };
+  try {
+    const r = await osmFunde(areaId, auswahl, {
+      headers: { "User-Agent": "UrsprungCRM/1.0 (Lead Finder)", Accept: "application/json" },
+      budgetMs: 45_000,
+    });
+    return { ok: true, ...r };
+  } catch (e) {
+    return { ok: false, meldung: e instanceof Error ? e.message : "unbekannter Fehler" };
+  }
 }
 
 // ---------------------------------------------------------------------------

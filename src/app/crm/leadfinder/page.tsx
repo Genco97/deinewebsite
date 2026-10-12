@@ -5,6 +5,9 @@ import { aktivePersonen, nurAdmin } from "@/lib/crm";
 
 export const metadata: Metadata = { title: "Lead Finder" };
 
+// Der Server-Ersatzweg zur Suche kann bis zu 45 s brauchen
+export const maxDuration = 60;
+
 export default async function LeadFinderSeite() {
   const profil = await nurAdmin();
   const personen = await aktivePersonen();
