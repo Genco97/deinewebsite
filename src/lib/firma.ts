@@ -5,21 +5,21 @@
 export const FIRMA = {
   name: "Ursprung",
   /** z. B. "e.U.", "OG", "GmbH" */
-  rechtsform: null as string | null,
+  rechtsform: "e.U." as string | null,
   /** Bei e.U.: Vor- und Nachname der Inhaberin/des Inhabers; bei OG/GmbH: Gesellschafter bzw. Geschäftsführung */
-  vertretung: null as string | null,
+  vertretung: "Tibor Laczkó" as string | null,
   strasse: "Hofherr-Schrantz-Gasse 2" as string | null,
-  plz: null as string | null,
+  plz: "1210" as string | null,
   ort: "Wien",
   land: "Österreich",
-  telefon: null as string | null,
+  telefon: "+43 688 64379158" as string | null,
   email: null as string | null,
-  uid: null as string | null,
+  uid: "ATU83053348" as string | null,
   /** nur wenn im Firmenbuch eingetragen (e.U., OG, GmbH …) */
   firmenbuchnummer: null as string | null,
   firmenbuchgericht: null as string | null,
   /** Wortlaut laut Gewerbeschein */
-  gewerbe: null as string | null,
+  gewerbe: "Werbeagentur, Werbegrafikdesigner, Dienstleistungen in der Automatischen Datenverarbeitung und Informationstechnik" as string | null,
   /** z. B. „Magistratisches Bezirksamt für den 7. Bezirk“ */
   gewerbebehoerde: null as string | null,
   kammer: "Wirtschaftskammer Wien",
