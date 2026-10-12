@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Kopf } from "@/components/crm/Kopf";
 import { LeadFinder } from "@/components/crm/LeadFinder";
-import { aktivePersonen, nurAdmin } from "@/lib/crm";
+import { aktivePersonen, nurLeadFinder } from "@/lib/crm";
 
 export const metadata: Metadata = { title: "Lead Finder" };
 
@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Lead Finder" };
 export const maxDuration = 60;
 
 export default async function LeadFinderSeite() {
-  const profil = await nurAdmin();
+  const profil = await nurLeadFinder();
   const personen = await aktivePersonen();
   return (
     <>

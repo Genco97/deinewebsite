@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Seitenleiste } from "@/components/crm/Seitenleiste";
-import { anzeigename, holeProfil } from "@/lib/crm";
+import { anzeigename, darfLeadFinder, holeProfil } from "@/lib/crm";
 import { ABGESCHLOSSEN } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
 import { heuteWien, wienGrenzen } from "@/lib/zeit";
@@ -42,7 +42,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   const faellig = await faelligZaehlen(profil.id, profil.rolle === "admin");
   return (
     <div className="flex min-h-full flex-1 flex-col md:pl-64 print:pl-0">
-      <Seitenleiste name={anzeigename(profil)} admin={profil.rolle === "admin"} faellig={faellig} />
+      <Seitenleiste name={anzeigename(profil)} admin={profil.rolle === "admin"} leadfinder={darfLeadFinder(profil)} faellig={faellig} />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-8 print:max-w-none print:p-0">{children}</main>
     </div>
   );

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { nurAdmin } from "@/lib/crm";
+import { nurLeadFinder } from "@/lib/crm";
 import { firmaNorm, telNorm } from "@/lib/leadfinder";
 import { GoogleFehler, pruefeBetrieb, type Pruefung } from "@/lib/google-places";
 import { GRUPPEN_NAMEN, PRUEFSTATUS, type Fund } from "@/lib/leadfinder-gruppen";
@@ -39,7 +39,7 @@ const istDoppelt = (f: { firma: string; telefon: string }, b: { tel: Set<string>
 // ---------------------------------------------------------------------------
 /** Gibt die Schlüssel der Treffer zurück, die es im CRM schon gibt */
 export async function fundeAbgleichen(liste: { key: string; firma: string; telefon: string }[]): Promise<string[]> {
-  await nurAdmin();
+  await nurLeadFinder();
   if (!Array.isArray(liste)) return [];
   const b = await bestehende();
   return liste
@@ -54,7 +54,7 @@ export async function fundeVomServer(
   gruppen: string[],
   bbox?: Bbox,
 ): Promise<({ ok: true } & FundeErgebnis) | { ok: false; meldung: string }> {
-  await nurAdmin();
+  await nurLeadFinder();
   if (!Number.isInteger(areaId) || areaId < 3_600_000_000 || areaId >= 3_700_000_000) return { ok: false, meldung: "ungültiges Gebiet" };
   const auswahl = Array.isArray(gruppen) ? gruppen.filter((g) => GRUPPEN_NAMEN.includes(g)) : [];
   if (auswahl.length === 0) return { ok: false, meldung: "keine Branche gewählt" };
@@ -85,7 +85,7 @@ const PRUEF_BLOCK = 25;
 export async function fundePruefen(
   liste: Pick<Fund, "key" | "firma" | "adresse" | "bezirk" | "lat" | "lng">[],
 ): Promise<{ ok: true; ergebnisse: Pruefung[]; meldung?: string } | { ok: false; meldung: string }> {
-  await nurAdmin();
+  await nurLeadFinder();
   const schluessel = process.env.GOOGLE_PLACES_API_KEY;
   if (!schluessel) {
     return {
@@ -137,7 +137,7 @@ export async function fundeImportieren(
   auswahl: Fund[],
   besitzerId?: string,
 ): Promise<{ ok: boolean; meldung: string }> {
-  const profil = await nurAdmin();
+  const profil = await nurLeadFinder();
   const supabase = await createClient();
 
   let besitzer = profil.id;

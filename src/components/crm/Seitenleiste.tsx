@@ -43,7 +43,7 @@ function initialen(name: string) {
   return (a + b).toUpperCase();
 }
 
-export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin: boolean; faellig?: number }) {
+export function Seitenleiste({ name, admin, leadfinder = false, faellig = 0 }: { name: string; admin: boolean; leadfinder?: boolean; faellig?: number }) {
   const pfad = usePathname();
   const [offen, setOffen] = useState(false);
   const schliessenRef = useRef<HTMLButtonElement>(null);
@@ -63,7 +63,7 @@ export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin
       eintraege: [
         { href: "/crm/anrufen", label: "Anruf-Modus", icon: "anrufen", aktiv: pfad.startsWith("/crm/anrufen") },
         { href: "/crm/leads", label: "Leads", icon: "leads", aktiv: pfad.startsWith("/crm/leads") },
-        ...(admin ? [{ href: "/crm/leadfinder", label: "Lead Finder", icon: "suche" as const, aktiv: pfad.startsWith("/crm/leadfinder") }] : []),
+        ...(leadfinder ? [{ href: "/crm/leadfinder", label: "Lead Finder", icon: "suche" as const, aktiv: pfad.startsWith("/crm/leadfinder") }] : []),
         { href: "/crm/besuche", label: "Besuche", icon: "besuche", aktiv: pfad.startsWith("/crm/besuche") },
         { href: "/crm/karte", label: "Karte", icon: "karte", aktiv: pfad.startsWith("/crm/karte") },
         { href: "/crm/postkarten", label: "Postkarten", icon: "postkarten", aktiv: pfad.startsWith("/crm/postkarten") },

@@ -46,6 +46,24 @@ export async function nurAdmin() {
   return p;
 }
 
+/**
+ * Der Lead Finder verursacht Google-Kosten – ihn dürfen nur die hier genannten Personen benutzen.
+ * Weitere Adressen: Umgebungsvariable LEADFINDER_EMAILS (kommagetrennt) in Vercel setzen.
+ */
+const LEADFINDER_STANDARD = ["andre.strasser@gmx.at"];
+export function darfLeadFinder(p: { rolle: string; email: string }) {
+  const erlaubt = [...LEADFINDER_STANDARD, ...(process.env.LEADFINDER_EMAILS ?? "").split(",")]
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return p.rolle === "admin" && erlaubt.includes(p.email.trim().toLowerCase());
+}
+
+export async function nurLeadFinder() {
+  const p = await holeProfil();
+  if (!darfLeadFinder(p)) redirect("/crm");
+  return p;
+}
+
 export type Person = { id: string; name: string; email: string; rolle: Rolle };
 
 /** Aktive Personen im Team (für Zuteilungen durch Gründer) */
