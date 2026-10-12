@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { fundeAbgleichen, fundeImportieren } from "@/app/crm/leadfinder/actions";
+import { fundeAbgleichen, fundeImportieren, fundeVomServer } from "@/app/crm/leadfinder/actions";
 import { Hinweis, Input, Karte, Select, buttonClass } from "@/components/ui";
 import type { Person } from "@/lib/crm";
 import { GRUPPEN_NAMEN, type Fund } from "@/lib/leadfinder-gruppen";
@@ -40,7 +40,19 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
           setMeldung({ art: "fehler", text: `Zu „${suchort}“ habe ich kein Gebiet gefunden. Probier z. B. „Graz, Österreich“.` });
           return;
         }
-        const { liste, limit } = await osmFunde(g.areaId, gruppen);
+        // Erst direkt vom Handy; klappt das nicht, dieselbe Abfrage über den Server
+        let liste: Fund[];
+        let limit: boolean;
+        try {
+          ({ liste, limit } = await osmFunde(g.areaId, gruppen));
+        } catch (e1) {
+          const s = await fundeVomServer(g.areaId, gruppen);
+          if (!s.ok) {
+            const vomBrowser = e1 instanceof Error ? e1.message : "Fehler";
+            throw new SuchFehler(`Handy: ${vomBrowser} – Server: ${s.meldung}`);
+          }
+          ({ liste, limit } = s);
+        }
         const gesehen = new Set<string>();
         const gefiltert = liste.filter((f) => {
           if (nurTelefon && !f.telefon) return false;

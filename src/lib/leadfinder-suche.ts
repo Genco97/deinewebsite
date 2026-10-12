@@ -3,8 +3,9 @@ import { GRUPPEN, type Fund } from "@/lib/leadfinder-gruppen";
 const OVERPASS = [
   "https://overpass-api.de/api/interpreter",
   "https://overpass.private.coffee/api/interpreter",
-  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.openstreetmap.fr/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
 ];
 export const MAX_FUNDE = 800;
 
@@ -87,6 +88,8 @@ export class SuchFehler extends Error {}
 function grund(e: unknown): string {
   if (e instanceof SuchFehler) return e.message;
   if (e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError")) return "Zeitüberschreitung";
+  // Browser („Load failed“, „Failed to fetch“) und Node („fetch failed“): keine Antwort bekommen
+  if (e instanceof TypeError) return "keine Verbindung";
   return e instanceof Error ? e.message : String(e);
 }
 
@@ -153,9 +156,9 @@ function abfrage(areaId: number, gruppen: string[]) {
   return `[out:json][timeout:25];area(${areaId})->.a;(${teile.join("")});out center tags ${MAX_FUNDE};`;
 }
 
-async function overpass(q: string): Promise<OsmElement[]> {
+async function overpass(q: string, headers: Record<string, string>, budgetMs: number): Promise<OsmElement[]> {
   const fehler: string[] = [];
-  const ende = Date.now() + 50_000; // innerhalb der 60 s, die die Seite laufen darf
+  const ende = Date.now() + budgetMs;
   for (const ep of OVERPASS) {
     const rest = ende - Date.now();
     if (rest < 5_000) break;
@@ -163,9 +166,9 @@ async function overpass(q: string): Promise<OsmElement[]> {
     try {
       const r = await fetch(ep, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        headers: { "Content-Type": "application/x-www-form-urlencoded", ...headers },
         body: "data=" + encodeURIComponent(q),
-        signal: AbortSignal.timeout(Math.min(30_000, rest)),
+        signal: AbortSignal.timeout(Math.min(20_000, rest)),
         cache: "no-store",
       });
       if (!r.ok) {
@@ -188,8 +191,12 @@ async function overpass(q: string): Promise<OsmElement[]> {
 }
 
 /** Betriebe ohne Website-Eintrag in OSM – noch ohne Abgleich mit dem CRM */
-export async function funde(areaId: number, gruppen: string[]): Promise<{ liste: Fund[]; limit: boolean }> {
-  const elemente = await overpass(abfrage(areaId, gruppen));
+export async function funde(
+  areaId: number,
+  gruppen: string[],
+  opts: { headers?: Record<string, string>; budgetMs?: number } = {},
+): Promise<{ liste: Fund[]; limit: boolean }> {
+  const elemente = await overpass(abfrage(areaId, gruppen), opts.headers ?? {}, opts.budgetMs ?? 30_000);
   const liste = elemente
     .filter((e) => e.tags?.name)
     .map((e): Fund => {
