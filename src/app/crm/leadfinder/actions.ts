@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { nurAdmin } from "@/lib/crm";
 import { firmaNorm, telNorm } from "@/lib/leadfinder";
-import { GRUPPEN_NAMEN, type Fund } from "@/lib/leadfinder-gruppen";
+import { GoogleFehler, pruefeBetrieb, type Pruefung } from "@/lib/google-places";
+import { GRUPPEN_NAMEN, PRUEFSTATUS, type Fund } from "@/lib/leadfinder-gruppen";
 import { funde as osmFunde, type Bbox, type FundeErgebnis } from "@/lib/leadfinder-suche";
 import { createClient } from "@/lib/supabase/server";
 import { istEmail } from "@/lib/validierung";
@@ -76,6 +77,60 @@ export async function fundeVomServer(
 }
 
 // ---------------------------------------------------------------------------
+// Website-Prüfung über Google Places (nur Gründer)
+// ---------------------------------------------------------------------------
+/** Höchstens so viele Betriebe pro Aufruf (jede Prüfung ist eine Google-Abfrage und kostet nach dem Gratis-Kontingent) */
+const PRUEF_BLOCK = 25;
+
+export async function fundePruefen(
+  liste: Pick<Fund, "key" | "firma" | "adresse" | "bezirk" | "lat" | "lng">[],
+): Promise<{ ok: true; ergebnisse: Pruefung[]; meldung?: string } | { ok: false; meldung: string }> {
+  await nurAdmin();
+  const schluessel = process.env.GOOGLE_PLACES_API_KEY;
+  if (!schluessel) {
+    return {
+      ok: false,
+      meldung:
+        "Es ist noch kein Google-Schlüssel hinterlegt. Lege bei Vercel die Variable GOOGLE_PLACES_API_KEY an an und deploye neu.",
+    };
+  }
+  if (!Array.isArray(liste) || liste.length === 0) return { ok: true, ergebnisse: [] };
+
+  const s = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "");
+  const num = (v: unknown, min: number, max: number) => (typeof v === "number" && v >= min && v <= max ? v : null);
+  const arbeit = liste.slice(0, PRUEF_BLOCK).map((f) => ({
+    key: s(f?.key, 60),
+    firma: s(f?.firma),
+    adresse: s(f?.adresse),
+    bezirk: s(f?.bezirk, 100),
+    lat: num(f?.lat, -90, 90),
+    lng: num(f?.lng, -180, 180),
+  }));
+
+  const ergebnisse: Pruefung[] = [];
+  let abbruch: string | undefined;
+  let naechster = 0;
+  // 5 gleichzeitig; bei Schlüssel- oder Limit-Problemen sofort aufhören
+  const arbeiter = Array.from({ length: 5 }, async () => {
+    while (!abbruch) {
+      const i = naechster++;
+      if (i >= arbeit.length) return;
+      const f = arbeit[i];
+      if (!f.key || !f.firma) continue;
+      try {
+        ergebnisse.push(await pruefeBetrieb(f, schluessel));
+      } catch (e) {
+        if (e instanceof GoogleFehler && e.stopp) abbruch = e.message;
+        // sonstige Einzelfehler: Betrieb bleibt „ungeprüft“
+      }
+    }
+  });
+  await Promise.all(arbeiter);
+  if (abbruch && ergebnisse.length === 0) return { ok: false, meldung: abbruch };
+  return { ok: true, ergebnisse, meldung: abbruch };
+}
+
+// ---------------------------------------------------------------------------
 // Ins CRM übernehmen (nur Gründer)
 // ---------------------------------------------------------------------------
 export async function fundeImportieren(
@@ -114,6 +169,7 @@ export async function fundeImportieren(
         lat: zahl(f?.lat, -90, 90),
         lng: zahl(f?.lng, -180, 180),
         osm: osm(f?.osm),
+        pruefung: PRUEFSTATUS.find((p) => p === f?.pruefung),
       };
     })
     .filter((f) => f.firma);
@@ -157,7 +213,11 @@ export async function fundeImportieren(
       // „system“, nicht „notiz“: Notizen zählen im Dashboard als Kontakt (Tagesziel, „Heute erledigt“)
       art: "system",
       text:
-        "Über den Lead Finder gefunden (OpenStreetMap). Dort ist keine Website eingetragen – vor dem Kontakt kurz googeln." +
+        (block[j]?.pruefung === "keine"
+          ? "Über den Lead Finder gefunden. Bei Google geprüft: keine Website – qualifizierter Lead."
+          : block[j]?.pruefung === "unklar"
+            ? "Über den Lead Finder gefunden. In OpenStreetMap ist keine Website eingetragen; bei Google nicht eindeutig gefunden – vor dem Kontakt von Hand prüfen."
+            : "Über den Lead Finder gefunden. In OpenStreetMap ist keine Website eingetragen, bei Google noch nicht geprüft – vor dem Kontakt googeln.") +
         (block[j]?.osm ? `\n${block[j].osm}` : ""),
     }));
     await supabase.from("lead_verlauf").insert(notizen);

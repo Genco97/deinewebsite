@@ -48,4 +48,18 @@ export type Fund = {
   osm: string;
   /** gibt es im CRM schon (gleiche Nummer oder gleicher Name) */
   vorhanden: boolean;
+  /** Ergebnis der Google-Prüfung; fehlt = noch nicht geprüft */
+  pruefung?: Pruefstatus;
+  /** gefundene Website (nur bei Status "hat") */
+  website?: string;
 };
+
+/**
+ * keine      = bei Google gefunden, aber ohne Website → qualifizierter Lead
+ * hat        = hat eine Website → kein Lead
+ * geschlossen = laut Google dauerhaft geschlossen → kein Lead
+ * unklar     = bei Google nicht eindeutig gefunden → von Hand prüfen
+ */
+export type Pruefstatus = "keine" | "hat" | "geschlossen" | "unklar";
+
+export const PRUEFSTATUS: Pruefstatus[] = ["keine", "hat", "geschlossen", "unklar"];
