@@ -44,15 +44,18 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
         let liste: Fund[];
         let limit: boolean;
         let gesamt: number | null | undefined;
+        let server: string | undefined;
+        let ausschnitt: boolean | undefined;
+        let fehlend: string[] | undefined;
         try {
-          ({ liste, limit, gesamt } = await osmFunde(g.areaId, gruppen));
+          ({ liste, limit, gesamt, server, ausschnitt, fehlend } = await osmFunde(g.areaId, gruppen, { bbox: g.bbox }));
         } catch (e1) {
-          const s = await fundeVomServer(g.areaId, gruppen);
+          const s = await fundeVomServer(g.areaId, gruppen, g.bbox);
           if (!s.ok) {
             const vomBrowser = e1 instanceof Error ? e1.message : "Fehler";
             throw new SuchFehler(`Handy: ${vomBrowser} – Server: ${s.meldung}`);
           }
-          ({ liste, limit, gesamt } = s);
+          ({ liste, limit, gesamt, server, ausschnitt, fehlend } = s);
         }
         const gesehen = new Set<string>();
         const gefiltert = liste.filter((f) => {
@@ -85,7 +88,11 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
         } else if (ergebnis.length === 0) {
           text = `${liste.length} Betriebe ohne Website-Eintrag gefunden, aber keiner passt zu deinen Haken (Telefonnummer / Social). Nimm die Haken weg.`;
         }
-        setMeldung({ art: "info", text: limit ? `${text} Das Limit ist erreicht – such für mehr einzelne Bezirke.` : text });
+        if (ausschnitt && liste.length > 0) text += " Das Gebiet selbst lieferte nichts, deshalb habe ich den Kartenausschnitt durchsucht – das kann Nachbarorte enthalten.";
+        if (limit) text += " Das Limit ist erreicht – such für mehr einzelne Bezirke.";
+        if (fehlend && fehlend.length > 0) text += ` Nicht abgefragt werden konnten: ${fehlend.join(", ")} – such diese gleich nochmal einzeln.`;
+        if (server) text += ` (Quelle: ${server})`;
+        setMeldung({ art: "info", text });
       } catch (e) {
         setFunde([]);
         setGewaehlt(new Set());
