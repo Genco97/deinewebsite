@@ -39,7 +39,7 @@ export function Header() {
 
         {/* Mobil: Gratis-Demo immer griffbereit, daneben das Menü (ohne JavaScript) */}
         <div className="flex items-center gap-2 md:hidden">
-        <Link href="/demo?paket=business" className={buttonClass("primary", "min-h-11 px-4 text-sm")}>
+        <Link href="/demo?paket=business" className={buttonClass("primary", "min-h-11 whitespace-nowrap px-2.5 text-sm")}>
           Gratis-Demo
         </Link>
         <details className="group relative">

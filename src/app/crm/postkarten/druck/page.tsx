@@ -28,7 +28,7 @@ function Vorderseite() {
   return (
     <div className={`${SEITE} flex flex-col justify-between p-[9mm] shadow-sm`}>
       <div className="flex items-center gap-2 text-[13pt] font-extrabold tracking-[-0.04em]">
-        <LogoMark className="h-[8mm] w-[8mm]" verlaufId="ursprung-verlauf-karte" />
+        <LogoMark className="h-[10mm]" />
         {FIRMA.name}
       </div>
       <div>

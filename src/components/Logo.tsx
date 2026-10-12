@@ -1,32 +1,28 @@
 import Link from "next/link";
 
 /**
- * Bildmarke „Der Sprung“: Ein Punkt – der Ursprung – springt in einem Bogen nach oben.
- * Mehrere Logos auf einer Seite teilen dieselbe Verlaufs-ID; die Definition ist identisch.
- * Ausnahme Druck: Ist das erste Logo ausgeblendet (z. B. Seitenleiste), braucht das gedruckte eine eigene ID.
+ * Bildmarke: das geschwungene „U“ aus dem Logo. Eine Maske mit der Textfarbe, damit sie auf hellem
+ * (dunkelblau) wie auf dunklem Grund (weiß) passt. Größe nur über die Höhe, z. B. „h-7“.
+ * `verlaufId` bleibt aus Kompatibilität mit den Aufrufern, wird nicht mehr gebraucht.
  */
-export function LogoMark({ className = "h-7 w-7", verlaufId = "ursprung-verlauf" }: { className?: string; verlaufId?: string }) {
+export function LogoMark({ className = "h-7", light = false }: { className?: string; verlaufId?: string; light?: boolean }) {
   return (
-    <svg viewBox="0 0 32 32" aria-hidden className={`shrink-0 ${className}`}>
-      <defs>
-        <linearGradient id={verlaufId} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#3D7FD0" />
-          <stop offset="1" stopColor="#173F70" />
-        </linearGradient>
-      </defs>
-      <rect width="32" height="32" rx="9" fill={`url(#${verlaufId})`} />
-      <path
-        d="M8.5 23.5C10 14 16 9.5 23.5 9"
-        fill="none"
-        stroke="#fff"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        strokeDasharray="0.1 4.2"
-        opacity=".7"
-      />
-      <circle cx="8.5" cy="23.5" r="3" fill="#fff" />
-      <circle cx="23.5" cy="9" r="2.2" fill="#BFD9F7" />
-    </svg>
+    <span
+      aria-hidden
+      className={`inline-block shrink-0 aspect-[308/618] ${light ? "bg-white" : "bg-[#0B1B3F]"} ${className}`}
+      style={{
+        WebkitMaskImage: "url(/logo-mark.png)",
+        maskImage: "url(/logo-mark.png)",
+        WebkitMaskSize: "contain",
+        maskSize: "contain",
+        WebkitMaskRepeat: "no-repeat",
+        maskRepeat: "no-repeat",
+        WebkitMaskPosition: "center",
+        maskPosition: "center",
+        printColorAdjust: "exact",
+        WebkitPrintColorAdjust: "exact",
+      }}
+    />
   );
 }
 
@@ -34,11 +30,12 @@ export function Logo({ href = "/", light = false }: { href?: string; light?: boo
   return (
     <Link
       href={href}
-      className={`inline-flex min-h-11 items-center gap-2.5 text-lg font-extrabold tracking-[-0.04em] ${
-        light ? "text-white" : "text-ink"
+      aria-label="Ursprung – zur Startseite"
+      className={`inline-flex min-h-11 items-center gap-2 font-serif text-[15px] font-bold uppercase tracking-[0.03em] min-[400px]:text-lg sm:text-2xl sm:tracking-[0.04em] ${
+        light ? "text-white" : "text-[#0B1B3F]"
       }`}
     >
-      <LogoMark />
+      <LogoMark className="h-8 sm:h-10" light={light} />
       Ursprung
     </Link>
   );
