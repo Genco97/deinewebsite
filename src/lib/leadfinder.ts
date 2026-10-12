@@ -4,7 +4,12 @@ import { GRUPPEN, type Fund } from "@/lib/leadfinder-gruppen";
 /** Nominatim und Overpass verlangen eine erkennbare Kennung */
 const KENNUNG = "UrsprungCRM/1.0 (Lead Finder)";
 
-const OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"];
+const OVERPASS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+];
 export const MAX_FUNDE = 800;
 
 const DE: Record<string, string> = {
@@ -80,20 +85,61 @@ function branchenName(t: Record<string, string>) {
   return DE[roh] ?? roh.replace(/_/g, " ");
 }
 
-/** Gebiet zu einem Ortsnamen (Stadt, Bezirk, Gemeinde) in AT, DE, CH oder LI */
-export async function gebietSuchen(ort: string): Promise<{ areaId: number; name: string } | null> {
+/** Fehler mit einer Meldung, die man im CRM anzeigen kann */
+export class SuchFehler extends Error {}
+
+function grund(e: unknown): string {
+  if (e instanceof SuchFehler) return e.message;
+  if (e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError")) return "Zeitüberschreitung";
+  return e instanceof Error ? e.message : String(e);
+}
+
+type Gebiet = { areaId: number; name: string };
+
+async function nominatim(ort: string): Promise<Gebiet | null> {
   const url =
     "https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=at,de,ch,li&q=" + encodeURIComponent(ort);
   const r = await fetch(url, {
     headers: { "User-Agent": KENNUNG, "Accept-Language": "de" },
-    signal: AbortSignal.timeout(15_000),
+    signal: AbortSignal.timeout(10_000),
     cache: "no-store",
   });
-  if (!r.ok) throw new Error(`Nominatim ${r.status}`);
+  if (!r.ok) throw new SuchFehler(`Nominatim ${r.status}`);
   const liste = (await r.json()) as { osm_type?: string; osm_id?: number; display_name?: string }[];
   const rel = liste.find((x) => x.osm_type === "relation" && typeof x.osm_id === "number");
   if (!rel || typeof rel.osm_id !== "number") return null;
   return { areaId: 3_600_000_000 + rel.osm_id, name: rel.display_name ?? ort };
+}
+
+/** Ersatz, falls Nominatim Anfragen vom Server ablehnt */
+async function photon(ort: string): Promise<Gebiet | null> {
+  const url = "https://photon.komoot.io/api/?limit=10&lang=de&q=" + encodeURIComponent(ort);
+  const r = await fetch(url, { headers: { "User-Agent": KENNUNG }, signal: AbortSignal.timeout(10_000), cache: "no-store" });
+  if (!r.ok) throw new SuchFehler(`Photon ${r.status}`);
+  const j = (await r.json()) as {
+    features?: { properties?: { osm_type?: string; osm_id?: number; name?: string; countrycode?: string; state?: string; country?: string } }[];
+  };
+  const p = (j.features ?? [])
+    .map((f) => f.properties ?? {})
+    .find((x) => x.osm_type === "R" && typeof x.osm_id === "number" && ["AT", "DE", "CH", "LI"].includes((x.countrycode ?? "").toUpperCase()));
+  if (!p || typeof p.osm_id !== "number") return null;
+  return { areaId: 3_600_000_000 + p.osm_id, name: [p.name, p.state, p.country].filter(Boolean).join(", ") || ort };
+}
+
+/** Gebiet zu einem Ortsnamen (Stadt, Bezirk, Gemeinde) in AT, DE, CH oder LI */
+export async function gebietSuchen(ort: string): Promise<Gebiet | null> {
+  const fehler: string[] = [];
+  for (const quelle of [nominatim, photon]) {
+    try {
+      const g = await quelle(ort);
+      if (g) return g;
+    } catch (e) {
+      fehler.push(grund(e));
+      console.error("[leadfinder] Ortssuche", quelle.name, e);
+    }
+  }
+  if (fehler.length === 2) throw new SuchFehler(`Ortssuche nicht erreichbar (${fehler.join(", ")})`);
+  return null;
 }
 
 type OsmElement = {
@@ -108,27 +154,41 @@ type OsmElement = {
 function abfrage(areaId: number, gruppen: string[]) {
   const filter = '[!"website"][!"contact:website"][!"url"][!"contact:url"]["name"]';
   const teile = gruppen.flatMap((g) => (GRUPPEN[g] ?? []).map((sel) => `nwr${sel}${filter}(area.a);`));
-  return `[out:json][timeout:45];area(${areaId})->.a;(${teile.join("")});out center tags ${MAX_FUNDE};`;
+  return `[out:json][timeout:25];area(${areaId})->.a;(${teile.join("")});out center tags ${MAX_FUNDE};`;
 }
 
 async function overpass(q: string): Promise<OsmElement[]> {
-  let fehler: unknown = new Error("Overpass nicht erreichbar");
+  const fehler: string[] = [];
+  const ende = Date.now() + 50_000; // innerhalb der 60 s, die die Seite laufen darf
   for (const ep of OVERPASS) {
+    const rest = ende - Date.now();
+    if (rest < 5_000) break;
+    const host = new URL(ep).host;
     try {
       const r = await fetch(ep, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": KENNUNG },
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": KENNUNG, Accept: "application/json" },
         body: "data=" + encodeURIComponent(q),
-        signal: AbortSignal.timeout(50_000),
+        signal: AbortSignal.timeout(Math.min(30_000, rest)),
         cache: "no-store",
       });
-      if (r.ok) return ((await r.json()) as { elements?: OsmElement[] }).elements ?? [];
-      fehler = new Error(`Overpass ${r.status}`);
+      if (!r.ok) {
+        fehler.push(`${host} ${r.status}`);
+        continue;
+      }
+      const j = (await r.json()) as { elements?: OsmElement[]; remark?: string };
+      // Overpass meldet eine Zeitüberschreitung manchmal mit Status 200 und einem Hinweis
+      if (j.remark && /timed out|out of memory/i.test(j.remark) && !(j.elements ?? []).length) {
+        fehler.push(`${host} Zeitüberschreitung`);
+        continue;
+      }
+      return j.elements ?? [];
     } catch (e) {
-      fehler = e;
+      fehler.push(`${host} ${grund(e)}`);
     }
   }
-  throw fehler;
+  console.error("[leadfinder] Overpass", fehler);
+  throw new SuchFehler(`OpenStreetMap nicht erreichbar (${fehler.join(", ") || "Zeitlimit"})`);
 }
 
 /** Betriebe ohne Website-Eintrag in OSM – noch ohne Abgleich mit dem CRM */

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { nurAdmin } from "@/lib/crm";
-import { funde, firmaNorm, gebietSuchen, telNorm } from "@/lib/leadfinder";
+import { SuchFehler, funde, firmaNorm, gebietSuchen, telNorm } from "@/lib/leadfinder";
 import { GRUPPEN_NAMEN, type Fund } from "@/lib/leadfinder-gruppen";
 import { createClient } from "@/lib/supabase/server";
 import { istEmail } from "@/lib/validierung";
@@ -81,10 +81,12 @@ export async function leadsSuchen(
       limit,
       meldung: `${ergebnis.length} Betriebe ohne Website-Eintrag gefunden.`,
     };
-  } catch {
+  } catch (e) {
+    console.error("[leadfinder] Suche", e);
+    const detail = e instanceof SuchFehler ? e.message : "unbekannter Fehler";
     return {
       ok: false,
-      meldung: "Die Suche hat nicht geklappt – OpenStreetMap ist gerade überlastet oder das Gebiet ist zu groß. Probier einen einzelnen Bezirk oder weniger Branchen.",
+      meldung: `Die Suche hat nicht geklappt – ${detail}. Probier es gleich nochmal oder such einen einzelnen Bezirk (z. B. „Neubau, Wien“).`,
     };
   }
 }
