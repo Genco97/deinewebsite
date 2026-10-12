@@ -6,6 +6,7 @@ import { LeadAnlegen } from "@/components/crm/LeadAnlegen";
 import { NotizSchnell } from "@/components/crm/NotizSchnell";
 import { SpaltenFilter } from "@/components/crm/SpaltenFilter";
 import { StatusSchnell } from "@/components/crm/StatusSchnell";
+import { WhatsAppKnopf } from "@/components/crm/WhatsApp";
 import { ZuteilenLeiste } from "@/components/crm/ZuteilenLeiste";
 import { Hinweis, Karte, Select, buttonClass, inputClass } from "@/components/ui";
 import { aktivePersonen, holeProfil } from "@/lib/crm";
@@ -51,7 +52,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
   const supabase = await createClient();
   let abfrage = supabase
     .from("leads")
-    .select("id, firma, branche, telefon, bezirk, status, status_seit, naechster_rueckruf, besuch_geplant, einwilligung_wie, besitzer:profiles!leads_besitzer_id_fkey(name)", {
+    .select("id, firma, ansprechpartner, branche, telefon, bezirk, status, status_seit, naechster_rueckruf, besuch_geplant, einwilligung_wie, besitzer:profiles!leads_besitzer_id_fkey(name)", {
       count: "exact",
     })
     .order("created_at", { ascending: false })
@@ -98,6 +99,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
   const leads = (data ?? []) as unknown as {
     id: string;
     firma: string;
+    ansprechpartner: string | null;
     branche: string | null;
     telefon: string | null;
     bezirk: string | null;
@@ -124,6 +126,34 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
       notizen.set(z.lead_id as string, liste);
     }
   }
+  // WhatsApp: Vorlagen und wann zuletzt eine gesendet wurde
+  const { data: waRoh } = await supabase.from("vorlagen").select("id, titel, text").eq("kanal", "whatsapp").order("reihenfolge");
+  const waVorlagen = (waRoh ?? []) as { id: string; titel: string; text: string }[];
+  const waZuletzt = new Map<string, string>();
+  if (leads.length) {
+    const { data: w } = await supabase
+      .from("lead_verlauf")
+      .select("lead_id, created_at")
+      .in("lead_id", leads.map((l) => l.id))
+      .eq("art", "system")
+      .like("text", "WhatsApp gesendet%")
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    for (const z of w ?? []) if (!waZuletzt.has(z.lead_id as string)) waZuletzt.set(z.lead_id as string, z.created_at as string);
+  }
+  const site = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const meinName = profil.name.trim() || profil.email;
+  const waKnopf = (l: { id: string; firma: string; ansprechpartner: string | null; telefon: string | null; status: string; einwilligung_wie: string | null }) =>
+    l.telefon && l.status !== "nicht_anrufen" ? (
+      <WhatsAppKnopf
+        symbol
+        lead={{ id: l.id, firma: l.firma, ansprechpartner: l.ansprechpartner, telefon: l.telefon, erlaubt: !!l.einwilligung_wie }}
+        daten={{ vorlagen: waVorlagen, site, meinName }}
+        anlass={l.status === "demo" ? "demo" : l.status === "nicht_erreicht" ? "nicht_erreicht" : "gespraech"}
+      />
+    ) : null;
+  const waHinweis = (id: string) =>
+    waZuletzt.has(id) ? <span className="block text-xs font-semibold text-ok">✓ WhatsApp gesendet · {datum(waZuletzt.get(id)!)}</span> : null;
   const notizFeld = (l: { id: string; firma: string }) => {
     const n = notizen.get(l.id) ?? [];
     return <NotizSchnell id={l.id} firma={l.firma} notizen={n.map((z) => ({ text: z.text, am: datum(z.am) }))} />;
@@ -278,7 +308,11 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
                     ) : null}
                     {admin && l.besitzer ? <span className="mt-0.5 block text-xs text-muted">Bei: {l.besitzer.name}</span> : null}
                   </Link>
-                  <div className="px-3 pb-2">{schnell(l)}</div>
+                  <div className="flex items-center justify-between gap-2 px-3 pb-2">
+                    {schnell(l)}
+                    {waKnopf(l)}
+                  </div>
+                  {waZuletzt.has(l.id) ? <div className="px-4 pb-2">{waHinweis(l.id)}</div> : null}
                   <div className="mx-4 mb-3 rounded-lg bg-bg px-3 py-2">{notizFeld(l)}</div>
                   </div>
                 </li>
@@ -348,7 +382,11 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
                         <span className="text-danger">ausgeblendet</span>
                       ) : (
                         <>
-                          {l.telefon ?? "–"}
+                          <span className="flex items-center gap-2">
+                            {l.telefon ?? "–"}
+                            {waKnopf(l)}
+                          </span>
+                          {waHinweis(l.id)}
                           {l.einwilligung_wie ? null : (
                             <span className="block text-xs text-amber-800">kein Anruf – Besuch/Brief</span>
                           )}

@@ -207,6 +207,7 @@ function vorlageLesen(fd: FormData) {
     betreff: text(fd, "betreff", 200),
     text: text(fd, "text", 4000),
     reihenfolge: Number(text(fd, "reihenfolge", 5)) || 0,
+    kanal: text(fd, "kanal", 10) === "whatsapp" ? ("whatsapp" as const) : ("email" as const),
   };
 }
 
@@ -214,6 +215,7 @@ export async function vorlageSpeichern(fd: FormData) {
   await nurAdmin();
   const id = text(fd, "id", 50);
   const v = vorlageLesen(fd);
+  if (v.kanal === "whatsapp" && !v.betreff) v.betreff = "-";
   if (!v.titel || !v.betreff || !v.text) zurueck("vorlagen", "Titel, Betreff und Text dürfen nicht leer sein.");
   const supabase = await createClient();
   const { error } = id
