@@ -176,9 +176,9 @@ async function overpass(q: string, headers: Record<string, string>, budgetMs: nu
         continue;
       }
       const j = (await r.json()) as { elements?: OsmElement[]; remark?: string };
-      // Overpass meldet eine Zeitüberschreitung manchmal mit Status 200 und einem Hinweis
-      if (j.remark && /timed out|out of memory/i.test(j.remark) && !(j.elements ?? []).length) {
-        fehler.push(`${host} Zeitüberschreitung`);
+      // Überlastete Server antworten oft mit Status 200, leerer Liste und einem Hinweis – das ist kein „0 Treffer“
+      if (j.remark && !(j.elements ?? []).length && /error|busy|timed out|memory|too many/i.test(j.remark)) {
+        fehler.push(`${host} überlastet`);
         continue;
       }
       return j.elements ?? [];
@@ -190,12 +190,24 @@ async function overpass(q: string, headers: Record<string, string>, budgetMs: nu
   throw new SuchFehler(`OpenStreetMap nicht erreichbar (${fehler.join(", ") || "Zeitlimit"})`);
 }
 
+/** Wie viele Betriebe dieser Branchen gibt es im Gebiet insgesamt (mit und ohne Website)? */
+async function zaehlen(areaId: number, gruppen: string[], headers: Record<string, string>, budgetMs: number): Promise<number | null> {
+  const teile = gruppen.flatMap((g) => (GRUPPEN[g] ?? []).map((sel) => `nwr${sel}["name"](area.a);`));
+  try {
+    const el = await overpass(`[out:json][timeout:25];area(${areaId})->.a;(${teile.join("")});out count;`, headers, budgetMs);
+    const t = el.find((e) => e.type === "count")?.tags?.total;
+    return t !== undefined && Number.isFinite(Number(t)) ? Number(t) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Betriebe ohne Website-Eintrag in OSM – noch ohne Abgleich mit dem CRM */
 export async function funde(
   areaId: number,
   gruppen: string[],
   opts: { headers?: Record<string, string>; budgetMs?: number } = {},
-): Promise<{ liste: Fund[]; limit: boolean }> {
+): Promise<{ liste: Fund[]; limit: boolean; gesamt?: number | null }> {
   const elemente = await overpass(abfrage(areaId, gruppen), opts.headers ?? {}, opts.budgetMs ?? 30_000);
   const liste = elemente
     .filter((e) => e.tags?.name)
@@ -219,5 +231,6 @@ export async function funde(
         vorhanden: false,
       };
     });
-  return { liste, limit: elemente.length >= MAX_FUNDE };
+  const gesamt = liste.length === 0 ? await zaehlen(areaId, gruppen, opts.headers ?? {}, opts.budgetMs ?? 30_000) : undefined;
+  return { liste, limit: elemente.length >= MAX_FUNDE, gesamt };
 }

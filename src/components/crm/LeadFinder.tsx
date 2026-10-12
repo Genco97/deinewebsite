@@ -43,15 +43,16 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
         // Erst direkt vom Handy; klappt das nicht, dieselbe Abfrage über den Server
         let liste: Fund[];
         let limit: boolean;
+        let gesamt: number | null | undefined;
         try {
-          ({ liste, limit } = await osmFunde(g.areaId, gruppen));
+          ({ liste, limit, gesamt } = await osmFunde(g.areaId, gruppen));
         } catch (e1) {
           const s = await fundeVomServer(g.areaId, gruppen);
           if (!s.ok) {
             const vomBrowser = e1 instanceof Error ? e1.message : "Fehler";
             throw new SuchFehler(`Handy: ${vomBrowser} – Server: ${s.meldung}`);
           }
-          ({ liste, limit } = s);
+          ({ liste, limit, gesamt } = s);
         }
         const gesehen = new Set<string>();
         const gefiltert = liste.filter((f) => {
@@ -73,7 +74,17 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
         setGebiet(g.name);
         // Vorausgewählt: alles, was es im CRM noch nicht gibt
         setGewaehlt(new Set(ergebnis.filter((f) => !f.vorhanden).map((f) => f.key)));
-        const text = `${ergebnis.length} Betriebe ohne Website-Eintrag gefunden.`;
+        const kurz = g.name.split(",").slice(0, 2).join(",");
+        let text = `${ergebnis.length} Betriebe ohne Website-Eintrag gefunden (Gebiet: ${kurz}).`;
+        if (liste.length === 0 && gesamt === 0) {
+          text = `Im Gebiet „${kurz}“ kennt OpenStreetMap keinen Betrieb dieser Branchen. Wahrscheinlich ist das Gebiet falsch oder zu klein – probier „${suchort}, Österreich“ oder eine größere Gemeinde.`;
+        } else if (liste.length === 0 && gesamt) {
+          text = `Im Gebiet „${kurz}“ gibt es ${gesamt} Betriebe dieser Branchen, aber bei allen ist in OpenStreetMap eine Website eingetragen. Probier weitere Branchen oder einen anderen Ort.`;
+        } else if (liste.length === 0) {
+          text = `Im Gebiet „${kurz}“ habe ich keine Betriebe ohne Website-Eintrag gefunden. Probier weitere Branchen oder einen anderen Ort.`;
+        } else if (ergebnis.length === 0) {
+          text = `${liste.length} Betriebe ohne Website-Eintrag gefunden, aber keiner passt zu deinen Haken (Telefonnummer / Social). Nimm die Haken weg.`;
+        }
         setMeldung({ art: "info", text: limit ? `${text} Das Limit ist erreicht – such für mehr einzelne Bezirke.` : text });
       } catch (e) {
         setFunde([]);
