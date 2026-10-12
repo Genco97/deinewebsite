@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { fundeAbgleichen, fundeImportieren, fundeVomServer } from "@/app/crm/leadfinder/actions";
+import { fundeAbgleichen, fundeImportieren, fundePruefen, fundeVomServer } from "@/app/crm/leadfinder/actions";
 import { Hinweis, Input, Karte, Select, buttonClass } from "@/components/ui";
 import type { Person } from "@/lib/crm";
 import { GRUPPEN_NAMEN, type Fund } from "@/lib/leadfinder-gruppen";
 import { SuchFehler, funde as osmFunde, gebietSuchen } from "@/lib/leadfinder-suche";
+
+/** Sortierung nach der Prüfung: qualifiziert zuerst, dann unklar/ungeprüft, dann ausgeschieden */
+const rang = (f: Fund) => (f.pruefung === "keine" ? 0 : f.pruefung === "unklar" ? 1 : !f.pruefung ? 2 : 3);
 
 export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: string }) {
   const [ort, setOrt] = useState("Wien");
@@ -19,8 +22,14 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
   const [meldung, setMeldung] = useState<{ art: "ok" | "fehler" | "info"; text: string } | null>(null);
   const [sucht, sucheStarten] = useTransition();
   const [importiert, importStarten] = useTransition();
+  const [prueft, pruefStarten] = useTransition();
+  const [fortschritt, setFortschritt] = useState("");
 
   const neue = funde.filter((f) => !f.vorhanden);
+  // Nur Betriebe, die Google als „ohne Website“ bestätigt hat, sind qualifiziert
+  const ungeprueft = funde.filter((f) => !f.vorhanden && !f.pruefung);
+  const qualifiziert = funde.filter((f) => !f.vorhanden && f.pruefung === "keine");
+  const wahlbar = (f: Fund) => !f.vorhanden && f.pruefung !== "hat" && f.pruefung !== "geschlossen";
 
   function umschalten(name: string) {
     setGruppen((g) => (g.includes(name) ? g.filter((x) => x !== name) : [...g, name]));
@@ -75,10 +84,10 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
           );
         setFunde(ergebnis);
         setGebiet(g.name);
-        // Vorausgewählt: alles, was es im CRM noch nicht gibt
-        setGewaehlt(new Set(ergebnis.filter((f) => !f.vorhanden).map((f) => f.key)));
+        // Nichts vorausgewählt: qualifiziert ist erst, was die Google-Prüfung bestätigt
+        setGewaehlt(new Set());
         const kurz = g.name.split(",").slice(0, 2).join(",");
-        let text = `${ergebnis.length} Betriebe ohne Website-Eintrag gefunden (Gebiet: ${kurz}).`;
+        let text = `${ergebnis.length} Betriebe ohne Website-Eintrag in OpenStreetMap gefunden (Gebiet: ${kurz}). Klick auf „Auf Website prüfen“, damit Google bestätigt, ob sie wirklich keine haben.`;
         if (liste.length === 0 && gesamt === 0) {
           text = `Im Gebiet „${kurz}“ kennt OpenStreetMap keinen Betrieb dieser Branchen. Wahrscheinlich ist das Gebiet falsch oder zu klein – probier „${suchort}, Österreich“ oder eine größere Gemeinde.`;
         } else if (liste.length === 0 && gesamt) {
@@ -122,8 +131,53 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
     });
   }
 
+  function pruefen() {
+    const offen = funde.filter((f) => !f.vorhanden && !f.pruefung);
+    if (offen.length === 0) return;
+    setMeldung(null);
+    pruefStarten(async () => {
+      let fertig = 0;
+      let stopp: string | undefined;
+      for (let i = 0; i < offen.length && !stopp; i += 25) {
+        setFortschritt(`Google-Prüfung: ${fertig} von ${offen.length} …`);
+        const block = offen.slice(i, i + 25).map(({ key, firma, adresse, bezirk, lat, lng }) => ({ key, firma, adresse, bezirk, lat, lng }));
+        const r = await fundePruefen(block);
+        if (!r.ok) {
+          stopp = r.meldung;
+          break;
+        }
+        if (r.meldung) stopp = r.meldung;
+        const nach = new Map(r.ergebnisse.map((e) => [e.key, e]));
+        fertig += block.length;
+        setFunde((l) =>
+          l.map((f) => {
+            const e = nach.get(f.key);
+            return e ? { ...f, pruefung: e.status, website: e.website, telefon: f.telefon || e.telefon || "" } : f;
+          }),
+        );
+        // Auswahl nachführen: nur „keine Website“ bleibt/wird gewählt, „unklar“ nur auf Wunsch
+        setGewaehlt((g) => {
+          const n = new Set(g);
+          for (const e of r.ergebnisse) {
+            if (e.status === "keine") n.add(e.key);
+            else n.delete(e.key);
+          }
+          return n;
+        });
+      }
+      setFortschritt("");
+      setFunde((l) => [...l].sort((a, c) => Number(a.vorhanden) - Number(c.vorhanden) || rang(a) - rang(c)));
+      setMeldung(
+        stopp
+          ? { art: "fehler", text: `Die Prüfung wurde abgebrochen: ${stopp}` }
+          : { art: "ok", text: "Prüfung fertig. Vorausgewählt sind nur Betriebe, die bei Google keine Website haben." },
+      );
+    });
+  }
+
   function alleUmschalten() {
-    setGewaehlt(gewaehlt.size === neue.length ? new Set() : new Set(neue.map((f) => f.key)));
+    const frei = neue.filter(wahlbar);
+    setGewaehlt(gewaehlt.size === frei.length ? new Set() : new Set(frei.map((f) => f.key)));
   }
 
   function eintragUmschalten(key: string) {
@@ -178,7 +232,7 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
           </label>
         </div>
 
-        <button type="button" onClick={suchen} disabled={sucht || importiert} className={buttonClass("primary", "w-full sm:w-auto")}>
+        <button type="button" onClick={suchen} disabled={sucht || importiert || prueft} className={buttonClass("primary", "w-full sm:w-auto")}>
           {sucht ? "Suche läuft …" : "Leads suchen"}
         </button>
         {sucht && <p className="text-sm text-muted">Das kann bis zu einer Minute dauern.</p>}
@@ -191,6 +245,9 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
           <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="font-bold text-ink">{funde.length} Treffer</h2>
+              <p className="text-sm text-muted">
+                {qualifiziert.length} qualifiziert (bei Google keine Website) · {ungeprueft.length} noch ungeprüft
+              </p>
               {gebiet && <p className="line-clamp-1 text-xs text-muted">{gebiet}</p>}
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -205,8 +262,16 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
               )}
               <button
                 type="button"
+                onClick={pruefen}
+                disabled={prueft || importiert || sucht || ungeprueft.length === 0}
+                className={buttonClass("secondary")}
+              >
+                {prueft ? fortschritt || "Prüfe …" : `Auf Website prüfen (${ungeprueft.length} Google-Abfragen)`}
+              </button>
+              <button
+                type="button"
                 onClick={uebernehmen}
-                disabled={importiert || sucht || gewaehlt.size === 0}
+                disabled={importiert || sucht || prueft || gewaehlt.size === 0}
                 className={buttonClass("primary")}
               >
                 {importiert ? "Übernehme …" : `${gewaehlt.size} als Leads übernehmen`}
@@ -218,11 +283,11 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
             <label className="mb-2 flex min-h-11 cursor-pointer items-center gap-2 text-sm font-medium text-ink">
               <input
                 type="checkbox"
-                checked={gewaehlt.size === neue.length}
+                checked={gewaehlt.size > 0 && gewaehlt.size === neue.filter(wahlbar).length}
                 onChange={alleUmschalten}
                 className="h-4 w-4 accent-brand"
               />
-              Alle neuen auswählen
+              Alle möglichen auswählen
             </label>
           )}
 
@@ -230,10 +295,10 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
             {funde.map((f) => {
               const google = `https://www.google.com/search?q=${encodeURIComponent(`${f.firma} ${f.adresse || f.bezirk || ort}`)}`;
               return (
-                <li key={f.key} className={`flex items-start gap-3 py-3 ${f.vorhanden ? "opacity-60" : ""}`}>
+                <li key={f.key} className={`flex items-start gap-3 py-3 ${!wahlbar(f) ? "opacity-60" : ""}`}>
                   <input
                     type="checkbox"
-                    disabled={f.vorhanden}
+                    disabled={!wahlbar(f)}
                     checked={gewaehlt.has(f.key)}
                     onChange={() => eintragUmschalten(f.key)}
                     aria-label={`${f.firma} auswählen`}
@@ -243,6 +308,16 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
                     <p className="font-semibold text-ink">
                       {f.firma}
                       {f.vorhanden && <span className="ml-2 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-muted">schon im CRM</span>}
+                      {f.pruefung === "keine" && <span className="ml-2 rounded-full bg-ok-light px-2 py-0.5 text-xs font-medium text-ok">✓ keine Website</span>}
+                      {f.pruefung === "hat" && (
+                        <span className="ml-2 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-muted">hat Website</span>
+                      )}
+                      {f.pruefung === "geschlossen" && (
+                        <span className="ml-2 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-muted">geschlossen</span>
+                      )}
+                      {f.pruefung === "unklar" && (
+                        <span className="ml-2 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-muted">bei Google unklar</span>
+                      )}
                       {f.social && <span className="ml-2 rounded-full bg-ok-light px-2 py-0.5 text-xs font-medium text-ok">Social vorhanden</span>}
                     </p>
                     <p className="text-sm text-muted">
@@ -266,7 +341,8 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
       )}
 
       <p className="text-sm text-muted">
-        „Keine Website in OpenStreetMap“ heißt nicht automatisch „hat keine Website“ – darum der Google-Check. Übernommene
+        Qualifiziert ist ein Lead erst, wenn der Google-Check „keine Website“ bestätigt. Bis dahin heißt „keine Website in
+        OpenStreetMap“ nur, dass dort keine eingetragen ist. Übernommene
         Leads haben keine Einwilligung: Anrufe und E-Mails sind erst nach Einwilligung erlaubt (§ 174 TKG), bis dahin
         persönlicher Besuch oder Brief.
       </p>
