@@ -2,6 +2,8 @@ import { GRUPPEN, type Fund } from "@/lib/leadfinder-gruppen";
 
 const OVERPASS = [
   "https://overpass-api.de/api/interpreter",
+  "https://lz4.overpass-api.de/api/interpreter",
+  "https://z.overpass-api.de/api/interpreter",
   "https://overpass.private.coffee/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
   "https://overpass.openstreetmap.fr/api/interpreter",
@@ -185,6 +187,54 @@ type Zustand = { schlecht: Set<string>; gut?: string };
  * Fragt die Overpass-Server nacheinander. Eine leere Liste glaubt sie nicht sofort (manche Server
  * liefern bei Überlast oder ohne Gebietsindex leer statt Fehler) – erst wenn kein Server etwas findet, gilt „leer“.
  */
+type Antwort =
+  | { art: "ok"; host: string; elemente: OsmElement[] }
+  | { art: "leer"; host: string }
+  | { art: "fehler"; host: string; text: string };
+
+/** Eine Anfrage an einen Server; bricht ab, wenn `alle` abgebrochen wird oder die Zeit um ist */
+async function versuch(
+  ep: string,
+  q: string,
+  headers: Record<string, string>,
+  ende: number,
+  leerPruefen: boolean,
+  alle: AbortController,
+): Promise<Antwort> {
+  const host = new URL(ep).host;
+  const ctl = new AbortController();
+  const stopp = () => ctl.abort();
+  alle.signal.addEventListener("abort", stopp);
+  const timer = setTimeout(stopp, Math.max(1_000, Math.min(20_000, ende - Date.now())));
+  try {
+    const r = await fetch(ep, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", ...headers },
+      body: "data=" + encodeURIComponent(q),
+      signal: ctl.signal,
+      cache: "no-store",
+    });
+    if (!r.ok) return { art: "fehler", host, text: `${host} ${r.status}` };
+    const j = (await r.json()) as { elements?: OsmElement[]; remark?: string };
+    const el = j.elements ?? [];
+    // Überlastete Server antworten oft mit Status 200, leerer Liste und einem Hinweis – das ist kein „0 Treffer“
+    if (j.remark && !el.length && /error|busy|timed out|memory|too many/i.test(j.remark)) return { art: "fehler", host, text: `${host} überlastet` };
+    if (!el.length && leerPruefen) return { art: "leer", host };
+    return { art: "ok", host, elemente: el };
+  } catch (e) {
+    return { art: "fehler", host, text: `${host} ${grund(e)}` };
+  } finally {
+    clearTimeout(timer);
+    alle.signal.removeEventListener("abort", stopp);
+  }
+}
+
+/**
+ * Fragt die Overpass-Server gestaffelt: Antwortet der erste nicht binnen 4 s, startet der nächste
+ * (der erste läuft weiter) – wer zuerst brauchbar antwortet, gewinnt, die anderen werden abgebrochen.
+ * Eine leere Liste glaubt sie nicht sofort (manche Server liefern bei Überlast leer statt Fehler) –
+ * erst wenn kein Server etwas findet, gilt „leer“.
+ */
 async function overpass(
   q: string,
   headers: Record<string, string>,
@@ -198,41 +248,41 @@ async function overpass(
   let reihe = [...OVERPASS].sort((a, b) => Number(new URL(b).host === z.gut) - Number(new URL(a).host === z.gut));
   if (reihe.every((ep) => z.schlecht.has(new URL(ep).host))) z.schlecht.clear();
   reihe = reihe.filter((ep) => !z.schlecht.has(new URL(ep).host));
-  for (const ep of reihe) {
-    const rest = ende - Date.now();
-    if (rest < 3_000) break;
-    const host = new URL(ep).host;
-    try {
-      const r = await fetch(ep, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded", ...headers },
-        body: "data=" + encodeURIComponent(q),
-        signal: AbortSignal.timeout(Math.min(20_000, rest)),
-        cache: "no-store",
-      });
-      if (!r.ok) {
-        fehler.push(`${host} ${r.status}`);
-        z.schlecht.add(host);
+
+  const alle = new AbortController();
+  const aktiv = new Set<Promise<Antwort>>();
+  let naechster = 0;
+  const starten = () => {
+    if (naechster >= reihe.length || ende - Date.now() < 3_000) return;
+    const p: Promise<Antwort> = versuch(reihe[naechster++], q, headers, ende, leerPruefen, alle).then((a) => {
+      aktiv.delete(p);
+      return a;
+    });
+    aktiv.add(p);
+  };
+
+  starten();
+  try {
+    while (aktiv.size > 0) {
+      const warten = new Promise<null>((res) => setTimeout(() => res(null), 4_000));
+      const a = await Promise.race([...aktiv, warten]);
+      if (a === null) {
+        starten(); // der Erste ist langsam – den Nächsten dazunehmen
         continue;
       }
-      const j = (await r.json()) as { elements?: OsmElement[]; remark?: string };
-      const el = j.elements ?? [];
-      // Überlastete Server antworten oft mit Status 200, leerer Liste und einem Hinweis – das ist kein „0 Treffer“
-      if (j.remark && !el.length && /error|busy|timed out|memory|too many/i.test(j.remark)) {
-        fehler.push(`${host} überlastet`);
-        z.schlecht.add(host);
-        continue;
+      if (a.art === "ok") {
+        z.gut = a.host;
+        return { elemente: a.elemente, server: a.host };
       }
-      if (!el.length && leerPruefen) {
-        leerVon ??= host;
-        continue;
+      if (a.art === "leer") leerVon ??= a.host;
+      else {
+        fehler.push(a.text);
+        z.schlecht.add(a.host);
       }
-      z.gut = host;
-      return { elemente: el, server: host };
-    } catch (e) {
-      fehler.push(`${host} ${grund(e)}`);
-      z.schlecht.add(host);
+      starten();
     }
+  } finally {
+    alle.abort();
   }
   if (leerVon) return { elemente: [], server: leerVon };
   console.error("[leadfinder] Overpass", fehler);
