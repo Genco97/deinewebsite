@@ -7,7 +7,6 @@ const OVERPASS = [
   "https://overpass.private.coffee/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
   "https://overpass.openstreetmap.fr/api/interpreter",
-  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
 ];
 export const MAX_FUNDE = 800;
 
@@ -241,9 +240,11 @@ async function overpass(
   ende: number,
   leerPruefen: boolean,
   z: Zustand = { schlecht: new Set() },
+  einig = 2,
 ): Promise<{ elemente: OsmElement[]; server: string }> {
   const fehler: string[] = [];
   let leerVon: string | null = null;
+  let leerAnzahl = 0;
   // Zuletzt guten Server zuerst, schon versagende überspringen (sind alle durch, von vorn)
   let reihe = [...OVERPASS].sort((a, b) => Number(new URL(b).host === z.gut) - Number(new URL(a).host === z.gut));
   if (reihe.every((ep) => z.schlecht.has(new URL(ep).host))) z.schlecht.clear();
@@ -274,8 +275,12 @@ async function overpass(
         z.gut = a.host;
         return { elemente: a.elemente, server: a.host };
       }
-      if (a.art === "leer") leerVon ??= a.host;
-      else {
+      if (a.art === "leer") {
+        leerVon ??= a.host;
+        leerAnzahl++;
+        // Zwei Server sind sich einig: wirklich leer
+        if (leerAnzahl >= einig) return { elemente: [], server: a.host };
+      } else {
         fehler.push(a.text);
         z.schlecht.add(a.host);
       }
@@ -284,7 +289,13 @@ async function overpass(
   } finally {
     alle.abort();
   }
-  if (leerVon) return { elemente: [], server: leerVon };
+  if (leerVon) {
+    // Meldet nur ein einziger Server „leer“, während die anderen ausfielen, ist das keine verlässliche Antwort
+    if (leerAnzahl < 2 && fehler.length > 0) {
+      throw new SuchFehler(`Nur ${leerVon} hat geantwortet und meldet keine Treffer – das ist unsicher, weil die anderen Server ausfielen (${fehler.join(", ")})`);
+    }
+    return { elemente: [], server: leerVon };
+  }
   console.error("[leadfinder] Overpass", fehler);
   throw new SuchFehler(`OpenStreetMap nicht erreichbar (${fehler.join(", ") || "Zeitlimit"})`);
 }
@@ -332,7 +343,7 @@ async function sammeln(
     const nochOffen: string[] = [];
     for (const g of liste) {
       try {
-        const r = await overpass(abfrage(areaId, [g], bbox), headers, ende, false, z);
+        const r = await overpass(abfrage(areaId, [g], bbox), headers, ende, true, z);
         server = r.server;
         for (const e of r.elemente) alle.set(`${e.type}/${e.id}`, e);
       } catch (e) {
@@ -367,7 +378,7 @@ export async function funde(
     // Nichts gefunden: nicht gleich glauben. Manche Server liefern bei Überlast oder ohne Gebietsindex „leer“.
     // Darum einmal die gesamte Abfrage bei mehreren Servern gegenprüfen …
     try {
-      const r = await overpass(abfrage(areaId, gruppen), headers, ende, true, z);
+      const r = await overpass(abfrage(areaId, gruppen), headers, ende, true, z, 99);
       ({ elemente, server } = r);
     } catch {
       /* bleibt bei „leer“ */
@@ -375,7 +386,7 @@ export async function funde(
     // … und sonst über den Kartenausschnitt statt über das Gebiet suchen
     if (elemente.length === 0 && opts.bbox) {
       try {
-        const r2 = await overpass(abfrage(areaId, gruppen, opts.bbox), headers, ende, true, z);
+        const r2 = await overpass(abfrage(areaId, gruppen, opts.bbox), headers, ende, true, z, 99);
         if (r2.elemente.length > 0) {
           ({ elemente, server } = r2);
           ausschnitt = true;
