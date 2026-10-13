@@ -7,6 +7,22 @@ import type { Person } from "@/lib/crm";
 import { GRUPPEN_NAMEN, type Fund } from "@/lib/leadfinder-gruppen";
 import { SuchFehler, funde as osmFunde, gebietSuchen } from "@/lib/leadfinder-suche";
 
+type Reiter = "qualifiziert" | "unklar" | "offen" | "raus";
+const REITER: { id: Reiter; name: string }[] = [
+  { id: "qualifiziert", name: "Qualifiziert" },
+  { id: "unklar", name: "Unklar" },
+  { id: "offen", name: "Offen" },
+  { id: "raus", name: "Raus" },
+];
+const reiterVon = (f: Fund): Reiter =>
+  f.vorhanden || f.pruefung === "hat" || f.pruefung === "geschlossen"
+    ? "raus"
+    : f.pruefung === "keine"
+      ? "qualifiziert"
+      : f.pruefung === "unklar"
+        ? "unklar"
+        : "offen";
+
 /** Sortierung nach der Prüfung: qualifiziert zuerst, dann unklar/ungeprüft, dann ausgeschieden */
 const rang = (f: Fund) => (f.pruefung === "keine" ? 0 : f.pruefung === "unklar" ? 1 : !f.pruefung ? 2 : 3);
 
@@ -25,11 +41,13 @@ export function LeadFinder({ personen, ichId, stand: start }: { personen: Person
   const [importiert, importStarten] = useTransition();
   const [prueft, pruefStarten] = useTransition();
   const [fortschritt, setFortschritt] = useState("");
+  const [reiter, setReiter] = useState<Reiter>("offen");
+  const [filterAuf, setFilterAuf] = useState(true);
 
-  const neue = funde.filter((f) => !f.vorhanden);
   // Nur Betriebe, die Google als „ohne Website“ bestätigt hat, sind qualifiziert
   const ungeprueft = funde.filter((f) => !f.vorhanden && !f.pruefung);
-  const qualifiziert = funde.filter((f) => !f.vorhanden && f.pruefung === "keine");
+  const proReiter = (id: Reiter) => funde.filter((f) => reiterVon(f) === id);
+  const sichtbar = proReiter(reiter);
   const wahlbar = (f: Fund) => !f.vorhanden && f.pruefung !== "hat" && f.pruefung !== "geschlossen";
 
   function umschalten(name: string) {
@@ -87,6 +105,8 @@ export function LeadFinder({ personen, ichId, stand: start }: { personen: Person
         setGebiet(g.name);
         // Nichts vorausgewählt: qualifiziert ist erst, was die Google-Prüfung bestätigt
         setGewaehlt(new Set());
+        setReiter("offen");
+        setFilterAuf(ergebnis.length === 0);
         const kurz = g.name.split(",").slice(0, 2).join(",");
         let text = `${ergebnis.length} Betriebe ohne Website-Eintrag in OpenStreetMap gefunden (Gebiet: ${kurz}). Klick auf „Auf Website prüfen“, damit Google bestätigt, ob sie wirklich keine haben.`;
         if (liste.length === 0 && gesamt === 0) {
@@ -169,6 +189,7 @@ export function LeadFinder({ personen, ichId, stand: start }: { personen: Person
         });
       }
       setFortschritt("");
+      setReiter("qualifiziert");
       setFunde((l) => [...l].sort((a, c) => Number(a.vorhanden) - Number(c.vorhanden) || rang(a) - rang(c)));
       setMeldung(
         stopp
@@ -179,8 +200,16 @@ export function LeadFinder({ personen, ichId, stand: start }: { personen: Person
   }
 
   function alleUmschalten() {
-    const frei = neue.filter(wahlbar);
-    setGewaehlt(gewaehlt.size === frei.length ? new Set() : new Set(frei.map((f) => f.key)));
+    const frei = sichtbar.filter(wahlbar);
+    const alleDa = frei.length > 0 && frei.every((f) => gewaehlt.has(f.key));
+    setGewaehlt((g) => {
+      const n = new Set(g);
+      for (const f of frei) {
+        if (alleDa) n.delete(f.key);
+        else n.add(f.key);
+      }
+      return n;
+    });
   }
 
   function eintragUmschalten(key: string) {
@@ -192,74 +221,145 @@ export function LeadFinder({ personen, ichId, stand: start }: { personen: Person
     });
   }
 
+  const gewaehltAnzahl = gewaehlt.size;
+  const badge = (f: Fund) => {
+    const basis = "inline-flex w-fit items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold";
+    if (f.vorhanden) return <span className={`${basis} bg-stone-100 text-muted`}>schon im CRM</span>;
+    if (f.pruefung === "keine") return <span className={`${basis} bg-ok-light text-ok`}>✓ keine Website</span>;
+    if (f.pruefung === "hat") return <span className={`${basis} bg-stone-100 text-muted`}>hat Website</span>;
+    if (f.pruefung === "geschlossen") return <span className={`${basis} bg-stone-100 text-muted`}>geschlossen</span>;
+    if (f.pruefung === "unklar") return <span className={`${basis} bg-amber-50 text-amber-800`}>bei Google unklar</span>;
+    return <span className={`${basis} bg-stone-100 text-muted`}>noch ungeprüft</span>;
+  };
+  const spalten = "md:grid md:grid-cols-[36px_minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,2fr)_minmax(0,1.4fr)_minmax(0,1.5fr)_110px] md:items-center md:gap-3";
+  const anteil = Math.min(100, Math.round((stand.benutzt / Math.max(1, stand.limit)) * 100));
+  const chip = "flex min-h-11 cursor-pointer items-center gap-2 rounded-full border px-3.5 text-sm transition-colors focus-within:ring-2 focus-within:ring-brand/30";
+
   return (
-    <div className="space-y-5">
-      <Karte className="space-y-4 p-4 sm:p-5">
-        <div className="space-y-1.5">
-          <label htmlFor="ort" className="block text-sm font-semibold text-ink">
-            Ort
-          </label>
-          <Input
-            name="ort"
-            value={ort}
-            onChange={(e) => setOrt(e.target.value)}
-            placeholder="Wien, Neubau Wien, Graz, München, Zürich …"
-            maxLength={100}
-          />
-          <p className="text-sm text-muted">Stadt, Bezirk oder Gemeinde. Bei großen Städten lieber bezirksweise suchen.</p>
-        </div>
+    <div className={`space-y-3 ${funde.length > 0 ? "max-md:pb-24" : ""}`}>
+      {/* Suche: auf dem Handy nach der Suche zu einer Zeile eingeklappt */}
+      <Karte className="p-3 sm:p-4">
+        {funde.length > 0 && !filterAuf && (
+          <button
+            type="button"
+            onClick={() => setFilterAuf(true)}
+            className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-line bg-bg px-3 text-left text-sm md:hidden"
+          >
+            <span className="min-w-0 truncate font-semibold text-ink">
+              {gebiet ? gebiet.split(",")[0] : ort} <span className="font-normal text-muted">· {gruppen.length} Branchen</span>
+            </span>
+            <span className="shrink-0 font-semibold text-brand">Ändern</span>
+          </button>
+        )}
 
-        <fieldset>
-          <legend className="mb-1.5 text-sm font-semibold text-ink">Branchen</legend>
-          <div className="flex flex-wrap gap-2">
-            {GRUPPEN_NAMEN.map((g) => (
-              <label
-                key={g}
-                className="flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-line bg-surface px-3 text-sm"
-              >
-                <input type="checkbox" checked={gruppen.includes(g)} onChange={() => umschalten(g)} className="h-4 w-4 accent-brand" />
-                {g}
+        <div className={`${filterAuf || funde.length === 0 ? "block" : "hidden md:block"} space-y-3`}>
+          <div className="flex flex-col gap-3 md:flex-row md:items-end">
+            <div className="space-y-1.5 md:w-72 md:shrink-0">
+              <label htmlFor="ort" className="block text-sm font-semibold text-ink">
+                Ort
               </label>
-            ))}
+              <Input
+                name="ort"
+                value={ort}
+                onChange={(e) => setOrt(e.target.value)}
+                placeholder="Baden bei Wien, Österreich"
+                maxLength={100}
+              />
+            </div>
+            <fieldset className="min-w-0 flex-1">
+              <legend className="mb-1.5 flex w-full items-center justify-between text-sm font-semibold text-ink">
+                Branchen
+                <button
+                  type="button"
+                  onClick={() => setGruppen(gruppen.length === GRUPPEN_NAMEN.length ? [] : GRUPPEN_NAMEN)}
+                  className="inline-flex min-h-11 items-center text-sm font-semibold text-brand md:hidden"
+                >
+                  {gruppen.length === GRUPPEN_NAMEN.length ? "Alle abwählen" : "Alle wählen"}
+                </button>
+              </legend>
+              <div className="flex flex-wrap gap-2">
+                {GRUPPEN_NAMEN.map((g) => (
+                  <label
+                    key={g}
+                    className={`${chip} ${gruppen.includes(g) ? "border-brand bg-brand text-white" : "border-line bg-surface text-ink"} md:min-h-10`}
+                  >
+                    <input type="checkbox" checked={gruppen.includes(g)} onChange={() => umschalten(g)} className="sr-only" />
+                    {g}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <button
+              type="button"
+              onClick={suchen}
+              disabled={sucht || importiert || prueft}
+              className={buttonClass("primary", "w-full md:w-auto md:shrink-0")}
+            >
+              {sucht ? "Suche läuft …" : "Leads suchen"}
+            </button>
           </div>
-        </fieldset>
 
-        <div className="flex flex-wrap gap-2">
-          <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-line bg-surface px-3 text-sm">
-            <input type="checkbox" checked={nurTelefon} onChange={(e) => setNurTelefon(e.target.checked)} className="h-4 w-4 accent-brand" />
-            nur mit Telefonnummer
-          </label>
-          <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-line bg-surface px-3 text-sm">
-            <input type="checkbox" checked={ohneSocial} onChange={(e) => setOhneSocial(e.target.checked)} className="h-4 w-4 accent-brand" />
-            ohne Facebook/Instagram
-          </label>
+          <details className="group text-sm">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between border-t border-line pt-1 font-medium text-ink md:inline-flex md:min-h-9 md:gap-3 md:border-0 md:pt-0">
+              Weitere Filter
+              <span className="text-muted">{nurTelefon || ohneSocial ? "aktiv" : "keine aktiv"}</span>
+            </summary>
+            <div className="flex flex-wrap gap-2 pb-1 pt-1">
+              <label className={`${chip} ${nurTelefon ? "border-brand bg-brand-light text-brand" : "border-line bg-surface"}`}>
+                <input type="checkbox" checked={nurTelefon} onChange={(e) => setNurTelefon(e.target.checked)} className="h-4 w-4 accent-brand" />
+                nur mit Telefonnummer
+              </label>
+              <label className={`${chip} ${ohneSocial ? "border-brand bg-brand-light text-brand" : "border-line bg-surface"}`}>
+                <input type="checkbox" checked={ohneSocial} onChange={(e) => setOhneSocial(e.target.checked)} className="h-4 w-4 accent-brand" />
+                ohne Facebook/Instagram
+              </label>
+            </div>
+          </details>
+          {sucht && <p className="text-sm text-muted">Das kann bis zu einer Minute dauern.</p>}
         </div>
-
-        <button type="button" onClick={suchen} disabled={sucht || importiert || prueft} className={buttonClass("primary", "w-full sm:w-auto")}>
-          {sucht ? "Suche läuft …" : "Leads suchen"}
-        </button>
-        {sucht && <p className="text-sm text-muted">Das kann bis zu einer Minute dauern.</p>}
       </Karte>
 
-      <p className={`text-sm ${stand.rest <= 0 ? "font-semibold text-danger" : stand.rest <= stand.limit * 0.2 ? "font-semibold text-ink" : "text-muted"}`}>
-        Google-Prüfungen diesen Monat: {stand.benutzt} von {stand.limit}
-        {stand.rest <= 0 ? " – Limit erreicht, keine weiteren Prüfungen bis nächsten Monat." : ` – noch ${stand.rest} frei.`}
-      </p>
+      {/* Google-Zähler: schmaler Balken */}
+      <div className="flex items-center gap-3 px-1 text-sm">
+        <span className={`shrink-0 font-semibold ${stand.rest <= 0 ? "text-danger" : "text-ink"}`}>Google-Prüfungen</span>
+        <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-stone-200" role="img" aria-label={`${stand.benutzt} von ${stand.limit} benutzt`}>
+          <div className={`h-full rounded-full ${stand.rest <= stand.limit * 0.2 ? "bg-danger" : "bg-brand"}`} style={{ width: `${anteil}%` }} />
+        </div>
+        <span className="shrink-0 text-muted">
+          {stand.benutzt} / {stand.limit}
+        </span>
+      </div>
 
       {meldung && <Hinweis art={meldung.art === "info" ? "info" : meldung.art}>{meldung.text}</Hinweis>}
 
       {funde.length > 0 && (
-        <Karte className="p-4 sm:p-5">
-          <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="font-bold text-ink">{funde.length} Treffer</h2>
-              <p className="text-sm text-muted">
-                {qualifiziert.length} qualifiziert (bei Google keine Website) · {ungeprueft.length} noch ungeprüft
-              </p>
-              {gebiet && <p className="line-clamp-1 text-xs text-muted">{gebiet}</p>}
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              {personen.length > 1 && (
+        <Karte className="overflow-hidden">
+          {/* Reiter */}
+          <div className="flex border-b border-line px-1 md:px-3">
+            {REITER.map((r) => {
+              const n = proReiter(r.id).length;
+              const aktiv = reiter === r.id;
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => setReiter(r.id)}
+                  aria-pressed={aktiv}
+                  className={`flex min-h-11 flex-1 items-center justify-center gap-1.5 border-b-[3px] px-1 text-[13px] md:flex-none md:px-4 md:text-sm ${
+                    aktiv ? "border-brand font-bold text-brand" : "border-transparent font-medium text-muted"
+                  }`}
+                >
+                  {r.name}
+                  <span className={`rounded-full px-1.5 text-[11px] ${aktiv ? "bg-brand text-white" : "bg-stone-100 text-muted"}`}>{n}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Aktionen: am Handy feste Leiste unten, am Desktop über der Tabelle */}
+          <div className="max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-30 max-md:border-t max-md:border-line max-md:bg-surface max-md:p-3 max-md:shadow-[0_-6px_16px_rgba(31,41,55,0.08)] md:flex md:items-center md:justify-end md:gap-2 md:border-b md:border-line md:px-3 md:py-2">
+            {personen.length > 1 && (
+              <div className="hidden md:block">
                 <Select name="besitzer" value={besitzer} onChange={(e) => setBesitzer(e.target.value)} aria-label="Zuteilen an">
                   {personen.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -267,92 +367,103 @@ export function LeadFinder({ personen, ichId, stand: start }: { personen: Person
                     </option>
                   ))}
                 </Select>
-              )}
+              </div>
+            )}
+            <div className="flex gap-2">
               <button
                 type="button"
                 onClick={pruefen}
                 disabled={prueft || importiert || sucht || ungeprueft.length === 0 || stand.rest <= 0}
-                className={buttonClass("secondary")}
+                className={buttonClass("secondary", "flex-1 md:flex-none")}
               >
-                {prueft ? fortschritt || "Prüfe …" : `Auf Website prüfen (${Math.min(ungeprueft.length, stand.rest)} Google-Abfragen)`}
+                {prueft ? fortschritt || "Prüfe …" : `Prüfen (${Math.min(ungeprueft.length, stand.rest)})`}
               </button>
               <button
                 type="button"
                 onClick={uebernehmen}
-                disabled={importiert || sucht || prueft || gewaehlt.size === 0}
-                className={buttonClass("primary")}
+                disabled={importiert || sucht || prueft || gewaehltAnzahl === 0}
+                className={buttonClass("primary", "flex-[1.3] md:flex-none")}
               >
-                {importiert ? "Übernehme …" : `${gewaehlt.size} als Leads übernehmen`}
+                {importiert ? "Übernehme …" : `${gewaehltAnzahl} übernehmen`}
               </button>
             </div>
           </div>
 
-          {neue.length > 0 && (
-            <label className="mb-2 flex min-h-11 cursor-pointer items-center gap-2 text-sm font-medium text-ink">
-              <input
-                type="checkbox"
-                checked={gewaehlt.size > 0 && gewaehlt.size === neue.filter(wahlbar).length}
-                onChange={alleUmschalten}
-                className="h-4 w-4 accent-brand"
-              />
-              Alle möglichen auswählen
-            </label>
-          )}
+          {/* Tabellenkopf (nur Desktop) */}
+          <div className={`hidden border-b border-line bg-bg px-4 py-2 text-xs font-bold text-muted ${spalten}`}>
+            <input
+              type="checkbox"
+              checked={sichtbar.filter(wahlbar).length > 0 && sichtbar.filter(wahlbar).every((f) => gewaehlt.has(f.key))}
+              onChange={alleUmschalten}
+              aria-label="Alle auswählen"
+              className="h-[18px] w-[18px] accent-brand"
+            />
+            <span>Firma</span>
+            <span>Branche</span>
+            <span>Adresse</span>
+            <span>Telefon</span>
+            <span>Google-Check</span>
+            <span>Links</span>
+          </div>
 
-          <ul className="divide-y divide-line">
-            {funde.map((f) => {
-              const google = `https://www.google.com/search?q=${encodeURIComponent(`${f.firma} ${f.adresse || f.bezirk || ort}`)}`;
-              return (
-                <li key={f.key} className={`flex items-start gap-3 py-3 ${!wahlbar(f) ? "opacity-60" : ""}`}>
-                  <input
-                    type="checkbox"
-                    disabled={!wahlbar(f)}
-                    checked={gewaehlt.has(f.key)}
-                    onChange={() => eintragUmschalten(f.key)}
-                    aria-label={`${f.firma} auswählen`}
-                    className="mt-1.5 h-5 w-5 shrink-0 accent-brand"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-ink">
-                      {f.firma}
-                      {f.vorhanden && <span className="ml-2 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-muted">schon im CRM</span>}
-                      {f.pruefung === "keine" && <span className="ml-2 rounded-full bg-ok-light px-2 py-0.5 text-xs font-medium text-ok">✓ keine Website</span>}
-                      {f.pruefung === "hat" && (
-                        <span className="ml-2 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-muted">hat Website</span>
-                      )}
-                      {f.pruefung === "geschlossen" && (
-                        <span className="ml-2 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-muted">geschlossen</span>
-                      )}
-                      {f.pruefung === "unklar" && (
-                        <span className="ml-2 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-muted">bei Google unklar</span>
-                      )}
-                      {f.social && <span className="ml-2 rounded-full bg-ok-light px-2 py-0.5 text-xs font-medium text-ok">Social vorhanden</span>}
-                    </p>
-                    <p className="text-sm text-muted">
-                      {[f.branche, [f.adresse, f.bezirk].filter(Boolean).join(", ")].filter(Boolean).join(" · ")}
-                    </p>
-                    <p className="mt-1 flex flex-wrap items-center gap-x-4 text-sm">
-                      {f.telefon ? <span className="text-ink">{f.telefon}</span> : <span className="text-muted">keine Nummer</span>}
-                      <a href={google} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-brand hover:underline">
-                        Google prüfen
-                      </a>
-                      <a href={f.osm} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-brand hover:underline">
-                        OSM
-                      </a>
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          {sichtbar.length === 0 ? (
+            <p className="px-4 py-8 text-center text-sm text-muted">
+              {reiter === "qualifiziert"
+                ? "Noch nichts bestätigt – tipp auf „Prüfen“."
+                : reiter === "offen"
+                  ? "Alles geprüft."
+                  : "Hier ist nichts."}
+            </p>
+          ) : (
+            <ul className="divide-y divide-line">
+              {sichtbar.map((f) => {
+                const google = `https://www.google.com/search?q=${encodeURIComponent(`${f.firma} ${f.adresse || f.bezirk || ort}`)}`;
+                const adresse = [f.adresse, f.bezirk].filter(Boolean).join(", ");
+                return (
+                  <li key={f.key} className={`flex items-start gap-3 px-3 py-2.5 md:min-h-[46px] md:px-4 md:py-0 ${spalten} ${!wahlbar(f) ? "opacity-60" : ""}`}>
+                    <input
+                      type="checkbox"
+                      disabled={!wahlbar(f)}
+                      checked={gewaehlt.has(f.key)}
+                      onChange={() => eintragUmschalten(f.key)}
+                      aria-label={`${f.firma} auswählen`}
+                      className="mt-1 h-[22px] w-[22px] shrink-0 accent-brand md:mt-0 md:h-[18px] md:w-[18px]"
+                    />
+                    <div className="min-w-0 flex-1 md:contents">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="min-w-0 flex-1 truncate text-[15px] font-bold text-ink md:text-sm">{f.firma}</span>
+                        <span className="md:hidden">{badge(f)}</span>
+                        {f.social && <span className="hidden whitespace-nowrap rounded-full bg-ok-light px-2 py-0.5 text-xs font-semibold text-ok max-md:inline-flex">Social</span>}
+                      </div>
+                      <p className="truncate text-[13px] text-muted md:hidden">{[f.branche, adresse].filter(Boolean).join(" · ")}</p>
+                      <span className="hidden truncate text-sm text-muted md:block">{f.branche}</span>
+                      <span className="hidden truncate text-sm text-muted md:block">{adresse}</span>
+                      <div className="mt-0.5 flex items-center gap-4 text-[13px] md:contents">
+                        <span className={`flex-1 truncate md:flex-none md:text-sm ${f.telefon ? "font-medium text-ink" : "text-muted/70"}`}>
+                          {f.telefon || "keine Nummer"}
+                        </span>
+                        <span className="hidden md:block">{badge(f)}</span>
+                        <span className="flex items-center gap-4 text-[13px] font-semibold">
+                          <a href={google} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center text-brand hover:underline">
+                            Google
+                          </a>
+                          <a href={f.osm} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center text-brand hover:underline">
+                            OSM
+                          </a>
+                        </span>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </Karte>
       )}
 
-      <p className="text-sm text-muted">
-        Qualifiziert ist ein Lead erst, wenn der Google-Check „keine Website“ bestätigt. Bis dahin heißt „keine Website in
-        OpenStreetMap“ nur, dass dort keine eingetragen ist. Übernommene
-        Leads haben keine Einwilligung: Anrufe und E-Mails sind erst nach Einwilligung erlaubt (§ 174 TKG), bis dahin
-        persönlicher Besuch oder Brief.
+      <p className="px-1 text-xs leading-relaxed text-muted">
+        Qualifiziert ist ein Lead erst, wenn der Google-Check „keine Website“ bestätigt. Übernommene Leads haben keine Einwilligung:
+        Anrufe und E-Mails sind erst danach erlaubt (§ 174 TKG), bis dahin Besuch oder Brief.
       </p>
     </div>
   );
