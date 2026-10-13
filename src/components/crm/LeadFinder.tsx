@@ -10,7 +10,8 @@ import { SuchFehler, funde as osmFunde, gebietSuchen } from "@/lib/leadfinder-su
 /** Sortierung nach der Prüfung: qualifiziert zuerst, dann unklar/ungeprüft, dann ausgeschieden */
 const rang = (f: Fund) => (f.pruefung === "keine" ? 0 : f.pruefung === "unklar" ? 1 : !f.pruefung ? 2 : 3);
 
-export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: string }) {
+export function LeadFinder({ personen, ichId, stand: start }: { personen: Person[]; ichId: string; stand: { benutzt: number; limit: number; rest: number } }) {
+  const [stand, setStand] = useState(start);
   const [ort, setOrt] = useState("Wien");
   const [gruppen, setGruppen] = useState<string[]>(GRUPPEN_NAMEN);
   const [nurTelefon, setNurTelefon] = useState(false);
@@ -132,7 +133,8 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
   }
 
   function pruefen() {
-    const offen = funde.filter((f) => !f.vorhanden && !f.pruefung);
+    // Nie mehr abfragen, als das Monatslimit noch erlaubt
+    const offen = funde.filter((f) => !f.vorhanden && !f.pruefung).slice(0, stand.rest);
     if (offen.length === 0) return;
     setMeldung(null);
     pruefStarten(async () => {
@@ -142,6 +144,7 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
         setFortschritt(`Google-Prüfung: ${fertig} von ${offen.length} …`);
         const block = offen.slice(i, i + 25).map(({ key, firma, adresse, bezirk, lat, lng }) => ({ key, firma, adresse, bezirk, lat, lng }));
         const r = await fundePruefen(block);
+        if (r.stand) setStand(r.stand);
         if (!r.ok) {
           stopp = r.meldung;
           break;
@@ -238,6 +241,11 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
         {sucht && <p className="text-sm text-muted">Das kann bis zu einer Minute dauern.</p>}
       </Karte>
 
+      <p className={`text-sm ${stand.rest <= 0 ? "font-semibold text-danger" : stand.rest <= stand.limit * 0.2 ? "font-semibold text-ink" : "text-muted"}`}>
+        Google-Prüfungen diesen Monat: {stand.benutzt} von {stand.limit}
+        {stand.rest <= 0 ? " – Limit erreicht, keine weiteren Prüfungen bis nächsten Monat." : ` – noch ${stand.rest} frei.`}
+      </p>
+
       {meldung && <Hinweis art={meldung.art === "info" ? "info" : meldung.art}>{meldung.text}</Hinweis>}
 
       {funde.length > 0 && (
@@ -263,10 +271,10 @@ export function LeadFinder({ personen, ichId }: { personen: Person[]; ichId: str
               <button
                 type="button"
                 onClick={pruefen}
-                disabled={prueft || importiert || sucht || ungeprueft.length === 0}
+                disabled={prueft || importiert || sucht || ungeprueft.length === 0 || stand.rest <= 0}
                 className={buttonClass("secondary")}
               >
-                {prueft ? fortschritt || "Prüfe …" : `Auf Website prüfen (${ungeprueft.length} Google-Abfragen)`}
+                {prueft ? fortschritt || "Prüfe …" : `Auf Website prüfen (${Math.min(ungeprueft.length, stand.rest)} Google-Abfragen)`}
               </button>
               <button
                 type="button"
