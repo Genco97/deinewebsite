@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { nurLeadFinder } from "@/lib/crm";
 import { firmaNorm, telNorm } from "@/lib/leadfinder";
+import { pruefStand, type PruefStand } from "@/lib/google-stand";
 import { GoogleFehler, pruefeBetrieb, type Pruefung } from "@/lib/google-places";
 import { GRUPPEN_NAMEN, PRUEFSTATUS, type Fund } from "@/lib/leadfinder-gruppen";
 import { funde as osmFunde, type Bbox, type FundeErgebnis } from "@/lib/leadfinder-suche";
@@ -84,8 +85,10 @@ const PRUEF_BLOCK = 25;
 
 export async function fundePruefen(
   liste: Pick<Fund, "key" | "firma" | "adresse" | "bezirk" | "lat" | "lng">[],
-): Promise<{ ok: true; ergebnisse: Pruefung[]; meldung?: string } | { ok: false; meldung: string }> {
-  await nurLeadFinder();
+): Promise<{ ok: true; ergebnisse: Pruefung[]; stand: PruefStand; meldung?: string } | { ok: false; meldung: string; stand?: PruefStand }> {
+  const profil = await nurLeadFinder();
+  const supabase = await createClient();
+  const vorher = await pruefStand(supabase);
   const schluessel = process.env.GOOGLE_PLACES_API_KEY;
   if (!schluessel) {
     return {
@@ -94,11 +97,18 @@ export async function fundePruefen(
         "Es ist noch kein Google-Schlüssel hinterlegt. Lege bei Vercel die Variable GOOGLE_PLACES_API_KEY an an und deploye neu.",
     };
   }
-  if (!Array.isArray(liste) || liste.length === 0) return { ok: true, ergebnisse: [] };
+  if (!Array.isArray(liste) || liste.length === 0) return { ok: true, ergebnisse: [], stand: vorher };
+  if (vorher.rest <= 0) {
+    return {
+      ok: false,
+      stand: vorher,
+      meldung: `Das Monatslimit von ${vorher.limit} Prüfungen ist erreicht. Im nächsten Monat geht es weiter – oder erhöhe GOOGLE_PRUEFUNG_LIMIT bei Vercel, wenn du bewusst mehr ausgeben willst.`,
+    };
+  }
 
   const s = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "");
   const num = (v: unknown, min: number, max: number) => (typeof v === "number" && v >= min && v <= max ? v : null);
-  const arbeit = liste.slice(0, PRUEF_BLOCK).map((f) => ({
+  const arbeit = liste.slice(0, Math.min(PRUEF_BLOCK, vorher.rest)).map((f) => ({
     key: s(f?.key, 60),
     firma: s(f?.firma),
     adresse: s(f?.adresse),
@@ -126,8 +136,12 @@ export async function fundePruefen(
     }
   });
   await Promise.all(arbeiter);
-  if (abbruch && ergebnisse.length === 0) return { ok: false, meldung: abbruch };
-  return { ok: true, ergebnisse, meldung: abbruch };
+  // Jede beantwortete Abfrage zählt (auch „unklar“); Fehlversuche nicht
+  const gezaehlt = Math.min(ergebnisse.length, 1000);
+  if (gezaehlt > 0) await supabase.from("google_pruefungen").insert({ person_id: profil.id, anzahl: gezaehlt });
+  const stand = await pruefStand(supabase);
+  if (abbruch && ergebnisse.length === 0) return { ok: false, meldung: abbruch, stand };
+  return { ok: true, ergebnisse, stand, meldung: abbruch };
 }
 
 // ---------------------------------------------------------------------------
