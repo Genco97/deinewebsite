@@ -215,7 +215,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
                   ansprechpartner: lead.ansprechpartner,
                   telefon: lead.telefon,
                   erlaubt: anrufErlaubt || waZugestimmt,
-                  frage: status === "demo",
+                  frage: status !== "falsche_nummer",
                   website: website === "[Link einfügen]" ? undefined : website,
                 }}
                 daten={{ vorlagen: waVorlagen, site, meinName: platzhalter.mein_name }}

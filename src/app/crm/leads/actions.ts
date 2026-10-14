@@ -261,6 +261,7 @@ export async function einwilligungSetzen(fd: FormData) {
     .update({ einwilligung_wie: wie || null })
     .eq("id", id);
   revalidatePath(`/crm/leads/${id}`);
+  revalidatePath("/crm/leads");
   revalidatePath("/crm");
   if (error) redirect(`/crm/leads/${id}?fehler=${encodeURIComponent(fehlerText(error.message))}`);
 }
@@ -391,7 +392,7 @@ export async function whatsappGesendet(leadId: string, titel: string): Promise<{
 
 /**
  * Hält fest, dass der Lead mündlich zugestimmt hat, die Demo per WhatsApp zu bekommen.
- * Nur im Status „Demo“. Gilt nur für WhatsApp, Anruf und E-Mail bleiben ohne Einwilligung gesperrt.
+ * Gilt nur für WhatsApp, Anruf und E-Mail bleiben ohne Einwilligung gesperrt.
  */
 export async function whatsappZustimmung(leadId: string): Promise<{ ok: boolean; meldung?: string }> {
   const profil = await holeProfil();
@@ -399,13 +400,13 @@ export async function whatsappZustimmung(leadId: string): Promise<{ ok: boolean;
   const supabase = await createClient();
   const { data: lead } = await supabase.from("leads").select("id, status").eq("id", id).maybeSingle();
   if (!lead) return { ok: false, meldung: "Lead nicht gefunden." };
-  if (lead.status !== "demo") return { ok: false, meldung: "Das geht nur im Status „Demo“." };
+  if (lead.status === "nicht_anrufen" || lead.status === "falsche_nummer") return { ok: false, meldung: "Für diesen Lead ist keine Nachricht möglich." };
   const name = profil.name.trim() || profil.email;
   const { error } = await supabase.from("lead_verlauf").insert({
     lead_id: id,
     autor_id: profil.id,
     art: "system",
-    text: `WhatsApp-Zustimmung bestätigt (mündlich, Demo) von ${name}`,
+    text: `WhatsApp-Zustimmung bestätigt (mündlich im Gespräch) von ${name}`,
   });
   if (error) return { ok: false, meldung: "Konnte nicht eingetragen werden." };
   revalidatePath(`/crm/leads/${id}`);

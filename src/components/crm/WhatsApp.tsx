@@ -13,7 +13,7 @@ export type WaLead = {
   telefon: string | null;
   /** Einwilligung zu Anruf/Nachricht eingetragen? Ohne sie bleibt alles gesperrt (§ 174 TKG) */
   erlaubt: boolean;
-  /** Status „Demo“ ohne Einwilligung: vor dem ersten Senden einmal die mündliche Zustimmung bestätigen */
+  /** Ohne Einwilligung: vor dem ersten Senden einmal bestätigen, dass der Lead im Gespräch Ja zu WhatsApp gesagt hat */
   frage?: boolean;
   website?: string;
 };
@@ -63,7 +63,7 @@ export function WhatsAppInhalt({
         <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
           <p className="font-bold text-amber-900">Hat {lead.ansprechpartner || lead.firma} zugestimmt?</p>
           <p className="mt-1 text-sm text-amber-900">
-            Hat dir der Lead gesagt, dass du ihm die Demo per WhatsApp schicken darfst? Nur dann darfst du schreiben (§ 174 TKG). Ich halte es im Verlauf mit deinem
+            Hat der Lead im Gespräch Ja gesagt, dass du ihm per WhatsApp schreiben darfst? Nur dann darfst du schreiben (§ 174 TKG). Ich halte es im Verlauf mit deinem
             Namen und dem Datum fest.
           </p>
         </div>

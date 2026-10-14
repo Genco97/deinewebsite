@@ -7,16 +7,27 @@ import { StatusSchnell } from "@/components/crm/StatusSchnell";
 import { WhatsAppKnopf } from "@/components/crm/WhatsApp";
 import { ZuteilenLeiste } from "@/components/crm/ZuteilenLeiste";
 import { Hinweis, Karte, Select, buttonClass, inputClass } from "@/components/ui";
+import { EINWILLIGUNG_ARTEN } from "@/lib/einwilligung";
+import { einwilligungSetzen } from "./actions";
 import { aktivePersonen, holeProfil } from "@/lib/crm";
 import { ABGESCHLOSSEN, OFFEN_STATUS, istAnsicht, naechsteAktion, type Ansicht } from "@/lib/leadansicht";
 import { liegtSeit, schrittVorgabe } from "@/lib/schritt";
 import { LEAD_STATUS, STATUS_LABEL, istLeadStatus, type LeadStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
-import { datum, heuteWien, wienGrenzen } from "@/lib/zeit";
+import { datum, datumZeit, heuteWien, wienGrenzen } from "@/lib/zeit";
 
 export const metadata: Metadata = { title: "Leads" };
 
 const LIMIT = 200;
+
+const QUELLE_KURZ: Record<string, string> = {
+  manuell: "Manuell",
+  csv: "CSV",
+  leadfinder: "Lead Finder",
+  recherche: "Recherche",
+  meta: "Meta Ads",
+};
+const quelleKurz = (q: string) => (q.startsWith("anfrage:") ? "Website" : (QUELLE_KURZ[q] ?? q));
 
 export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
   const profil = await holeProfil();
@@ -76,7 +87,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
 
   let abfrage = supabase
     .from("leads")
-    .select("id, firma, ansprechpartner, branche, telefon, bezirk, status, status_seit, naechster_rueckruf, besuch_geplant, einwilligung_wie, besitzer:profiles!leads_besitzer_id_fkey(name)", {
+    .select("id, firma, ansprechpartner, branche, telefon, bezirk, quelle, status, status_seit, naechster_rueckruf, besuch_geplant, einwilligung_wie, besitzer:profiles!leads_besitzer_id_fkey(name)", {
       count: "exact",
     })
     .limit(LIMIT);
@@ -141,6 +152,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
     bezirk: string | null;
     status: LeadStatus;
     status_seit: string;
+    quelle: string;
     naechster_rueckruf: string | null;
     besuch_geplant: string | null;
     einwilligung_wie: string | null;
@@ -189,10 +201,10 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
   const site = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
   const meinName = profil.name.trim() || profil.email;
   const waKnopf = (l: { id: string; firma: string; ansprechpartner: string | null; telefon: string | null; status: string; einwilligung_wie: string | null }) =>
-    l.telefon && l.status !== "nicht_anrufen" ? (
+    l.telefon && l.status !== "nicht_anrufen" && l.status !== "falsche_nummer" ? (
       <WhatsAppKnopf
         symbol
-        lead={{ id: l.id, firma: l.firma, ansprechpartner: l.ansprechpartner, telefon: l.telefon, erlaubt: !!l.einwilligung_wie || waZustimmung.has(l.id), frage: l.status === "demo" }}
+        lead={{ id: l.id, firma: l.firma, ansprechpartner: l.ansprechpartner, telefon: l.telefon, erlaubt: !!l.einwilligung_wie || waZustimmung.has(l.id), frage: l.status !== "falsche_nummer" }}
         daten={{ vorlagen: waVorlagen, site, meinName }}
         anlass={l.status === "demo" ? "demo" : l.status === "nicht_erreicht" ? "nicht_erreicht" : "gespraech"}
       />
@@ -366,114 +378,102 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
       ) : null}
       {admin && leads.length > 0 ? <ZuteilenLeiste personen={personen} zurueck={hier} /> : null}
 
-      <Karte className="overflow-hidden">
-        {leads.length === 0 ? (
+      {leads.length === 0 ? (
+        <Karte>
           <p className="px-5 py-10 text-center text-muted">Keine Leads gefunden.</p>
-        ) : (
-          <>
-            {/* Mobil: Liste */}
-            <ul className="divide-y divide-line md:hidden">
-              {leads.map((l) => (
-                <li key={l.id} className="flex items-start">
-                  {admin ? (
-                    <label className="flex min-h-14 items-start py-3 pl-4">
-                      <span className="sr-only">{l.firma} markieren</span>
-                      <input type="checkbox" name="ids" value={l.id} form="zuteilen" className="mt-0.5 h-5 w-5 accent-brand" />
-                    </label>
-                  ) : null}
-                  <div className="min-w-0 flex-1">
-                  <Link href={`/crm/leads/${l.id}`} className="block px-4 pb-1 pt-3 hover:bg-bg">
-                    <span className="block font-semibold text-ink">{l.firma}</span>
-                    <span className="mt-0.5 block text-sm text-muted">
-                      {[l.branche, l.bezirk].filter(Boolean).join(" · ") || "–"}
-                    </span>
-                    {liegtSeit(l.status, l.status_seit, jetzt) ? (
-                      <span className="mt-0.5 block text-sm text-danger">Liegt seit {liegtSeit(l.status, l.status_seit, jetzt)} Tagen</span>
-                    ) : null}
-                    {admin && l.besitzer ? <span className="mt-0.5 block text-xs text-muted">Bei: {l.besitzer.name}</span> : null}
-                  </Link>
-                  <div className="flex flex-wrap items-center gap-2 px-3 pb-2">
-                    {aktion(l)}
-                    {schnell(l)}
-                    <span className="ml-auto" />
-                    {waKnopf(l)}
-                  </div>
-                  {waZuletzt.has(l.id) ? <div className="px-4 pb-2">{waHinweis(l.id)}</div> : null}
-                  <div className="mx-4 mb-3 rounded-lg bg-bg px-3 py-2">{notizFeld(l)}</div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-
-            {/* Desktop: Tabelle */}
-            <table className="hidden w-full text-left text-sm md:table">
-              <thead className="border-b border-line bg-bg text-xs uppercase tracking-wide text-muted">
-                <tr>
-                  {admin ? <th className="w-10 py-3 pl-4"><span className="sr-only">Markieren</span></th> : null}
-                  <th className="px-4 py-3 font-semibold">Firma</th>
-                  <th className="px-4 py-3 font-semibold">Kontakt</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                  <th className="px-4 py-3 font-semibold">Nächste Aktion</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {leads.map((l) => (
-                  <tr key={l.id} className="hover:bg-bg">
+        </Karte>
+      ) : (
+        <ul className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+          {leads.map((l) => {
+            const nummer = l.telefon?.replace(/[^+0-9]/g, "") ?? "";
+            const gesperrt = l.status === "nicht_anrufen" || l.status === "falsche_nummer";
+            const anrufbar = !!l.telefon && !!l.einwilligung_wie && !gesperrt;
+            const seit = liegtSeit(l.status, l.status_seit, jetzt);
+            return (
+              <li key={l.id} className="flex flex-col rounded-2xl border border-line bg-surface p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     {admin ? (
-                      <td className="py-3 pl-4">
-                        <input
-                          type="checkbox"
-                          name="ids"
-                          value={l.id}
-                          form="zuteilen"
-                          aria-label={`${l.firma} markieren`}
-                          className="h-5 w-5 accent-brand"
-                        />
-                      </td>
+                      <label className="mr-1 flex items-center">
+                        <span className="sr-only">{l.firma} markieren</span>
+                        <input type="checkbox" name="ids" value={l.id} form="zuteilen" className="h-5 w-5 accent-brand" />
+                      </label>
                     ) : null}
-                    <td className="px-4 py-3">
-                      <Link href={`/crm/leads/${l.id}`} className="font-semibold text-ink hover:text-brand">
-                        {l.firma}
-                      </Link>
-                      <span className="block text-xs text-muted">{[l.branche, l.bezirk].filter(Boolean).join(" · ") || "–"}</span>
-                      {admin && l.besitzer ? <span className="block text-xs text-muted">Bei: {l.besitzer.name}</span> : null}
-                      <div className="mt-1 max-w-sm">{notizFeld(l)}</div>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted">
-                      {l.status === "nicht_anrufen" ? (
-                        <span className="text-danger">ausgeblendet</span>
-                      ) : (
-                        <>
-                          <span className="flex items-center gap-2">
-                            {l.telefon && l.einwilligung_wie ? (
-                              <a href={`tel:${l.telefon.replace(/[^+0-9]/g, "")}`} className="font-bold text-brand underline underline-offset-4">
-                                {l.telefon}
-                              </a>
-                            ) : (
-                              <span title={l.telefon ? "Keine Zustimmung – nicht anrufen, nur Besuch oder Brief" : undefined}>
-                                {l.telefon ? `🔒 ${l.telefon}` : "–"}
-                              </span>
-                            )}
-                            {waKnopf(l)}
-                          </span>
-                          {waHinweis(l.id)}
-                        </>
-                      )}
-                    </td>
-                    <td className="px-4 py-2 align-top">
-                      {schnell(l)}
-                      {liegtSeit(l.status, l.status_seit, jetzt) ? (
-                        <span className="block px-1 text-xs text-danger">seit {liegtSeit(l.status, l.status_seit, jetzt)} Tagen</span>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-3">{aktion(l)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </>
-        )}
-      </Karte>
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${l.quelle === "meta" || l.quelle.startsWith("anfrage:") ? "bg-ok-light text-ok" : "bg-bg text-muted"}`}>
+                      {quelleKurz(l.quelle)}
+                    </span>
+                    {l.branche ? <span className="rounded-full bg-bg px-2.5 py-0.5 text-xs font-semibold text-muted">{l.branche}</span> : null}
+                  </div>
+                  {admin && l.besitzer ? <span className="shrink-0 text-xs text-muted">Bei: {l.besitzer.name}</span> : null}
+                </div>
+
+                <Link href={`/crm/leads/${l.id}`} className="mt-2 block text-lg font-bold leading-snug text-ink hover:text-brand">
+                  {l.firma}
+                  {l.ansprechpartner ? <span className="font-normal text-muted"> · {l.ansprechpartner}</span> : null}
+                </Link>
+
+                {/* Nummer: antippen = anrufen (nur mit eingetragener Zustimmung) */}
+                <div className="mt-3 flex items-center gap-2">
+                  {gesperrt ? (
+                    <span className="flex min-h-12 flex-1 items-center justify-center rounded-xl bg-bg px-3 text-sm font-semibold text-muted">
+                      {l.status === "falsche_nummer" ? "Falsche Nummer" : "Nicht anrufen"}
+                    </span>
+                  ) : !l.telefon ? (
+                    <span className="flex min-h-12 flex-1 items-center justify-center rounded-xl bg-bg px-3 text-sm text-muted">Keine Nummer</span>
+                  ) : anrufbar ? (
+                    <a
+                      href={`tel:${nummer}`}
+                      className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-light px-3 text-[17px] font-extrabold text-brand hover:bg-brand hover:text-white"
+                    >
+                      <span aria-hidden>📞</span> {l.telefon}
+                    </a>
+                  ) : (
+                    <details className="group relative flex-1">
+                      <summary className="flex min-h-12 cursor-pointer list-none flex-col items-center justify-center rounded-xl bg-bg px-3 py-1 text-center [&::-webkit-details-marker]:hidden">
+                        <span className="font-bold text-muted">🔒 {l.telefon}</span>
+                        <span className="text-xs font-semibold text-brand underline">Zustimmung eintragen</span>
+                      </summary>
+                      <form action={einwilligungSetzen} className="mt-2 space-y-2 rounded-xl border border-line bg-surface p-3">
+                        <input type="hidden" name="id" value={l.id} />
+                        <p className="text-xs text-muted">Nur eintragen, wenn der Betrieb wirklich zugestimmt hat. Danach ist die Nummer antippbar.</p>
+                        <Select name="wie" required defaultValue="" aria-label="Wie hat der Betrieb zugestimmt?">
+                          <option value="" disabled>
+                            Wie hat er zugestimmt?
+                          </option>
+                          {EINWILLIGUNG_ARTEN.map((a) => (
+                            <option key={a} value={a}>
+                              {a}
+                            </option>
+                          ))}
+                        </Select>
+                        <button className={buttonClass("primary", "w-full")}>Zustimmung speichern</button>
+                      </form>
+                    </details>
+                  )}
+                  {waKnopf(l)}
+                </div>
+                {waHinweis(l.id)}
+
+                <p className="mt-2 text-sm text-muted">📍 {l.bezirk ?? "kein Bezirk"}</p>
+                <div className="mt-2 rounded-lg bg-bg px-3 py-2">{notizFeld(l)}</div>
+
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {schnell(l)}
+                    {aktion(l)}
+                  </div>
+                  <p className="text-right text-xs text-muted">
+                    <span className="block font-semibold uppercase tracking-wide">Bearbeitet</span>
+                    {datumZeit(l.status_seit)}
+                    {seit ? <span className="block text-danger">liegt seit {seit} Tagen</span> : null}
+                  </p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <div aria-hidden className="h-20" />
     </>
   );
 }
