@@ -4,16 +4,16 @@ import { Kopf } from "@/components/crm/Kopf";
 import { CsvImport } from "@/components/crm/CsvImport";
 import { LeadAnlegen } from "@/components/crm/LeadAnlegen";
 import { NotizSchnell } from "@/components/crm/NotizSchnell";
-import { SpaltenFilter } from "@/components/crm/SpaltenFilter";
 import { StatusSchnell } from "@/components/crm/StatusSchnell";
 import { WhatsAppKnopf } from "@/components/crm/WhatsApp";
 import { ZuteilenLeiste } from "@/components/crm/ZuteilenLeiste";
 import { Hinweis, Karte, Select, buttonClass, inputClass } from "@/components/ui";
 import { aktivePersonen, holeProfil } from "@/lib/crm";
-import { AKTIV, liegtSeit, schrittVorgabe } from "@/lib/schritt";
+import { ABGESCHLOSSEN, OFFEN_STATUS, istAnsicht, naechsteAktion, type Ansicht } from "@/lib/leadansicht";
+import { liegtSeit, schrittVorgabe } from "@/lib/schritt";
 import { LEAD_STATUS, STATUS_LABEL, istLeadStatus, type LeadStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
-import { datum, datumZeit, heuteWien } from "@/lib/zeit";
+import { datum, heuteWien, wienGrenzen } from "@/lib/zeit";
 
 export const metadata: Metadata = { title: "Leads" };
 
@@ -41,26 +41,63 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
     ...(branche ? { branche } : {}),
     ...(besitzer ? { besitzer } : {}),
   });
-  /** Link auf die Liste mit einer bestimmten Branche, die übrigen Filter bleiben */
-  const mitBranche = (b: string) => {
-    const f = new URLSearchParams(filter);
-    f.set("branche", b);
-    return `/crm/leads?${f}`;
-  };
-  const hier = filter.size ? `/crm/leads?${filter}` : "/crm/leads";
+  const heute = heuteWien();
+  const jetztIso = new Date().toISOString();
+  const jetzt = Date.parse(jetztIso);
+  const { tagEnde } = wienGrenzen();
 
   const supabase = await createClient();
+
+  // Zahlen für die Ansichten: immer „meine“ Leads (bei Gründern nicht das ganze Team)
+  const abgeschlossen = `(${ABGESCHLOSSEN.join(",")})`;
+  const meine = () => supabase.from("leads").select("id", { count: "exact", head: true }).eq("besitzer_id", profil.id);
+  const [zHeute, zRueck, zAnrufen, zBesuch, zNeu, zAlle] = await Promise.all([
+    meine().not("status", "in", abgeschlossen).or(`naechster_rueckruf.lt.${tagEnde},besuch_geplant.lte.${heute}`),
+    meine().not("status", "in", abgeschlossen).not("naechster_rueckruf", "is", null).lt("naechster_rueckruf", tagEnde),
+    meine().in("status", OFFEN_STATUS).not("einwilligung_wie", "is", null).not("telefon", "is", null),
+    meine().in("status", OFFEN_STATUS).is("einwilligung_wie", null),
+    meine().eq("status", "neu"),
+    supabase.from("leads").select("id", { count: "exact", head: true }),
+  ]);
+  const zahl = { heute: zHeute.count ?? 0, rueckrufe: zRueck.count ?? 0, anrufen: zAnrufen.count ?? 0, besuch: zBesuch.count ?? 0, neu: zNeu.count ?? 0, alle: zAlle.count ?? 0 };
+
+  // Welche Ansicht? Wer sucht oder filtert, sucht in allen Leads; sonst das Wichtigste zuerst
+  const gesucht = !!(q || status || branche || besitzer);
+  const ansicht: Ansicht = istAnsicht(sp.ansicht)
+    ? sp.ansicht
+    : gesucht
+      ? "alle"
+      : zahl.heute > 0
+        ? "heute"
+        : zahl.anrufen > 0
+          ? "anrufen"
+          : "alle";
+  const mitPerson = admin && ansicht === "alle";
+  const hier = filter.size ? `/crm/leads?ansicht=${ansicht}&${filter}` : `/crm/leads?ansicht=${ansicht}`;
+
   let abfrage = supabase
     .from("leads")
     .select("id, firma, ansprechpartner, branche, telefon, bezirk, status, status_seit, naechster_rueckruf, besuch_geplant, einwilligung_wie, besitzer:profiles!leads_besitzer_id_fkey(name)", {
       count: "exact",
     })
-    .order("created_at", { ascending: false })
     .limit(LIMIT);
+
+  if (ansicht !== "alle") abfrage = abfrage.eq("besitzer_id", profil.id);
+  if (ansicht === "heute") abfrage = abfrage.not("status", "in", abgeschlossen).or(`naechster_rueckruf.lt.${tagEnde},besuch_geplant.lte.${heute}`);
+  if (ansicht === "rueckrufe") abfrage = abfrage.not("status", "in", abgeschlossen).not("naechster_rueckruf", "is", null).lt("naechster_rueckruf", tagEnde);
+  if (ansicht === "anrufen") abfrage = abfrage.in("status", OFFEN_STATUS).not("einwilligung_wie", "is", null).not("telefon", "is", null);
+  if (ansicht === "besuch") abfrage = abfrage.in("status", OFFEN_STATUS).is("einwilligung_wie", null);
+  if (ansicht === "neu") abfrage = abfrage.eq("status", "neu");
+  if (ansicht === "heute" || ansicht === "rueckrufe") {
+    abfrage = abfrage.order("naechster_rueckruf", { ascending: true, nullsFirst: false }).order("besuch_geplant", { ascending: true, nullsFirst: false });
+  }
+  abfrage = abfrage.order("created_at", { ascending: false });
 
   if (status) abfrage = abfrage.eq("status", status);
   if (branche) abfrage = abfrage.eq("branche", branche);
-  if (besitzer === "offen") abfrage = abfrage.in("besitzer_id", gruender.length ? gruender : [profil.id]);
+  if (!mitPerson) {
+    // Die Person-Auswahl gibt es nur in „Alle“
+  } else if (besitzer === "offen") abfrage = abfrage.in("besitzer_id", gruender.length ? gruender : [profil.id]);
   else if (besitzer) abfrage = abfrage.eq("besitzer_id", besitzer);
   if (q) {
     // Zeichen entfernen, die in PostgREST-Filtern eine Bedeutung haben
@@ -158,16 +195,22 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
     const n = notizen.get(l.id) ?? [];
     return <NotizSchnell id={l.id} firma={l.firma} notizen={n.map((z) => ({ text: z.text, am: datum(z.am) }))} />;
   };
-  const heute = heuteWien();
-  const jetztIso = new Date().toISOString();
-  const jetzt = Date.parse(jetztIso);
   type Zeile = (typeof leads)[number];
-  const schritt = (l: Zeile) => {
-    if (l.naechster_rueckruf)
-      return { text: `${l.einwilligung_wie ? "Anruf" : "Erinnerung"} ${datumZeit(l.naechster_rueckruf)}`, rot: l.naechster_rueckruf < jetztIso };
-    if (l.besuch_geplant) return { text: `Besuch ${datum(`${l.besuch_geplant}T12:00:00Z`)}`, rot: l.besuch_geplant < heute };
-    if (AKTIV.includes(l.status)) return { text: "fehlt", rot: true };
-    return null;
+  const aktion = (l: Zeile) => {
+    const a = naechsteAktion(l, jetztIso, heute);
+    if (!a) return <span className="text-muted">–</span>;
+    const klasse = `inline-flex min-h-9 items-center rounded-lg px-3 text-sm font-semibold ${
+      a.rot ? "bg-danger/10 text-danger" : a.wahl ? "bg-brand text-white" : "bg-brand-light text-brand"
+    }`;
+    return a.wahl && l.telefon ? (
+      <a href={`tel:${l.telefon.replace(/[^\d+]/g, "")}`} className={klasse}>
+        {a.label}
+      </a>
+    ) : (
+      <Link href={`/crm/leads/${l.id}`} className={klasse}>
+        {a.label}
+      </Link>
+    );
   };
   const schnell = (l: Zeile) => (
     <StatusSchnell
@@ -189,12 +232,50 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
         <CsvImport personen={personen} ichId={profil.id} />
       </div>
 
+      <nav aria-label="Ansicht" className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {(
+          [
+            ["heute", "Heute dran"],
+            ["rueckrufe", "Rückrufe fällig"],
+            ["anrufen", "Zum Anrufen"],
+            ["besuch", "Besuch / Brief"],
+          ] as const
+        ).map(([k, titel]) => (
+          <Link
+            key={k}
+            href={`/crm/leads?ansicht=${k}`}
+            aria-current={ansicht === k ? "page" : undefined}
+            className={`rounded-xl border px-3 py-2.5 ${ansicht === k ? "border-brand bg-brand-light" : "border-line bg-white hover:bg-bg"}`}
+          >
+            <span className="block text-2xl font-bold leading-none text-ink">{zahl[k]}</span>
+            <span className="mt-1 block text-xs text-muted">{titel}</span>
+          </Link>
+        ))}
+      </nav>
+      <div className="mb-4 flex flex-wrap gap-2 text-sm">
+        {(
+          [
+            ["neu", `Neu (${zahl.neu})`],
+            ["alle", `Alle Leads (${zahl.alle})`],
+          ] as const
+        ).map(([k, t]) => (
+          <Link
+            key={k}
+            href={`/crm/leads?ansicht=${k}`}
+            className={`rounded-full border px-3 py-1 ${ansicht === k ? "border-brand bg-brand text-white" : "border-line bg-white text-ink hover:bg-bg"}`}
+          >
+            {t}
+          </Link>
+        ))}
+      </div>
+
       <form
         key={hier}
         method="get"
         className={`mb-4 grid grid-cols-2 gap-2 ${admin ? "lg:grid-cols-[1fr_160px_170px_180px_auto]" : "sm:grid-cols-[1fr_180px_180px_auto]"}`}
         role="search"
       >
+        <input type="hidden" name="ansicht" value={ansicht} />
         <label className="sr-only" htmlFor="q">
           Suche
         </label>
@@ -229,7 +310,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
             </option>
           ))}
         </Select>
-        {admin ? (
+        {mitPerson ? (
           <>
             <label className="sr-only" htmlFor="filter-besitzer">
               Zugeteilt an
@@ -248,7 +329,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
         <div className={`col-span-2 flex gap-2 ${admin ? "lg:col-span-1" : "sm:col-span-1"}`}>
           <button className={buttonClass("primary", "flex-1")}>Filtern</button>
           {q || status || branche || besitzer ? (
-            <Link href="/crm/leads" className={buttonClass("secondary")}>
+            <Link href={`/crm/leads?ansicht=${ansicht}`} className={buttonClass("secondary")}>
               Zurücksetzen
             </Link>
           ) : null}
@@ -274,6 +355,12 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
       ) : null}
       {admin && leads.length > 0 ? <ZuteilenLeiste personen={personen} zurueck={hier} /> : null}
 
+      {leads.some((l) => !l.einwilligung_wie && l.status !== "nicht_anrufen") ? (
+        <p className="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          Leads ohne Einwilligung werden nicht angerufen – dort bleibt nur Besuch oder Brief („Besuch planen“).
+        </p>
+      ) : null}
+
       <Karte className="overflow-hidden">
         {leads.length === 0 ? (
           <p className="px-5 py-10 text-center text-muted">Keine Leads gefunden.</p>
@@ -295,21 +382,15 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
                     <span className="mt-0.5 block text-sm text-muted">
                       {[l.branche, l.bezirk].filter(Boolean).join(" · ") || "–"}
                     </span>
-                    {schritt(l) ? (
-                      <span className={`mt-0.5 block text-sm ${schritt(l)!.rot ? "font-semibold text-danger" : "text-ink"}`}>
-                        Nächster Schritt: {schritt(l)!.text}
-                      </span>
-                    ) : null}
                     {liegtSeit(l.status, l.status_seit, jetzt) ? (
                       <span className="mt-0.5 block text-sm text-danger">Liegt seit {liegtSeit(l.status, l.status_seit, jetzt)} Tagen</span>
                     ) : null}
-                    {l.status !== "nicht_anrufen" && !l.einwilligung_wie ? (
-                      <span className="mt-0.5 block text-sm text-amber-800">Kein Anruf – nur Besuch oder Brief</span>
-                    ) : null}
                     {admin && l.besitzer ? <span className="mt-0.5 block text-xs text-muted">Bei: {l.besitzer.name}</span> : null}
                   </Link>
-                  <div className="flex items-center justify-between gap-2 px-3 pb-2">
+                  <div className="flex flex-wrap items-center gap-2 px-3 pb-2">
+                    {aktion(l)}
                     {schnell(l)}
+                    <span className="ml-auto" />
                     {waKnopf(l)}
                   </div>
                   {waZuletzt.has(l.id) ? <div className="px-4 pb-2">{waHinweis(l.id)}</div> : null}
@@ -325,26 +406,9 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
                 <tr>
                   {admin ? <th className="w-10 py-3 pl-4"><span className="sr-only">Markieren</span></th> : null}
                   <th className="px-4 py-3 font-semibold">Firma</th>
-                  <th className="px-4 py-2 font-semibold">
-                    <SpaltenFilter
-                      key={branche}
-                      name="branche"
-                      titel="Branche"
-                      werte={branchen}
-                      aktuell={branche}
-                      pfad="/crm/leads"
-                      filter={(() => {
-                        const f = new URLSearchParams(filter);
-                        f.delete("branche");
-                        return f.toString();
-                      })()}
-                    />
-                  </th>
-                  <th className="px-4 py-3 font-semibold">Telefon</th>
-                  <th className="px-4 py-3 font-semibold">Bezirk</th>
+                  <th className="px-4 py-3 font-semibold">Kontakt</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
-                  <th className="px-4 py-3 font-semibold">Nächster Schritt</th>
-                  {admin ? <th className="px-4 py-3 font-semibold">Zugeteilt an</th> : null}
+                  <th className="px-4 py-3 font-semibold">Nächste Aktion</th>
                   <th className="w-64 px-4 py-3 font-semibold">Notiz</th>
                 </tr>
               </thead>
@@ -367,17 +431,10 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
                       <Link href={`/crm/leads/${l.id}`} className="font-semibold text-ink hover:text-brand">
                         {l.firma}
                       </Link>
+                      <span className="block text-xs text-muted">{[l.branche, l.bezirk].filter(Boolean).join(" · ") || "–"}</span>
+                      {admin && l.besitzer ? <span className="block text-xs text-muted">Bei: {l.besitzer.name}</span> : null}
                     </td>
-                    <td className="px-4 py-3 text-muted">
-                      {l.branche ? (
-                        <Link href={mitBranche(l.branche)} title={`Nur ${l.branche} zeigen`} className="hover:text-brand hover:underline">
-                          {l.branche}
-                        </Link>
-                      ) : (
-                        "–"
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-muted">
+                    <td className="whitespace-nowrap px-4 py-3 text-muted">
                       {l.status === "nicht_anrufen" ? (
                         <span className="text-danger">ausgeblendet</span>
                       ) : (
@@ -387,21 +444,16 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
                             {waKnopf(l)}
                           </span>
                           {waHinweis(l.id)}
-                          {l.einwilligung_wie ? null : (
-                            <span className="block text-xs text-amber-800">kein Anruf – Besuch/Brief</span>
-                          )}
                         </>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-muted">{l.bezirk ?? "–"}</td>
                     <td className="px-4 py-2 align-top">
                       {schnell(l)}
                       {liegtSeit(l.status, l.status_seit, jetzt) ? (
                         <span className="block px-1 text-xs text-danger">seit {liegtSeit(l.status, l.status_seit, jetzt)} Tagen</span>
                       ) : null}
                     </td>
-                    <td className={`px-4 py-3 ${schritt(l)?.rot ? "font-semibold text-danger" : "text-muted"}`}>{schritt(l)?.text ?? "–"}</td>
-                    {admin ? <td className="px-4 py-3 text-muted">{l.besitzer?.name ?? "–"}</td> : null}
+                    <td className="px-4 py-3">{aktion(l)}</td>
                     <td className="px-4 py-2 align-top">{notizFeld(l)}</td>
                   </tr>
                 ))}
