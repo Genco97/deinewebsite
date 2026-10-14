@@ -28,6 +28,7 @@ const QUELLE: Record<string, string> = {
   manuell: "manuell angelegt",
   csv: "per CSV-Import",
   leadfinder: "über den Lead Finder gefunden",
+  meta: "aus Meta Ads (Lead-Formular)",
   "anfrage:demo": "aus einer Website-Anfrage (Gratis-Demo)",
   "anfrage:beratung": "aus einer Website-Anfrage (Beratung)",
   "anfrage:rueckruf": "aus einer Website-Anfrage (Rückruf)",
@@ -227,6 +228,11 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
               📍 Besuch
             </a>
           </div>
+          {anrufErlaubt && lead.telefon ? (
+            <a href={`tel:${lead.telefon.replace(/[^+0-9]/g, "")}`} className="mt-2 inline-block text-lg font-bold text-brand underline underline-offset-4">
+              {lead.telefon}
+            </a>
+          ) : null}
           <details className="group mt-2 max-w-xl">
             <summary className="cursor-pointer list-none text-sm [&::-webkit-details-marker]:hidden">
               {anrufErlaubt ? (

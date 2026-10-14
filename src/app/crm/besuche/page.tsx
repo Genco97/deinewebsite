@@ -21,12 +21,13 @@ type Stopp = {
   adresse: string | null;
   bezirk: string | null;
   status: LeadStatus;
+  telefon: string | null;
   einwilligung_wie: string | null;
   besuch_geplant: string | null;
   letzter_besuch: string | null;
 };
 
-const FELDER = "id, firma, branche, adresse, bezirk, status, einwilligung_wie, besuch_geplant, letzter_besuch";
+const FELDER = "id, firma, branche, adresse, bezirk, status, telefon, einwilligung_wie, besuch_geplant, letzter_besuch";
 const offen = `(${ABGESCHLOSSEN.join(",")})`;
 const nachOrt = (a: Stopp, b: Stopp) =>
   (a.bezirk ?? "").localeCompare(b.bezirk ?? "", "de") || (a.adresse ?? "").localeCompare(b.adresse ?? "", "de");
@@ -171,6 +172,11 @@ export default async function Besuche({ searchParams }: PageProps<"/crm/besuche"
                       ) : null}
 
                       <div className="mt-1 flex flex-wrap gap-x-4">
+                        {s.telefon && s.einwilligung_wie ? (
+                          <a href={`tel:${s.telefon.replace(/[^+0-9]/g, "")}`} className="inline-flex min-h-9 items-center text-sm font-bold text-brand underline underline-offset-4">
+                            {s.telefon}
+                          </a>
+                        ) : null}
                         {s.adresse ? (
                           <a href={mapsSuche(s)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center text-sm font-semibold text-brand hover:underline">
                             Auf der Karte

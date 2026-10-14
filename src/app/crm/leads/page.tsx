@@ -445,7 +445,15 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
                       ) : (
                         <>
                           <span className="flex items-center gap-2">
-                            {l.telefon ?? "–"}
+                            {l.telefon && l.einwilligung_wie ? (
+                              <a href={`tel:${l.telefon.replace(/[^+0-9]/g, "")}`} className="font-bold text-brand underline underline-offset-4">
+                                {l.telefon}
+                              </a>
+                            ) : (
+                              <span title={l.telefon ? "Keine Zustimmung – nicht anrufen, nur Besuch oder Brief" : undefined}>
+                                {l.telefon ? `🔒 ${l.telefon}` : "–"}
+                              </span>
+                            )}
                             {waKnopf(l)}
                           </span>
                           {waHinweis(l.id)}

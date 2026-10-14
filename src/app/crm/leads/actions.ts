@@ -74,8 +74,11 @@ export async function leadAnlegen(_v: AktionStatus, fd: FormData): Promise<Aktio
 export async function leadsImportieren(
   zeilen: ImportZeile[],
   besitzerId?: string,
+  metaEinwilligung = false,
 ): Promise<{ ok: boolean; meldung: string; importiert?: number; doppelt?: number }> {
   const profil = await holeProfil();
+  // Nur Gründer dürfen bestätigen, dass die Leads sich selbst eingetragen haben (Meta-Lead-Formular)
+  if (metaEinwilligung && profil.rolle !== "admin") return { ok: false, meldung: "Das dürfen nur Gründer bestätigen." };
   const supabase = await createClient();
 
   // Nur Gründer dürfen Leads beim Import einer anderen aktiven Person zuteilen
@@ -127,7 +130,14 @@ export async function leadsImportieren(
     const block = neu.slice(i, i + 500);
     const { data, error } = await supabase
       .from("leads")
-      .insert(block.map((z) => ({ ...z.lead, quelle: "csv", besitzer_id: besitzer })))
+      .insert(
+        block.map((z) => ({
+          ...z.lead,
+          quelle: metaEinwilligung ? "meta" : "csv",
+          besitzer_id: besitzer,
+          ...(metaEinwilligung ? { einwilligung_wie: "Meta-Lead-Formular" } : {}),
+        })),
+      )
       .select("id");
     if (error || !data) return { ok: false, meldung: `Import nach ${i} Zeilen abgebrochen. Bitte prüfe die Datei.` };
 
@@ -137,6 +147,17 @@ export async function leadsImportieren(
       .filter((n) => n.notiz)
       .map((n) => ({ lead_id: n.lead_id, autor_id: profil.id, art: "notiz", text: `Aus dem CSV-Import:\n${n.notiz}` }));
     if (notizen.length) await supabase.from("lead_verlauf").insert(notizen);
+    if (metaEinwilligung) {
+      const wer = profil.name.trim() || profil.email;
+      await supabase.from("lead_verlauf").insert(
+        data.map((d) => ({
+          lead_id: d.id as string,
+          autor_id: profil.id,
+          art: "system",
+          text: `Einwilligung zu Anruf und E-Mail: hat sich über das Meta-Lead-Formular selbst eingetragen (Import bestätigt von ${wer})`,
+        })),
+      );
+    }
   }
 
   revalidatePath("/crm/leads");
