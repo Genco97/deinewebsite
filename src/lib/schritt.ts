@@ -2,7 +2,7 @@ import type { LeadStatus } from "@/lib/status";
 import { heuteWien, isoZuWienLokal, istTag, tagVerschieben, wienZuIso } from "@/lib/zeit";
 
 /** Status, nach denen kein nächster Schritt mehr nötig ist */
-export const OHNE_SCHRITT: LeadStatus[] = ["verkauft", "kein_interesse", "nicht_anrufen"];
+export const OHNE_SCHRITT: LeadStatus[] = ["verkauft", "kein_interesse", "falsche_nummer", "nicht_anrufen"];
 
 /** Status, bei denen ein Lead „liegen bleiben“ kann */
 export const AKTIV: LeadStatus[] = ["nicht_erreicht", "rueckruf", "interessiert", "demo", "angebot"];

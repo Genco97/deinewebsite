@@ -14,7 +14,7 @@ export function istAnsicht(v: unknown): v is Ansicht {
 export const OFFEN_STATUS: LeadStatus[] = ["neu", ...AKTIV];
 
 /** Status ohne weiteren Schritt */
-export const ABGESCHLOSSEN: LeadStatus[] = ["verkauft", "kein_interesse", "nicht_anrufen"];
+export const ABGESCHLOSSEN: LeadStatus[] = ["verkauft", "kein_interesse", "falsche_nummer", "nicht_anrufen"];
 
 export type AktionArt = "anruf" | "rueckruf" | "besuch";
 export type Aktion = {
