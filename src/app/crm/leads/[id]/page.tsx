@@ -28,6 +28,7 @@ const QUELLE: Record<string, string> = {
   manuell: "manuell angelegt",
   csv: "per CSV-Import",
   leadfinder: "über den Lead Finder gefunden",
+  meta: "aus Meta Ads (Lead-Formular)",
   "anfrage:demo": "aus einer Website-Anfrage (Gratis-Demo)",
   "anfrage:beratung": "aus einer Website-Anfrage (Beratung)",
   "anfrage:rueckruf": "aus einer Website-Anfrage (Rückruf)",
@@ -43,6 +44,20 @@ function Abschnitt({ titel, id, children }: { titel: string; id?: string; childr
         {children}
       </Karte>
     </section>
+  );
+}
+
+function Klapp({ titel, children, offen = false }: { titel: string; children: React.ReactNode; offen?: boolean }) {
+  return (
+    <details open={offen} className="group rounded-2xl border border-line bg-surface">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 px-4 font-bold text-ink sm:px-5 [&::-webkit-details-marker]:hidden">
+        {titel}
+        <span aria-hidden className="text-muted transition-transform group-open:rotate-180">
+          ▾
+        </span>
+      </summary>
+      <div className="border-t border-line p-4 sm:p-5">{children}</div>
+    </details>
   );
 }
 
@@ -78,6 +93,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
     supabase.from("vorlagen").select("id, titel, betreff, text, reihenfolge, kanal").order("reihenfolge"),
   ]);
 
+  const waZugestimmt = (verlauf ?? []).some((v) => v.art === "system" && v.text.startsWith("WhatsApp-Zustimmung bestätigt"));
   const letzteNotiz = (verlauf ?? []).find((v) => v.art === "notiz") ?? null;
   const status = lead.status as LeadStatus;
   const gesperrt = status === "nicht_anrufen";
@@ -148,6 +164,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
           <p className="mt-1 flex flex-wrap items-center gap-2 text-muted">
             <StatusBadge status={status} />
             {[lead.branche, lead.bezirk].filter(Boolean).join(" · ")}
+            {admin && lead.besitzer_id ? ` · Bei: ${personen.find((x) => x.id === lead.besitzer_id)?.name ?? "–"}` : ""}
           </p>
           {letzteNotiz ? (
             <a href="#verlauf" className="mt-3 block max-w-xl rounded-lg border border-line bg-surface px-3 py-2 text-sm hover:border-brand">
@@ -157,11 +174,6 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
             </a>
           ) : null}
         </div>
-        {anrufErlaubt && lead.telefon ? (
-          <a href={`tel:${lead.telefon.replace(/[^+0-9]/g, "")}`} className={buttonClass("primary")}>
-            Anrufen: {lead.telefon}
-          </a>
-        ) : null}
       </div>
 
       {typeof ok === "string" ? (
@@ -185,25 +197,94 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
       ) : null}
 
       {!gesperrt ? (
-        <div className="mb-4">
-          {anrufErlaubt ? (
-            <Hinweis art="ok">
-              <strong>Anruf und E-Mail erlaubt.</strong> Einwilligung: {lead.einwilligung_wie}
-              {lead.einwilligung_am ? `, ${datumZeit(lead.einwilligung_am)}` : ""}.
-            </Hinweis>
-          ) : (
-            <Hinweis art="warnung">
-              <strong>Keine Einwilligung – nicht anrufen und keine Werbe-E-Mail schicken.</strong> Das ist in Österreich
-              auch bei Firmen verboten (§ 174 TKG). Erlaubt: persönlich vorbeischauen oder einen Brief schicken. Sagt der
-              Betrieb, dass du dich melden darfst, trag es unten bei „Einwilligung“ ein.
-            </Hinweis>
-          )}
+        <div className="mb-5">
+          <div className="grid max-w-xl grid-cols-3 gap-2">
+            {anrufErlaubt && lead.telefon ? (
+              <a href={`tel:${lead.telefon.replace(/[^+0-9]/g, "")}`} className={buttonClass("primary", "px-2")}>
+                📞 Anrufen
+              </a>
+            ) : (
+              <span className="flex min-h-11 items-center justify-center rounded-lg bg-bg px-2 text-center text-sm font-semibold text-muted">📞 Anrufen</span>
+            )}
+            {lead.telefon ? (
+              <WhatsAppKnopf
+                breit
+                lead={{
+                  id: lead.id,
+                  firma: lead.firma,
+                  ansprechpartner: lead.ansprechpartner,
+                  telefon: lead.telefon,
+                  erlaubt: anrufErlaubt || waZugestimmt,
+                  frage: status === "demo",
+                  website: website === "[Link einfügen]" ? undefined : website,
+                }}
+                daten={{ vorlagen: waVorlagen, site, meinName: platzhalter.mein_name }}
+                anlass={status === "demo" ? "demo" : status === "nicht_erreicht" ? "nicht_erreicht" : "gespraech"}
+              />
+            ) : (
+              <span className="flex min-h-11 items-center justify-center rounded-lg bg-bg px-2 text-center text-sm font-semibold text-muted">💬 WhatsApp</span>
+            )}
+            <a href="#status" className={buttonClass("secondary", "px-2")}>
+              📍 Besuch
+            </a>
+          </div>
+          {anrufErlaubt && lead.telefon ? (
+            <a href={`tel:${lead.telefon.replace(/[^+0-9]/g, "")}`} className="mt-2 inline-block text-lg font-bold text-brand underline underline-offset-4">
+              {lead.telefon}
+            </a>
+          ) : null}
+          <details className="group mt-2 max-w-xl">
+            <summary className="cursor-pointer list-none text-sm [&::-webkit-details-marker]:hidden">
+              {anrufErlaubt ? (
+                <span className="text-ok">
+                  ✓ Anruf und E-Mail erlaubt ({lead.einwilligung_wie}
+                  {lead.einwilligung_am ? `, ${datum(lead.einwilligung_am)}` : ""}) <span className="text-brand underline">ändern</span>
+                </span>
+              ) : (
+                <span className="text-muted">
+                  🔒 Anrufen und E-Mail gesperrt – keine Zustimmung. <span className="font-semibold text-brand underline">Zustimmung eintragen</span>
+                </span>
+              )}
+            </summary>
+            <div className="mt-2 rounded-xl border border-line bg-surface p-3">
+              {anrufErlaubt ? (
+                <form action={einwilligungSetzen} className="space-y-2">
+                  <input type="hidden" name="id" value={lead.id} />
+                  <input type="hidden" name="wie" value="" />
+                  <p className="text-sm text-muted">Widerruft der Betrieb die Zustimmung, entferne sie hier. Danach nicht mehr anrufen oder mailen.</p>
+                  <button className={buttonClass("ghost")}>Zustimmung entfernen</button>
+                </form>
+              ) : (
+                <form action={einwilligungSetzen} className="space-y-3">
+                  <input type="hidden" name="id" value={lead.id} />
+                  <p className="text-sm text-muted">
+                    Ohne Zustimmung darfst du nicht anrufen oder Werbe-E-Mails schicken, auch bei Firmen nicht (§ 174 TKG). Besuch oder Brief gehen immer. Nur
+                    eintragen, wenn der Betrieb wirklich zugestimmt hat.
+                  </p>
+                  <label htmlFor="wie" className="block text-sm font-semibold text-ink">
+                    Wie hat der Betrieb zugestimmt?
+                  </label>
+                  <Select id="wie" name="wie" required defaultValue="">
+                    <option value="" disabled>
+                      Bitte wählen
+                    </option>
+                    {EINWILLIGUNG_ARTEN.map((a) => (
+                      <option key={a} value={a}>
+                        {a}
+                      </option>
+                    ))}
+                  </Select>
+                  <button className={buttonClass("secondary")}>Zustimmung eintragen</button>
+                </form>
+              )}
+            </div>
+          </details>
         </div>
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-6">
-          <Abschnitt titel="Status und nächster Schritt" id="status">
+          <Abschnitt titel="Was als Nächstes?" id="status">
             {gesperrt && !admin ? (
               <p className="text-sm text-muted">Der Status ist gesperrt.</p>
             ) : gesperrt && admin ? (
@@ -219,10 +300,39 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
                   {schrittText ?? "Kein nächster Schritt geplant – leg fest, wie es weitergeht."}
                   {liegt ? <span className="block font-normal text-danger">Liegt seit {liegt} Tagen im Status „{STATUS_LABEL[status]}“.</span> : null}
                 </p>
+                {lead.adresse || lead.besuch_geplant ? (
+                  <div className="flex flex-wrap items-center gap-x-4 text-sm">
+                    {lead.adresse ? (
+                      <a href={mapsSuche(lead)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center font-semibold text-brand underline">
+                        Auf der Karte
+                      </a>
+                    ) : null}
+                    {lead.besuch_geplant ? (
+                      <>
+                        <Link href={`/crm/besuche?tag=${lead.besuch_geplant}`} className="inline-flex min-h-9 items-center font-semibold text-brand underline">
+                          Zur Runde
+                        </Link>
+                        <button
+                          formAction={ausRundeEntfernen}
+                          formNoValidate
+                          className="inline-flex min-h-9 items-center font-semibold text-muted hover:text-ink"
+                        >
+                          Nicht mehr einplanen
+                        </button>
+                        <input type="hidden" name="zurueck" value={`/crm/leads/${lead.id}`} />
+                      </>
+                    ) : null}
+                  </div>
+                ) : null}
                 <NaechsterSchritt vorgabe={schrittVorgabe(lead)} anrufOk={anrufErlaubt} idPrefix="detail" />
-                <div>
-                  <p className="mb-2 text-sm font-semibold text-ink">Status setzen und speichern</p>
-                  <div className="flex flex-wrap gap-2">
+                <details className="group">
+                  <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between rounded-lg border border-line px-3 text-sm font-semibold text-ink [&::-webkit-details-marker]:hidden">
+                    Status ändern (jetzt: {STATUS_LABEL[status]})
+                    <span aria-hidden className="text-muted transition-transform group-open:rotate-180">
+                      ▾
+                    </span>
+                  </summary>
+                  <div className="mt-2 flex flex-wrap gap-2">
                     {statusButtons.map((s) => (
                       <button
                         key={s}
@@ -242,7 +352,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
                       </button>
                     ))}
                   </div>
-                </div>
+                </details>
                 {!OHNE_SCHRITT.includes(status) ? (
                   <button name="status" value="" className={buttonClass("secondary", "w-full sm:w-auto")}>
                     Nur nächsten Schritt speichern
@@ -252,7 +362,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
             )}
           </Abschnitt>
 
-          <Abschnitt titel="Notizen und Verlauf" id="verlauf">
+          <Abschnitt titel="Notiz" id="verlauf">
             <form action={notizHinzufuegen} className="space-y-2">
               <input type="hidden" name="id" value={lead.id} />
               <label htmlFor="notiz" className="sr-only">
@@ -261,7 +371,12 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
               <Textarea id="notiz" name="notiz" rows={3} placeholder="Was wurde besprochen? Wie seid ihr verblieben?" required />
               <button className={buttonClass("secondary")}>Notiz speichern</button>
             </form>
-            <ol className="mt-5 space-y-4 border-l-2 border-line pl-4">
+            <details className="group mt-4">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-semibold text-brand [&::-webkit-details-marker]:hidden">
+                Verlauf ({(verlauf ?? []).length + 1})
+                <span aria-hidden className="transition-transform group-open:rotate-180">▾</span>
+              </summary>
+            <ol className="mt-3 space-y-4 border-l-2 border-line pl-4">
               {(verlauf ?? []).map((v) => {
                 const autor = (v.autor as unknown as { name: string } | null)?.name;
                 return (
@@ -293,11 +408,13 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
                 <p className="mt-0.5 text-xs text-muted">{datumZeit(lead.created_at)}</p>
               </li>
             </ol>
+            </details>
           </Abschnitt>
         </div>
 
         <div className="space-y-6">
           {!gesperrt ? (
+            <Klapp titel="Gesprächshilfe">
             <Gespraechshilfe
               firma={lead.firma}
               ansprechpartner={lead.ansprechpartner}
@@ -305,9 +422,10 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
               meinName={anzeigename(profil)}
               offen={anrufErlaubt}
             />
+            </Klapp>
           ) : null}
           {admin ? (
-            <Abschnitt titel="Zugeteilt an">
+            <Klapp titel="Zuteilen">
               <form action={leadsZuteilen} className="flex flex-col gap-2 sm:flex-row">
                 <input type="hidden" name="ids" value={lead.id} />
                 <input type="hidden" name="zurueck" value={`/crm/leads/${lead.id}`} />
@@ -325,103 +443,11 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
                 <button className={buttonClass("secondary")}>Zuteilen</button>
               </form>
               <p className="mt-2 text-xs text-muted">Die Person sieht den Lead danach in ihrer Liste. Geplante Besuche werden zurückgesetzt.</p>
-            </Abschnitt>
-          ) : null}
-
-          {!gesperrt && status !== "verkauft" && status !== "kein_interesse" ? (
-            <Abschnitt titel="Besuch vor Ort">
-              <p className="mb-3 text-sm text-muted">
-                {lead.letzter_besuch ? `Zuletzt vor Ort: ${datumZeit(lead.letzter_besuch)}` : "Noch nie besucht."}
-                {lead.adresse ? (
-                  <>
-                    {" "}
-                    <a href={mapsSuche(lead)} target="_blank" rel="noopener noreferrer" className="text-brand underline">
-                      Auf der Karte
-                    </a>
-                  </>
-                ) : null}
-              </p>
-              {lead.besuch_geplant ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-semibold text-ink">Geplant für {datum(`${lead.besuch_geplant}T12:00:00Z`)}</p>
-                  <Link href={`/crm/besuche?tag=${lead.besuch_geplant}`} className={buttonClass("ghost", "px-3 text-sm")}>
-                    Zur Runde
-                  </Link>
-                  <form action={ausRundeEntfernen}>
-                    <input type="hidden" name="id" value={lead.id} />
-                    <input type="hidden" name="zurueck" value={`/crm/leads/${lead.id}`} />
-                    <button className={buttonClass("ghost", "px-3 text-sm text-muted")}>Nicht mehr einplanen</button>
-                  </form>
-                </div>
-              ) : (
-                <p className="text-sm text-muted">Einen Besuch planst du oben bei „Wie geht es weiter?“ → Vorbeischauen.</p>
-              )}
-            </Abschnitt>
-          ) : null}
-
-          {!gesperrt ? (
-            <Abschnitt titel="Einwilligung zu Anruf und E-Mail">
-              {anrufErlaubt ? (
-                <form action={einwilligungSetzen} className="space-y-2">
-                  <input type="hidden" name="id" value={lead.id} />
-                  <input type="hidden" name="wie" value="" />
-                  <p className="text-sm text-muted">
-                    Widerruft der Betrieb die Einwilligung, entferne sie hier. Danach nicht mehr anrufen oder mailen.
-                  </p>
-                  <button className={buttonClass("ghost")}>Einwilligung entfernen</button>
-                </form>
-              ) : (
-                <form action={einwilligungSetzen} className="space-y-3">
-                  <input type="hidden" name="id" value={lead.id} />
-                  <p className="text-sm text-muted">
-                    Nur eintragen, wenn der Betrieb wirklich zugestimmt hat. Datum und dein Name werden gespeichert.
-                  </p>
-                  <label htmlFor="wie" className="block text-sm font-semibold text-ink">
-                    Wie hat der Betrieb zugestimmt?
-                  </label>
-                  <Select id="wie" name="wie" required defaultValue="">
-                    <option value="" disabled>
-                      Bitte wählen
-                    </option>
-                    {EINWILLIGUNG_ARTEN.map((a) => (
-                      <option key={a} value={a}>
-                        {a}
-                      </option>
-                    ))}
-                  </Select>
-                  <button className={buttonClass("secondary")}>Einwilligung eintragen</button>
-                </form>
-              )}
-            </Abschnitt>
-          ) : null}
-
-          {!gesperrt && lead.telefon ? (
-            <Abschnitt titel="WhatsApp schreiben">
-              <p className="mb-3 text-sm text-muted">
-                Öffnet WhatsApp mit fertigem Text. Du tippst dort nur noch auf „Senden“. Danach trägt das CRM es im Verlauf ein.
-              </p>
-              {!lead.einwilligung_wie ? (
-                <p className="mb-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
-                  Werbenachrichten per WhatsApp sind nur mit Einwilligung erlaubt (§ 174 TKG). Trag sie unter „Einwilligung“ ein.
-                </p>
-              ) : null}
-              <WhatsAppKnopf
-                lead={{
-                  id: lead.id,
-                  firma: lead.firma,
-                  ansprechpartner: lead.ansprechpartner,
-                  telefon: lead.telefon,
-                  erlaubt: !!lead.einwilligung_wie,
-                  website: website === "[Link einfügen]" ? undefined : website,
-                }}
-                daten={{ vorlagen: waVorlagen, site, meinName: platzhalter.mein_name }}
-                anlass={status === "demo" ? "demo" : status === "nicht_erreicht" ? "nicht_erreicht" : "gespraech"}
-              />
-            </Abschnitt>
+            </Klapp>
           ) : null}
 
           {!gesperrt && mails.length > 0 ? (
-            <Abschnitt titel="E-Mail schreiben">
+            <Klapp titel="E-Mail schreiben">
               {!lead.email ? (
                 <p className="text-sm text-muted">Trag unten eine E-Mail-Adresse ein, dann kannst du Vorlagen verwenden.</p>
               ) : (
@@ -441,14 +467,14 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
                   </div>
                 </>
               )}
-            </Abschnitt>
+            </Klapp>
           ) : null}
 
-          <Abschnitt titel="Kontakt">
+          <Klapp titel="Kontakt">
             <KontaktFormular lead={kontakt} telefonSperre={gesperrt} />
-          </Abschnitt>
+          </Klapp>
 
-          <Abschnitt titel="Verkauf">
+          <Klapp titel="Verkauf" offen={(deals ?? []).length > 0}>
             {(deals ?? []).length > 0 ? (
               <ul className="mb-4 divide-y divide-line rounded-lg border border-line">
                 {(deals ?? []).map((d) => (
@@ -488,7 +514,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
             ) : (
               <VerkaufFormular leadId={lead.id} />
             )}
-          </Abschnitt>
+          </Klapp>
         </div>
       </div>
       <div aria-hidden className="h-20 md:hidden" />

@@ -74,8 +74,11 @@ export async function leadAnlegen(_v: AktionStatus, fd: FormData): Promise<Aktio
 export async function leadsImportieren(
   zeilen: ImportZeile[],
   besitzerId?: string,
+  metaEinwilligung = false,
 ): Promise<{ ok: boolean; meldung: string; importiert?: number; doppelt?: number }> {
   const profil = await holeProfil();
+  // Nur Gründer dürfen bestätigen, dass die Leads sich selbst eingetragen haben (Meta-Lead-Formular)
+  if (metaEinwilligung && profil.rolle !== "admin") return { ok: false, meldung: "Das dürfen nur Gründer bestätigen." };
   const supabase = await createClient();
 
   // Nur Gründer dürfen Leads beim Import einer anderen aktiven Person zuteilen
@@ -127,7 +130,14 @@ export async function leadsImportieren(
     const block = neu.slice(i, i + 500);
     const { data, error } = await supabase
       .from("leads")
-      .insert(block.map((z) => ({ ...z.lead, quelle: "csv", besitzer_id: besitzer })))
+      .insert(
+        block.map((z) => ({
+          ...z.lead,
+          quelle: metaEinwilligung ? "meta" : "csv",
+          besitzer_id: besitzer,
+          ...(metaEinwilligung ? { einwilligung_wie: "Meta-Lead-Formular" } : {}),
+        })),
+      )
       .select("id");
     if (error || !data) return { ok: false, meldung: `Import nach ${i} Zeilen abgebrochen. Bitte prüfe die Datei.` };
 
@@ -137,6 +147,17 @@ export async function leadsImportieren(
       .filter((n) => n.notiz)
       .map((n) => ({ lead_id: n.lead_id, autor_id: profil.id, art: "notiz", text: `Aus dem CSV-Import:\n${n.notiz}` }));
     if (notizen.length) await supabase.from("lead_verlauf").insert(notizen);
+    if (metaEinwilligung) {
+      const wer = profil.name.trim() || profil.email;
+      await supabase.from("lead_verlauf").insert(
+        data.map((d) => ({
+          lead_id: d.id as string,
+          autor_id: profil.id,
+          art: "system",
+          text: `Einwilligung zu Anruf und E-Mail: hat sich über das Meta-Lead-Formular selbst eingetragen (Import bestätigt von ${wer})`,
+        })),
+      );
+    }
   }
 
   revalidatePath("/crm/leads");
@@ -348,8 +369,16 @@ export async function whatsappGesendet(leadId: string, titel: string): Promise<{
   const supabase = await createClient();
   const { data: lead } = await supabase.from("leads").select("id, status, einwilligung_wie").eq("id", id).maybeSingle();
   if (!lead) return { ok: false, meldung: "Lead nicht gefunden." };
-  if (lead.status === "nicht_anrufen" || !lead.einwilligung_wie)
-    return { ok: false, meldung: "Ohne Einwilligung ist keine WhatsApp erlaubt." };
+  if (lead.status === "nicht_anrufen") return { ok: false, meldung: "Ohne Einwilligung ist keine WhatsApp erlaubt." };
+  if (!lead.einwilligung_wie) {
+    const { count } = await supabase
+      .from("lead_verlauf")
+      .select("id", { count: "exact", head: true })
+      .eq("lead_id", id)
+      .eq("art", "system")
+      .like("text", "WhatsApp-Zustimmung bestätigt%");
+    if (!count) return { ok: false, meldung: "Ohne Einwilligung ist keine WhatsApp erlaubt." };
+  }
   const name = titel.trim().slice(0, 100) || "eigener Text";
   const { error } = await supabase
     .from("lead_verlauf")
@@ -357,5 +386,28 @@ export async function whatsappGesendet(leadId: string, titel: string): Promise<{
   if (error) return { ok: false, meldung: "Konnte nicht eingetragen werden." };
   revalidatePath(`/crm/leads/${id}`);
   revalidatePath("/crm/leads");
+  return { ok: true };
+}
+
+/**
+ * Hält fest, dass der Lead mündlich zugestimmt hat, die Demo per WhatsApp zu bekommen.
+ * Nur im Status „Demo“. Gilt nur für WhatsApp, Anruf und E-Mail bleiben ohne Einwilligung gesperrt.
+ */
+export async function whatsappZustimmung(leadId: string): Promise<{ ok: boolean; meldung?: string }> {
+  const profil = await holeProfil();
+  const id = leadId.slice(0, 50);
+  const supabase = await createClient();
+  const { data: lead } = await supabase.from("leads").select("id, status").eq("id", id).maybeSingle();
+  if (!lead) return { ok: false, meldung: "Lead nicht gefunden." };
+  if (lead.status !== "demo") return { ok: false, meldung: "Das geht nur im Status „Demo“." };
+  const name = profil.name.trim() || profil.email;
+  const { error } = await supabase.from("lead_verlauf").insert({
+    lead_id: id,
+    autor_id: profil.id,
+    art: "system",
+    text: `WhatsApp-Zustimmung bestätigt (mündlich, Demo) von ${name}`,
+  });
+  if (error) return { ok: false, meldung: "Konnte nicht eingetragen werden." };
+  revalidatePath(`/crm/leads/${id}`);
   return { ok: true };
 }

@@ -21,6 +21,7 @@ export function CsvImport({ personen = [], ichId }: { personen?: Person[]; ichId
   const [zeilen, setZeilen] = useState<ImportZeile[]>([]);
   const [dateiname, setDateiname] = useState("");
   const [meldung, setMeldung] = useState<{ art: "ok" | "fehler"; text: string } | null>(null);
+  const [meta, setMeta] = useState(false);
   const [laeuft, starte] = useTransition();
 
   const gueltig = zeilen.filter((z) => z.firma);
@@ -40,15 +41,15 @@ export function CsvImport({ personen = [], ichId }: { personen?: Person[]; ichId
 
   function importieren() {
     starte(async () => {
-      const r = await leadsImportieren(gueltig, besitzer || undefined);
+      const r = await leadsImportieren(gueltig, besitzer || undefined, meta);
       setMeldung({ art: r.ok ? "ok" : "fehler", text: r.meldung });
       if (r.ok) setZeilen([]);
     });
   }
 
   return (
-    <details className="group rounded-xl border border-line bg-surface open:col-span-2 md:open:col-span-1">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 text-[15px] font-semibold text-ink sm:min-h-12 sm:px-4 sm:text-base [&::-webkit-details-marker]:hidden">
+    <details className="group rounded-xl border border-line bg-surface open:order-last open:basis-full">
+      <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 px-3 text-sm font-semibold text-ink group-open:min-h-12 group-open:text-base [&::-webkit-details-marker]:hidden">
         CSV-Import
         <span aria-hidden className="text-xl text-brand group-open:rotate-45">+</span>
       </summary>
@@ -116,6 +117,15 @@ export function CsvImport({ personen = [], ichId }: { personen?: Person[]; ichId
                   ))}
                 </Select>
               </div>
+            ) : null}
+            {personen.length > 0 ? (
+              <label className="flex items-start gap-3 rounded-lg border border-line bg-bg p-3 text-sm text-ink">
+                <input type="checkbox" checked={meta} onChange={(e) => setMeta(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-brand" />
+                <span>
+                  <strong>Meta-Ads-Leads:</strong> Diese Personen haben sich selbst über das Meta-Formular eingetragen und der Kontaktaufnahme zugestimmt. Dann sind
+                  Anruf und E-Mail freigeschaltet. Nur ankreuzen, wenn das stimmt. Wer und wann bestätigt hat, wird bei jedem Lead gespeichert.
+                </span>
+              </label>
             ) : null}
             <div className="flex flex-col gap-2 sm:flex-row">
               <button

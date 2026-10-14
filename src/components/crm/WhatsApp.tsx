@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { whatsappGesendet } from "@/app/crm/leads/actions";
+import { whatsappGesendet, whatsappZustimmung } from "@/app/crm/leads/actions";
 import { buttonClass } from "@/components/ui";
 import { passendeVorlage, waLink, waNummer, waTextFuellen, type WaAnlass, type WaVorlage } from "@/lib/whatsapp";
 
@@ -13,6 +13,8 @@ export type WaLead = {
   telefon: string | null;
   /** Einwilligung zu Anruf/Nachricht eingetragen? Ohne sie bleibt alles gesperrt (§ 174 TKG) */
   erlaubt: boolean;
+  /** Status „Demo“ ohne Einwilligung: vor dem ersten Senden einmal die mündliche Zustimmung bestätigen */
+  frage?: boolean;
   website?: string;
 };
 export type WaDaten = { vorlagen: WaVorlage[]; site: string; meinName: string };
@@ -48,13 +50,47 @@ export function WhatsAppInhalt({
   const [text, setText] = useState(start ? fuell(start) : "");
   const [phase, setPhase] = useState<"wahl" | "fragen" | "fertig">("wahl");
   const [fehler, setFehler] = useState<string | null>(null);
+  const [zugestimmt, setZugestimmt] = useState(false);
   const [laeuft, starten] = useTransition();
 
   const nummer = waNummer(lead.telefon);
   const link = waLink(lead.telefon, text);
   const titel = daten.vorlagen.find((v) => v.id === gewaehlt)?.titel ?? "";
 
-  if (!lead.erlaubt) {
+  if (!lead.erlaubt && lead.frage && !zugestimmt) {
+    return (
+      <div className="space-y-3">
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
+          <p className="font-bold text-amber-900">Hat {lead.ansprechpartner || lead.firma} zugestimmt?</p>
+          <p className="mt-1 text-sm text-amber-900">
+            Hat dir der Lead gesagt, dass du ihm die Demo per WhatsApp schicken darfst? Nur dann darfst du schreiben (§ 174 TKG). Ich halte es im Verlauf mit deinem
+            Namen und dem Datum fest.
+          </p>
+        </div>
+        {fehler ? <p className="text-sm font-semibold text-danger">{fehler}</p> : null}
+        <button
+          type="button"
+          disabled={laeuft}
+          onClick={() =>
+            starten(async () => {
+              const r = await whatsappZustimmung(lead.id);
+              if (!r.ok) return setFehler(r.meldung ?? "Das hat nicht geklappt.");
+              setFehler(null);
+              setZugestimmt(true);
+            })
+          }
+          className={buttonClass("primary", "w-full")}
+        >
+          {laeuft ? "Trägt ein …" : "Ja, hat zugestimmt"}
+        </button>
+        <button type="button" onClick={onFertig} className={buttonClass("secondary", "w-full")}>
+          Nein, noch nicht
+        </button>
+      </div>
+    );
+  }
+
+  if (!lead.erlaubt && !zugestimmt) {
     return (
       <div className="space-y-3">
         <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
@@ -187,12 +223,15 @@ export function WhatsAppKnopf({
   lead,
   daten,
   symbol = false,
+  breit = false,
   anlass,
   zuletzt,
 }: {
   lead: WaLead;
   daten: WaDaten;
   symbol?: boolean;
+  /** Breiter Knopf mit Text, in einer Reihe mit Anrufen und Besuch */
+  breit?: boolean;
   anlass?: WaAnlass;
   zuletzt?: string | null;
 }) {
@@ -217,16 +256,18 @@ export function WhatsAppKnopf({
       <button
         type="button"
         onClick={() => setOffen(true)}
-        title={lead.erlaubt ? "WhatsApp schreiben" : "WhatsApp gesperrt: keine Einwilligung eingetragen"}
+        title={lead.erlaubt || lead.frage ? "WhatsApp schreiben" : "WhatsApp gesperrt: keine Einwilligung eingetragen"}
         aria-label={`WhatsApp an ${lead.firma}`}
         className={
           symbol
-            ? `flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${lead.erlaubt ? "bg-[#25D366] text-white hover:bg-[#1fb85a]" : "border border-line bg-bg text-muted"}`
-            : buttonClass("secondary", "gap-2 px-3 text-sm")
+            ? `flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${lead.erlaubt || lead.frage ? "bg-[#25D366] text-white hover:bg-[#1fb85a]" : "border border-line bg-bg text-muted"}`
+            : breit
+              ? `flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-2 text-sm font-bold ${lead.erlaubt || lead.frage ? "bg-[#25D366] text-white hover:bg-[#1fb85a]" : "bg-bg text-muted"}`
+              : buttonClass("secondary", "gap-2 px-3 text-sm")
         }
       >
-        <WaIcon className={symbol ? "h-5 w-5" : "h-4 w-4 text-[#25D366]"} />
-        {symbol ? null : "WhatsApp schreiben"}
+        <WaIcon className={symbol ? "h-5 w-5" : breit ? "h-4 w-4" : "h-4 w-4 text-[#25D366]"} />
+        {symbol ? null : breit ? "WhatsApp" : "WhatsApp schreiben"}
       </button>
       {symbol && zuletzt ? <span className="sr-only">Zuletzt WhatsApp: {zuletzt}</span> : null}
       <dialog
