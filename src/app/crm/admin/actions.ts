@@ -74,6 +74,16 @@ export async function anfrageUebernehmen(fd: FormData) {
   zurueck("anfragen");
 }
 
+/** Anfrage löschen (z. B. Tests oder Spam) – nur Gründer, nur solange sie noch keinem Lead zugeteilt ist */
+export async function anfrageLoeschen(fd: FormData) {
+  await nurAdmin();
+  const id = text(fd, "id", 50);
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("anfragen").delete().eq("id", id).is("lead_id", null).select("id");
+  if (error || !data?.length) zurueck("anfragen", "Die Anfrage konnte nicht gelöscht werden.");
+  zurueck("anfragen");
+}
+
 // ---------------------------------------------------------------------------
 // Deals
 // ---------------------------------------------------------------------------
