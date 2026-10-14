@@ -25,7 +25,6 @@ const QUELLE_KURZ: Record<string, string> = {
   csv: "CSV",
   leadfinder: "Lead Finder",
   recherche: "Recherche",
-  meta: "Meta Ads",
 };
 const quelleKurz = (q: string) => (q.startsWith("anfrage:") ? "Website" : (QUELLE_KURZ[q] ?? q));
 
@@ -399,7 +398,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
                         <input type="checkbox" name="ids" value={l.id} form="zuteilen" className="h-5 w-5 accent-brand" />
                       </label>
                     ) : null}
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${l.quelle === "meta" || l.quelle.startsWith("anfrage:") ? "bg-ok-light text-ok" : "bg-bg text-muted"}`}>
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${l.quelle.startsWith("anfrage:") ? "bg-ok-light text-ok" : "bg-bg text-muted"}`}>
                       {quelleKurz(l.quelle)}
                     </span>
                     {l.branche ? <span className="rounded-full bg-bg px-2.5 py-0.5 text-xs font-semibold text-muted">{l.branche}</span> : null}
