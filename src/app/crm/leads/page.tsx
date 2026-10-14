@@ -167,7 +167,16 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
   const { data: waRoh } = await supabase.from("vorlagen").select("id, titel, text").eq("kanal", "whatsapp").order("reihenfolge");
   const waVorlagen = (waRoh ?? []) as { id: string; titel: string; text: string }[];
   const waZuletzt = new Map<string, string>();
+  const waZustimmung = new Set<string>();
   if (leads.length) {
+    const { data: zu } = await supabase
+      .from("lead_verlauf")
+      .select("lead_id")
+      .in("lead_id", leads.map((l) => l.id))
+      .eq("art", "system")
+      .like("text", "WhatsApp-Zustimmung bestätigt%")
+      .limit(1000);
+    for (const z of zu ?? []) waZustimmung.add(z.lead_id as string);
     const { data: w } = await supabase
       .from("lead_verlauf")
       .select("lead_id, created_at")
@@ -184,7 +193,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
     l.telefon && l.status !== "nicht_anrufen" ? (
       <WhatsAppKnopf
         symbol
-        lead={{ id: l.id, firma: l.firma, ansprechpartner: l.ansprechpartner, telefon: l.telefon, erlaubt: !!l.einwilligung_wie }}
+        lead={{ id: l.id, firma: l.firma, ansprechpartner: l.ansprechpartner, telefon: l.telefon, erlaubt: !!l.einwilligung_wie || waZustimmung.has(l.id), frage: l.status === "demo" }}
         daten={{ vorlagen: waVorlagen, site, meinName }}
         anlass={l.status === "demo" ? "demo" : l.status === "nicht_erreicht" ? "nicht_erreicht" : "gespraech"}
       />

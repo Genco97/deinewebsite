@@ -78,6 +78,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
     supabase.from("vorlagen").select("id, titel, betreff, text, reihenfolge, kanal").order("reihenfolge"),
   ]);
 
+  const waZugestimmt = (verlauf ?? []).some((v) => v.art === "system" && v.text.startsWith("WhatsApp-Zustimmung bestätigt"));
   const letzteNotiz = (verlauf ?? []).find((v) => v.art === "notiz") ?? null;
   const status = lead.status as LeadStatus;
   const gesperrt = status === "nicht_anrufen";
@@ -400,9 +401,9 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
               <p className="mb-3 text-sm text-muted">
                 Öffnet WhatsApp mit fertigem Text. Du tippst dort nur noch auf „Senden“. Danach trägt das CRM es im Verlauf ein.
               </p>
-              {!lead.einwilligung_wie ? (
+              {!lead.einwilligung_wie && !waZugestimmt && status !== "demo" ? (
                 <p className="mb-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
-                  Werbenachrichten per WhatsApp sind nur mit Einwilligung erlaubt (§ 174 TKG). Trag sie unter „Einwilligung“ ein.
+                  Werbenachrichten per WhatsApp sind nur mit Einwilligung erlaubt (§ 174 TKG). Trag sie unter „Einwilligung“ ein. Im Status „Demo“ kannst du stattdessen die mündliche Zustimmung bestätigen.
                 </p>
               ) : null}
               <WhatsAppKnopf
@@ -411,7 +412,8 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
                   firma: lead.firma,
                   ansprechpartner: lead.ansprechpartner,
                   telefon: lead.telefon,
-                  erlaubt: !!lead.einwilligung_wie,
+                  erlaubt: !!lead.einwilligung_wie || waZugestimmt,
+                  frage: status === "demo",
                   website: website === "[Link einfügen]" ? undefined : website,
                 }}
                 daten={{ vorlagen: waVorlagen, site, meinName: platzhalter.mein_name }}
