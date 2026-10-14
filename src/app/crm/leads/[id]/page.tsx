@@ -28,7 +28,6 @@ const QUELLE: Record<string, string> = {
   manuell: "manuell angelegt",
   csv: "per CSV-Import",
   leadfinder: "über den Lead Finder gefunden",
-  meta: "aus Meta Ads (Lead-Formular)",
   "anfrage:demo": "aus einer Website-Anfrage (Gratis-Demo)",
   "anfrage:beratung": "aus einer Website-Anfrage (Beratung)",
   "anfrage:rueckruf": "aus einer Website-Anfrage (Rückruf)",
