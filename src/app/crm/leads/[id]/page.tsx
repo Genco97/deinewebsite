@@ -100,7 +100,8 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
   // Telefonnummer bei „nicht anrufen“ gar nicht erst an den Browser schicken
   const kontakt = { ...lead, telefon: gesperrt ? null : lead.telefon };
   const statusButtons = LEAD_STATUS.filter((s) => s !== "verkauft");
-  const anrufErlaubt = !gesperrt && !!lead.einwilligung_wie;
+  const falsch = status === "falsche_nummer";
+  const anrufErlaubt = !gesperrt && !falsch && !!lead.einwilligung_wie;
   const heute = heuteWien();
   const schrittText =
     lead.naechster_rueckruf
@@ -144,7 +145,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
           </a>
         ) : (
           <span className="flex min-h-11 items-center justify-center rounded-lg bg-bg px-2 text-center text-xs text-muted">
-            {gesperrt ? "Nicht anrufen" : "Kein Anruf erlaubt"}
+            {gesperrt ? "Nicht anrufen" : falsch ? "Falsche Nummer" : "Kein Anruf erlaubt"}
           </span>
         )}
         <a href="#notiz" className={buttonClass("secondary", "px-2")}>
@@ -206,7 +207,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
             ) : (
               <span className="flex min-h-11 items-center justify-center rounded-lg bg-bg px-2 text-center text-sm font-semibold text-muted">📞 Anrufen</span>
             )}
-            {lead.telefon ? (
+            {lead.telefon && !falsch ? (
               <WhatsAppKnopf
                 breit
                 lead={{
@@ -215,7 +216,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
                   ansprechpartner: lead.ansprechpartner,
                   telefon: lead.telefon,
                   erlaubt: anrufErlaubt || waZugestimmt,
-                  frage: status !== "falsche_nummer",
+                  frage: true,
                   website: website === "[Link einfügen]" ? undefined : website,
                 }}
                 daten={{ vorlagen: waVorlagen, site, meinName: platzhalter.mein_name }}

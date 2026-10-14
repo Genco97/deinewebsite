@@ -372,7 +372,9 @@ export async function funde(
   const headers = opts.headers ?? {};
   const ende = Date.now() + (opts.budgetMs ?? 90_000);
   const z: Zustand = { schlecht: new Set() };
-  let { elemente, server, fehlend } = await sammeln(areaId, gruppen, headers, ende, z);
+  const erst = await sammeln(areaId, gruppen, headers, ende, z);
+  let { elemente, server } = erst;
+  const { fehlend } = erst;
   let ausschnitt = false;
   if (elemente.length === 0) {
     // Nichts gefunden: nicht gleich glauben. Manche Server liefern bei Überlast oder ohne Gebietsindex „leer“.
