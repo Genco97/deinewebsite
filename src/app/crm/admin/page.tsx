@@ -12,6 +12,7 @@ import { gewinnProMonat } from "@/lib/gewinn";
 import { PLATZHALTER, type Vorlage } from "@/lib/vorlagen";
 import {
   aktivSetzen,
+  anfrageLoeschen,
   anfrageUebernehmen,
   dealAktualisieren,
   dealAnlegen,
@@ -211,6 +212,18 @@ async function Anfragen({
                       </Select>
                       <button className={buttonClass("primary")}>Zuteilen</button>
                     </form>
+                  )}
+                  {a.lead_id ? null : (
+                    <details className="mt-2">
+                      <summary className="inline-flex min-h-9 cursor-pointer list-none items-center text-sm font-semibold text-muted hover:text-danger [&::-webkit-details-marker]:hidden">
+                        Anfrage löschen
+                      </summary>
+                      <form action={anfrageLoeschen} className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-danger-light p-3">
+                        <input type="hidden" name="id" value={a.id} />
+                        <p className="text-sm text-danger">Wirklich löschen? Das kann man nicht rückgängig machen.</p>
+                        <button className={buttonClass("danger")}>Ja, löschen</button>
+                      </form>
+                    </details>
                   )}
                 </div>
               </Karte>
