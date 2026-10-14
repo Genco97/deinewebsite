@@ -260,7 +260,7 @@ export function WhatsAppKnopf({
         aria-label={`WhatsApp an ${lead.firma}`}
         className={
           symbol
-            ? `flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${lead.erlaubt || lead.frage ? "bg-[#25D366] text-white hover:bg-[#1fb85a]" : "border border-line bg-bg text-muted"}`
+            ? `flex h-11 w-11 shrink-0 items-center justify-center self-center rounded-lg border ${lead.erlaubt || lead.frage ? "border-[#cfe6d6] bg-[#f2faf4] text-[#15803d] hover:bg-[#e3f4e8]" : "border-line bg-bg text-muted"}`
             : breit
               ? `flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-2 text-sm font-bold ${lead.erlaubt || lead.frage ? "bg-[#25D366] text-white hover:bg-[#1fb85a]" : "bg-bg text-muted"}`
               : buttonClass("secondary", "gap-2 px-3 text-sm")
