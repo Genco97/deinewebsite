@@ -228,7 +228,7 @@ function popup(l: KartenLead, drin: boolean, umschalten: () => void) {
     g.textContent = `Besuch geplant: ${new Date(`${l.besuch_geplant}T12:00:00Z`).toLocaleDateString("de-AT")}`;
     el.append(g);
   }
-  if (!l.einwilligung_wie && l.status !== "nicht_anrufen") {
+  if (!l.einwilligung_wie && l.status !== "nicht_anrufen" && l.status !== "falsche_nummer") {
     const w = document.createElement("p");
     w.textContent = "Kein Anruf – nur Besuch oder Brief";
     w.className = "text-amber-800";

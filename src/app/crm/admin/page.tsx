@@ -236,7 +236,7 @@ async function Deals({ personen, name }: { personen: Person[]; name: (id: string
     supabase
       .from("leads")
       .select("id, firma, besitzer_id")
-      .not("status", "in", "(nicht_anrufen,kein_interesse)")
+      .not("status", "in", "(nicht_anrufen,kein_interesse,falsche_nummer)")
       .order("updated_at", { ascending: false })
       .limit(500),
   ]);

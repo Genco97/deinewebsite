@@ -320,6 +320,9 @@ export function AnrufModus({
               <button type="button" disabled={laeuft} onClick={() => speichern("kein_interesse")} className="min-h-11 rounded-lg px-3 font-semibold text-muted hover:bg-line/50 hover:text-ink">
                 Kein Interesse
               </button>
+              <button type="button" disabled={laeuft} onClick={() => speichern("falsche_nummer")} className="min-h-11 rounded-lg px-3 font-semibold text-muted hover:bg-line/50 hover:text-ink">
+                Falsche Nummer
+              </button>
               <button type="button" disabled={laeuft} onClick={() => speichern("nicht_anrufen")} className="min-h-11 rounded-lg px-3 font-semibold text-danger hover:bg-danger-light">
                 Will keine Anrufe
               </button>

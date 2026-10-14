@@ -5,13 +5,14 @@ import { holeProfil } from "@/lib/crm";
 import { createClient } from "@/lib/supabase/server";
 import { heuteWien, tagVerschieben, wienZuIso } from "@/lib/zeit";
 
-export type Ergebnis = "nicht_erreicht" | "rueckruf" | "interessiert" | "kein_interesse" | "nicht_anrufen";
+export type Ergebnis = "nicht_erreicht" | "rueckruf" | "interessiert" | "kein_interesse" | "falsche_nummer" | "nicht_anrufen";
 
 const LABEL: Record<Ergebnis, string> = {
   nicht_erreicht: "nicht erreicht",
   rueckruf: "Rückruf vereinbart",
   interessiert: "interessiert",
   kein_interesse: "kein Interesse",
+  falsche_nummer: "falsche Nummer",
   nicht_anrufen: "will keine Anrufe mehr",
 };
 
