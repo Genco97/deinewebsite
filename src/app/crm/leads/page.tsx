@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Kopf } from "@/components/crm/Kopf";
 import { CsvImport } from "@/components/crm/CsvImport";
 import { LeadAnlegen } from "@/components/crm/LeadAnlegen";
 import { NotizSchnell } from "@/components/crm/NotizSchnell";
@@ -234,49 +233,52 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
 
   return (
     <>
-      <Kopf titel="Leads" text={admin ? "Alle Leads im Team." : "Deine Leads."} />
-
-      <div className="mb-4 grid grid-cols-2 gap-2 sm:mb-6 sm:gap-3">
+      <div className="mb-4 flex flex-wrap items-end gap-2">
+        <div className="min-w-48 flex-1">
+          <h1 className="font-serif text-2xl font-semibold tracking-tight text-ink sm:text-3xl">Leads</h1>
+          <p className="mt-1 text-muted">{admin ? "Alle Leads im Team." : "Deine Leads."}</p>
+        </div>
         <LeadAnlegen />
         <CsvImport personen={personen} ichId={profil.id} />
       </div>
 
-      <nav aria-label="Ansicht" className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {(
-          [
-            ["heute", "Heute dran"],
-            ["rueckrufe", "Rückrufe fällig"],
-            ["anrufen", "Zum Anrufen"],
-            ["besuch", "Besuch / Brief"],
-          ] as const
-        ).map(([k, titel]) => (
+      <nav aria-label="Ansicht" className="mb-3 flex flex-wrap items-stretch gap-2">
+        <div className="flex overflow-hidden rounded-xl border border-line bg-white text-sm font-semibold">
           <Link
-            key={k}
-            href={`/crm/leads?ansicht=${k}`}
-            aria-current={ansicht === k ? "page" : undefined}
-            className={`rounded-xl border px-3 py-2.5 ${ansicht === k ? "border-brand bg-brand-light" : "border-line bg-white hover:bg-bg"}`}
+            href="/crm/leads?ansicht=heute"
+            className={`flex items-center px-3.5 ${ansicht !== "alle" ? "bg-brand text-white" : "text-ink hover:bg-bg"}`}
           >
-            <span className="block text-2xl font-bold leading-none text-ink">{zahl[k]}</span>
-            <span className="mt-1 block text-xs text-muted">{titel}</span>
+            Meine
           </Link>
-        ))}
+          <Link
+            href="/crm/leads?ansicht=alle"
+            className={`flex items-center px-3.5 ${ansicht === "alle" ? "bg-brand text-white" : "text-ink hover:bg-bg"}`}
+          >
+            Alle ({zahl.alle})
+          </Link>
+        </div>
+        {ansicht !== "alle"
+          ? (
+              [
+                ["heute", "Heute dran"],
+                ["rueckrufe", "Rückrufe fällig"],
+                ["anrufen", "Zum Anrufen"],
+                ["besuch", "Ohne Zustimmung"],
+                ["neu", "Neu"],
+              ] as const
+            ).map(([k, titel]) => (
+              <Link
+                key={k}
+                href={`/crm/leads?ansicht=${k}`}
+                aria-current={ansicht === k ? "page" : undefined}
+                className={`min-w-28 flex-1 rounded-xl border px-3 py-2 ${ansicht === k ? "border-brand bg-brand-light" : "border-line bg-white hover:bg-bg"}`}
+              >
+                <span className="block text-xl font-bold leading-none text-ink">{zahl[k]}</span>
+                <span className="mt-1 block text-xs text-muted">{titel}</span>
+              </Link>
+            ))
+          : null}
       </nav>
-      <div className="mb-4 flex flex-wrap gap-2 text-sm">
-        {(
-          [
-            ["neu", `Neu (${zahl.neu})`],
-            ["alle", `Alle Leads (${zahl.alle})`],
-          ] as const
-        ).map(([k, t]) => (
-          <Link
-            key={k}
-            href={`/crm/leads?ansicht=${k}`}
-            className={`rounded-full border px-3 py-1 ${ansicht === k ? "border-brand bg-brand text-white" : "border-line bg-white text-ink hover:bg-bg"}`}
-          >
-            {t}
-          </Link>
-        ))}
-      </div>
 
       <form
         key={hier}
@@ -364,12 +366,6 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
       ) : null}
       {admin && leads.length > 0 ? <ZuteilenLeiste personen={personen} zurueck={hier} /> : null}
 
-      {leads.some((l) => !l.einwilligung_wie && l.status !== "nicht_anrufen") ? (
-        <p className="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          Leads ohne Einwilligung werden nicht angerufen – dort bleibt nur Besuch oder Brief („Besuch planen“).
-        </p>
-      ) : null}
-
       <Karte className="overflow-hidden">
         {leads.length === 0 ? (
           <p className="px-5 py-10 text-center text-muted">Keine Leads gefunden.</p>
@@ -418,7 +414,6 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
                   <th className="px-4 py-3 font-semibold">Kontakt</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
                   <th className="px-4 py-3 font-semibold">Nächste Aktion</th>
-                  <th className="w-64 px-4 py-3 font-semibold">Notiz</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -442,6 +437,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
                       </Link>
                       <span className="block text-xs text-muted">{[l.branche, l.bezirk].filter(Boolean).join(" · ") || "–"}</span>
                       {admin && l.besitzer ? <span className="block text-xs text-muted">Bei: {l.besitzer.name}</span> : null}
+                      <div className="mt-1 max-w-sm">{notizFeld(l)}</div>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-muted">
                       {l.status === "nicht_anrufen" ? (
@@ -463,7 +459,6 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
                       ) : null}
                     </td>
                     <td className="px-4 py-3">{aktion(l)}</td>
-                    <td className="px-4 py-2 align-top">{notizFeld(l)}</td>
                   </tr>
                 ))}
               </tbody>

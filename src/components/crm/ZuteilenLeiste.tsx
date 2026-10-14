@@ -29,16 +29,20 @@ export function ZuteilenLeiste({ personen, zurueck }: { personen: Person[]; zuru
     <form
       id="zuteilen"
       action={leadsZuteilen}
-      className={`mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-brand/30 bg-brand-light px-3 py-1.5 sm:flex-nowrap sm:py-3 ${anzahl > 0 ? "max-sm:fixed max-sm:inset-x-3 max-sm:bottom-3 max-sm:z-30 max-sm:mb-0 max-sm:py-3 max-sm:shadow-xl" : ""}`}
+      className={
+        anzahl > 0
+          ? "fixed inset-x-3 bottom-3 z-30 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-brand/30 bg-brand-light px-3 py-3 shadow-xl md:left-[calc(16rem+0.75rem)] md:flex-nowrap print:hidden"
+          : "mb-2 flex items-center"
+      }
     >
       <input type="hidden" name="zurueck" value={zurueck} />
-      <label className="flex min-h-10 items-center gap-3 text-sm font-semibold text-ink">
-        <input type="checkbox" onChange={(e) => alle(e.target.checked)} className="h-5 w-5 accent-brand" />
+      <label className={`flex min-h-10 items-center gap-3 text-sm font-semibold ${anzahl > 0 ? "text-ink" : "text-muted"}`}>
+        <input type="checkbox" checked={anzahl > 0 && anzahl === sichtbare().length} onChange={(e) => alle(e.target.checked)} className="h-5 w-5 accent-brand" />
         Alle markieren
       </label>
-      <span className="ml-auto text-sm text-muted">{anzahl} markiert</span>
-      {/* Am Handy erst sichtbar, wenn etwas markiert ist */}
-      <div className={`flex w-full items-center gap-2 sm:w-auto ${anzahl > 0 ? "" : "max-sm:hidden"}`}>
+      {anzahl > 0 ? <span className="ml-auto text-sm font-semibold text-ink">{anzahl} markiert</span> : null}
+      {/* Erst sichtbar, wenn etwas markiert ist */}
+      <div className={`flex w-full items-center gap-2 sm:w-auto ${anzahl > 0 ? "" : "hidden"}`}>
         <label htmlFor="besitzer" className="sr-only">
           Zuteilen an
         </label>

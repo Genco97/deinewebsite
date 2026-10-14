@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Kopf } from "@/components/crm/Kopf";
 import { StatusBadge } from "@/components/crm/StatusBadge";
-import { Hinweis, Karte, Select, buttonClass, inputClass } from "@/components/ui";
+import { Hinweis, Karte, buttonClass, inputClass } from "@/components/ui";
 import { NaechsterSchritt } from "@/components/crm/NaechsterSchritt";
 import { BESUCH_ERGEBNISSE, adresseText, mapsRoute, mapsSuche, type BesuchErgebnis } from "@/lib/besuche";
 import { holeProfil } from "@/lib/crm";
 import { ABGESCHLOSSEN, type LeadStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
 import { datum, heuteWien, istTag, tagKurz, tagVerschieben } from "@/lib/zeit";
+import { EinplanenLeiste } from "@/components/crm/EinplanenLeiste";
 import { ausRundeEntfernen, besucheEinplanen, besuchErfassen } from "./actions";
 
 export const metadata: Metadata = { title: "Besuche" };
@@ -123,7 +124,7 @@ export default async function Besuche({ searchParams }: PageProps<"/crm/besuche"
         ) : null}
       </div>
 
-      <Karte className="mb-8">
+      <Karte className="mb-4">
         <div className="flex flex-col gap-3 border-b border-line px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <h2 className="font-bold text-ink">
             Deine Runde <span className="font-normal text-muted">· {stopps.length} {stopps.length === 1 ? "Betrieb" : "Betriebe"}</span>
@@ -136,7 +137,7 @@ export default async function Besuche({ searchParams }: PageProps<"/crm/besuche"
         </div>
 
         {stopps.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-muted sm:px-5">
+          <p className="px-4 py-3 text-sm text-muted sm:px-5">
             Für diesen Tag ist noch nichts geplant. Wähl unten Betriebe aus und plan sie ein.
           </p>
         ) : (
@@ -253,23 +254,18 @@ export default async function Besuche({ searchParams }: PageProps<"/crm/besuche"
         </summary>
         <p className="border-t border-line px-4 py-3 text-sm text-muted sm:px-5">Offene Leads mit Adresse – wer am längsten nicht besucht wurde, steht oben.</p>
 
-        <form method="get" className="flex flex-col gap-2 border-b border-line px-4 py-3 sm:flex-row sm:items-end sm:px-5">
-          <input type="hidden" name="tag" value={tag} />
-          <div className="sm:w-64">
-            <label htmlFor="bezirk" className="mb-1.5 block text-sm font-semibold text-ink">
-              Bezirk
-            </label>
-            <Select id="bezirk" name="bezirk" defaultValue={bezirk}>
-              <option value="">Alle Bezirke</option>
-              {bezirke.map((x) => (
-                <option key={x} value={x}>
-                  {x}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <button className={buttonClass("secondary")}>Filtern</button>
-        </form>
+        <div className="flex flex-wrap gap-2 border-b border-line px-4 py-3 sm:px-5">
+          {[["", "Alle"], ...bezirke.map((x) => [x, x])].map(([wert, titel]) => (
+            <Link
+              key={wert}
+              href={`/crm/besuche?tag=${tag}${wert ? `&bezirk=${encodeURIComponent(wert)}` : ""}`}
+              aria-current={bezirk === wert ? "true" : undefined}
+              className={`inline-flex min-h-10 items-center rounded-full border px-4 text-sm font-semibold ${bezirk === wert ? "border-brand bg-brand text-white" : "border-brand/40 bg-white text-brand hover:bg-brand-light"}`}
+            >
+              {titel}
+            </Link>
+          ))}
+        </div>
 
         {liste.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted sm:px-5">
@@ -279,11 +275,12 @@ export default async function Besuche({ searchParams }: PageProps<"/crm/besuche"
         ) : (
           <form action={besucheEinplanen}>
             <input type="hidden" name="zurueck" value={hier} />
-            <ul className="max-h-[28rem] divide-y divide-line overflow-y-auto">
+            <EinplanenLeiste tag={tag} heute={heute} />
+            <ul className="divide-y divide-line">
               {liste.map((l) => (
                 <li key={l.id}>
-                  <label className="flex min-h-14 cursor-pointer items-start gap-3 px-4 py-3 hover:bg-bg sm:px-5">
-                    <input type="checkbox" name="ids" value={l.id} className="mt-1 h-5 w-5 shrink-0 accent-brand" />
+                  <label className="flex min-h-16 cursor-pointer items-center gap-4 px-4 py-3 hover:bg-bg has-[:checked]:bg-brand-light sm:px-5">
+                    <input type="checkbox" name="ids" value={l.id} data-einplanen className="h-6 w-6 shrink-0 accent-brand" />
                     <span className="min-w-0 flex-1">
                       <span className="block font-semibold text-ink">{l.firma}</span>
                       <span className="block text-sm text-muted">
@@ -297,15 +294,7 @@ export default async function Besuche({ searchParams }: PageProps<"/crm/besuche"
                 </li>
               ))}
             </ul>
-            <div className="flex flex-col gap-2 border-t border-line px-4 py-3 sm:flex-row sm:items-end sm:px-5">
-              <div className="sm:w-48">
-                <label htmlFor="tag" className="mb-1.5 block text-sm font-semibold text-ink">
-                  Besuchen am
-                </label>
-                <input id="tag" name="tag" type="date" defaultValue={tag} min={heute} className={inputClass} required />
-              </div>
-              <button className={buttonClass("primary")}>Ausgewählte einplanen</button>
-            </div>
+            <div aria-hidden className="h-20" />
           </form>
         )}
       </details>
