@@ -130,7 +130,7 @@ export default async function Besuche({ searchParams }: PageProps<"/crm/besuche"
           </h2>
           {route ? (
             <a href={route} target="_blank" rel="noopener noreferrer" className={buttonClass("primary", "w-full sm:w-auto")}>
-              Route in Google Maps
+              Route starten
             </a>
           ) : null}
         </div>
@@ -182,56 +182,58 @@ export default async function Besuche({ searchParams }: PageProps<"/crm/besuche"
                         </form>
                       </div>
 
-                      {/* Ergebnis erfassen: eingeklappt, damit die Runde kurz bleibt */}
-                      <details className="group mt-2 rounded-lg border border-line">
-                        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 text-sm font-semibold text-brand [&::-webkit-details-marker]:hidden">
-                          Besuch erfassen
-                          <span aria-hidden className="transition-transform group-open:rotate-180">
-                            ▾
-                          </span>
-                        </summary>
-
-                        <form action={besuchErfassen} className="space-y-3 border-t border-line p-3">
-                          <input type="hidden" name="id" value={s.id} />
-                          <input type="hidden" name="zurueck" value={hier} />
-                          <label htmlFor={`notiz-${s.id}`} className="sr-only">
-                            Notiz zum Besuch
-                          </label>
-                          <input
-                            id={`notiz-${s.id}`}
-                            name="notiz"
-                            placeholder="Notiz (optional), z. B. „Chefin ab 15 Uhr da“"
-                            className={inputClass}
-                          />
-                          {s.einwilligung_wie ? (
-                            <p className="text-sm text-ok">Anruf erlaubt ({s.einwilligung_wie})</p>
-                          ) : (
-                            <label className="flex min-h-11 items-start gap-3 text-sm text-muted">
-                              <input type="checkbox" name="einwilligung" className="mt-1 h-5 w-5 shrink-0 accent-brand" />
-                              <span>Betrieb ist einverstanden, dass wir anrufen und mailen</span>
+                      {/* Ergebnis: ein Tipp genügt; Notiz, Zustimmung und nächster Schritt sind eingeklappt */}
+                      <form action={besuchErfassen} className="mt-3 space-y-2">
+                        <input type="hidden" name="id" value={s.id} />
+                        <input type="hidden" name="zurueck" value={hier} />
+                        <p className="text-sm font-semibold text-ink">Wie ist es gelaufen?</p>
+                        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                          {(Object.keys(BESUCH_ERGEBNISSE) as BesuchErgebnis[]).map((e) => (
+                            <button
+                              key={e}
+                              name="ergebnis"
+                              value={e}
+                              formNoValidate={e === "kein_interesse"}
+                              className={`min-h-11 rounded-lg border bg-surface px-3 text-sm font-semibold ${ERGEBNIS_KNOPF[e]}`}
+                            >
+                              {BESUCH_ERGEBNISSE[e].label}
+                            </button>
+                          ))}
+                        </div>
+                        <details className="group rounded-lg border border-line">
+                          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 text-sm font-semibold text-brand [&::-webkit-details-marker]:hidden">
+                            Notiz, Zustimmung und nächster Schritt
+                            <span aria-hidden className="transition-transform group-open:rotate-180">
+                              ▾
+                            </span>
+                          </summary>
+                          <div className="space-y-3 border-t border-line p-3">
+                            <label htmlFor={`notiz-${s.id}`} className="sr-only">
+                              Notiz zum Besuch
                             </label>
-                          )}
-                          <NaechsterSchritt
-                            vorgabe={{ art: "besuch", tag: tagVerschieben(heute, 7), zeit: "10:00" }}
-                            anrufOk={!!s.einwilligung_wie}
-                            idPrefix={`schritt-${s.id}`}
-                          />
-                          <p className="text-sm font-semibold text-ink">Ergebnis speichern</p>
-                          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                            {(Object.keys(BESUCH_ERGEBNISSE) as BesuchErgebnis[]).map((e) => (
-                              <button
-                                key={e}
-                                name="ergebnis"
-                                value={e}
-                                formNoValidate={e === "kein_interesse"}
-                                className={`min-h-11 rounded-lg border bg-surface px-3 text-sm font-semibold ${ERGEBNIS_KNOPF[e]}`}
-                              >
-                                {BESUCH_ERGEBNISSE[e].label}
-                              </button>
-                            ))}
+                            <input
+                              id={`notiz-${s.id}`}
+                              name="notiz"
+                              placeholder="Notiz (optional), z. B. „Chefin ab 15 Uhr da“"
+                              className={inputClass}
+                            />
+                            {s.einwilligung_wie ? (
+                              <p className="text-sm text-ok">✓ Anruf erlaubt ({s.einwilligung_wie})</p>
+                            ) : (
+                              <label className="flex min-h-11 items-start gap-3 text-sm text-ink">
+                                <input type="checkbox" name="einwilligung" className="mt-1 h-5 w-5 shrink-0 accent-brand" />
+                                <span>Darf wieder anrufen und mailen (Betrieb hat zugestimmt)</span>
+                              </label>
+                            )}
+                            <p className="text-xs text-muted">Ohne Änderung: wiederkommen in 7 Tagen.</p>
+                            <NaechsterSchritt
+                              vorgabe={{ art: "besuch", tag: tagVerschieben(heute, 7), zeit: "10:00" }}
+                              anrufOk={!!s.einwilligung_wie}
+                              idPrefix={`schritt-${s.id}`}
+                            />
                           </div>
-                        </form>
-                      </details>
+                        </details>
+                      </form>
                     </div>
                   </div>
                 </li>
@@ -242,11 +244,14 @@ export default async function Besuche({ searchParams }: PageProps<"/crm/besuche"
       </Karte>
 
       {/* Einplanen */}
-      <Karte>
-        <div className="border-b border-line px-4 py-3 sm:px-5">
-          <h2 className="font-bold text-ink">Betriebe einplanen</h2>
-          <p className="text-sm text-muted">Offene Leads mit Adresse – wer am längsten nicht besucht wurde, steht oben.</p>
-        </div>
+      <details open={stopps.length === 0 || !!bezirk} className="group rounded-2xl border border-line bg-surface">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 px-4 font-bold text-brand sm:px-5 [&::-webkit-details-marker]:hidden">
+          ＋ Betriebe zur Runde hinzufügen
+          <span aria-hidden className="text-muted transition-transform group-open:rotate-180">
+            ▾
+          </span>
+        </summary>
+        <p className="border-t border-line px-4 py-3 text-sm text-muted sm:px-5">Offene Leads mit Adresse – wer am längsten nicht besucht wurde, steht oben.</p>
 
         <form method="get" className="flex flex-col gap-2 border-b border-line px-4 py-3 sm:flex-row sm:items-end sm:px-5">
           <input type="hidden" name="tag" value={tag} />
@@ -303,7 +308,7 @@ export default async function Besuche({ searchParams }: PageProps<"/crm/besuche"
             </div>
           </form>
         )}
-      </Karte>
+      </details>
     </>
   );
 }

@@ -223,12 +223,15 @@ export function WhatsAppKnopf({
   lead,
   daten,
   symbol = false,
+  breit = false,
   anlass,
   zuletzt,
 }: {
   lead: WaLead;
   daten: WaDaten;
   symbol?: boolean;
+  /** Breiter Knopf mit Text, in einer Reihe mit Anrufen und Besuch */
+  breit?: boolean;
   anlass?: WaAnlass;
   zuletzt?: string | null;
 }) {
@@ -258,11 +261,13 @@ export function WhatsAppKnopf({
         className={
           symbol
             ? `flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${lead.erlaubt || lead.frage ? "bg-[#25D366] text-white hover:bg-[#1fb85a]" : "border border-line bg-bg text-muted"}`
-            : buttonClass("secondary", "gap-2 px-3 text-sm")
+            : breit
+              ? `flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-2 text-sm font-bold ${lead.erlaubt || lead.frage ? "bg-[#25D366] text-white hover:bg-[#1fb85a]" : "bg-bg text-muted"}`
+              : buttonClass("secondary", "gap-2 px-3 text-sm")
         }
       >
-        <WaIcon className={symbol ? "h-5 w-5" : "h-4 w-4 text-[#25D366]"} />
-        {symbol ? null : "WhatsApp schreiben"}
+        <WaIcon className={symbol ? "h-5 w-5" : breit ? "h-4 w-4" : "h-4 w-4 text-[#25D366]"} />
+        {symbol ? null : breit ? "WhatsApp" : "WhatsApp schreiben"}
       </button>
       {symbol && zuletzt ? <span className="sr-only">Zuletzt WhatsApp: {zuletzt}</span> : null}
       <dialog
