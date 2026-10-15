@@ -9,7 +9,6 @@ import { ProChat } from "@/components/beispiele/ProChat";
 import { ProDemoChat } from "@/components/beispiele/ProDemoChat";
 import { ProBerater } from "@/components/beispiele/ProBerater";
 import { ProKino } from "@/components/beispiele/ProKino";
-import { ProSignatur } from "@/components/beispiele/ProSignatur";
 import { ProWasserBild } from "@/components/beispiele/ProWasserBild";
 import { abPreis, betriebAusSuche, extrasFuer, galerieFuer } from "@/lib/beispiele";
 import "./pro.css";
@@ -127,9 +126,6 @@ export default async function ProBeispiel({ searchParams }: PageProps<"/beispiel
           {betrieb.slogan} {betrieb.einleitung}
         </p>
       </section>
-
-      {/* Signatur: die Schere schneidet sich durch die Seite */}
-      {betrieb.branche === "friseur" && <ProSignatur zeilen={["Schnitt für Schnitt.", "Mit ruhiger Hand.", "Bis es Ihnen gefällt."]} />}
 
       {/* Galerie, die seitwärts fährt */}
       <section data-quer aria-label="Galerie" className="relative overflow-x-auto md:h-screen md:overflow-hidden" style={{ scrollbarWidth: "none" }}>
