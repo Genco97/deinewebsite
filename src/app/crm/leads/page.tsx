@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CsvImport } from "@/components/crm/CsvImport";
 import { LeadAnlegen } from "@/components/crm/LeadAnlegen";
 import { NummerEintragen } from "@/components/crm/NummerEintragen";
+import { DatenErgaenzen, type UnvollstaendigerLead } from "@/components/crm/DatenErgaenzen";
 import { StatusAuswahl } from "@/components/crm/StatusAuswahl";
 import { WhatsAppKnopf } from "@/components/crm/WhatsApp";
 import { ZuteilenLeiste } from "@/components/crm/ZuteilenLeiste";
@@ -72,6 +73,33 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
   const mehrOffen = !!(branche || bezirk || besitzer);
 
   const supabase = await createClient();
+
+  // „Unvollständig“: offene Leads ohne Telefon oder ohne Adresse – zum Nachtragen
+  const unv = sp.liste === "unvollstaendig";
+  const fehlt = sp.fehlt === "telefon" || sp.fehlt === "adresse" ? sp.fehlt : "";
+  const geschlossen = "(verkauft,kein_interesse,falsche_nummer,nicht_anrufen)";
+  const offeneLeads = () => supabase.from("leads").select("id", { count: "exact", head: true }).not("status", "in", geschlossen);
+  const [zAlle, zUnv, zTel, zAdr] = await Promise.all([
+    supabase.from("leads").select("id", { count: "exact", head: true }),
+    offeneLeads().or("telefon.is.null,adresse.is.null"),
+    offeneLeads().is("telefon", null),
+    offeneLeads().is("adresse", null),
+  ]);
+  const umschalter = (
+    <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="inline-flex rounded-xl border border-line bg-surface p-1 text-sm font-semibold">
+        {[
+          { href: "/crm/leads", text: "Alle Leads", zahl: zAlle.count ?? 0, an: !unv },
+          { href: "/crm/leads?liste=unvollstaendig", text: "Unvollständig", zahl: zUnv.count ?? 0, an: unv },
+        ].map((t) => (
+          <Link key={t.href} href={t.href} aria-current={t.an ? "page" : undefined} className={`rounded-lg px-3.5 py-2 ${t.an ? "bg-brand text-white" : "text-ink hover:bg-bg"}`}>
+            {t.text} <span className={t.an ? "text-white/75" : "text-muted"}>{t.zahl}</span>
+          </Link>
+        ))}
+      </div>
+      {unv ? <p className="text-sm text-muted">Fehlendes ist gelb – eintippen, speichern, fertig.</p> : null}
+    </div>
+  );
   let abfrage = supabase
     .from("leads")
     .select(
@@ -229,8 +257,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
     );
   };
 
-  return (
-    <>
+  const kopf = (
       <div className="mb-4 flex flex-wrap items-end gap-x-2 gap-y-3">
         <div className="mr-auto min-w-48">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">Vertrieb</p>
@@ -242,6 +269,80 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
           <CsvImport personen={personen} ichId={profil.id} />
         </div>
       </div>
+  );
+
+  if (unv) {
+    let u = supabase
+      .from("leads")
+      .select("id, firma, branche, telefon, adresse, bezirk, besitzer:profiles!leads_besitzer_id_fkey(name)")
+      .not("status", "in", geschlossen)
+      .order("created_at", { ascending: false })
+      .limit(LIMIT);
+    u = fehlt === "telefon" ? u.is("telefon", null) : fehlt === "adresse" ? u.is("adresse", null) : u.or("telefon.is.null,adresse.is.null");
+    const { data: uRoh } = await u;
+    const liste: UnvollstaendigerLead[] = ((uRoh ?? []) as unknown as (Omit<UnvollstaendigerLead, "bei"> & { besitzer: { name: string } | null })[]).map(
+      ({ besitzer: b, ...l }) => ({ ...l, bei: admin ? (b?.name ?? null) : null }),
+    );
+    const chips = [
+      { wert: "", text: "Alle", zahl: zUnv.count ?? 0 },
+      { wert: "telefon", text: "Ohne Telefon", zahl: zTel.count ?? 0 },
+      { wert: "adresse", text: "Ohne Adresse", zahl: zAdr.count ?? 0 },
+    ];
+    return (
+      <>
+        {kopf}
+        {umschalter}
+        <div className="mb-3 flex flex-wrap gap-2">
+          {chips.map((c) => (
+            <Link
+              key={c.wert}
+              href={`/crm/leads?liste=unvollstaendig${c.wert ? `&fehlt=${c.wert}` : ""}`}
+              className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${fehlt === c.wert ? "border-brand bg-brand-light text-brand" : "border-line bg-surface text-ink hover:bg-bg"}`}
+            >
+              {c.text} {c.zahl}
+            </Link>
+          ))}
+        </div>
+        {liste.length === 0 ? (
+          <Karte>
+            <p className="px-5 py-10 text-center text-muted">Alles vollständig – hier ist nichts mehr nachzutragen.</p>
+          </Karte>
+        ) : (
+          <>
+            <ul className="space-y-3 md:hidden">
+              {liste.map((l) => (
+                <DatenErgaenzen key={l.id} lead={l} tabelle={false} />
+              ))}
+            </ul>
+            <div className="hidden rounded-xl border border-line bg-surface md:block">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-line bg-bg text-xs uppercase tracking-wide text-muted">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Firma</th>
+                    <th className="px-2 py-3 font-semibold">Telefon</th>
+                    <th className="px-2 py-3 font-semibold">Adresse</th>
+                    <th className="px-2 py-3 font-semibold">Bezirk</th>
+                    <th className="px-4 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {liste.map((l) => (
+                    <DatenErgaenzen key={l.id} lead={l} tabelle />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+        <div aria-hidden className="h-20" />
+      </>
+    );
+  }
+
+  return (
+    <>
+      {kopf}
+      {umschalter}
 
       <form key={hier} method="get" role="search" className="mb-4 rounded-xl border border-line bg-surface p-3 sm:p-4">
         <div className="grid gap-2 md:grid-cols-[1fr_200px_auto]">
