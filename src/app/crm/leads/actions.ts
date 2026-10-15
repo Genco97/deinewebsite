@@ -426,3 +426,34 @@ export async function statusAendern(
   revalidatePath("/crm");
   return { ok: true };
 }
+
+/**
+ * Telefonnummer nachträglich direkt in der Lead-Liste eintragen.
+ * Prüft vorher, ob es die Nummer im Team schon gibt (sonst entstehen doppelte Leads).
+ */
+export async function telefonEintragen(
+  leadId: string,
+  roh: string,
+  trotzdem = false,
+): Promise<{ ok: boolean; meldung?: string; doppelt?: { id: string | null; firma: string; besitzer: string }[] }> {
+  await holeProfil();
+  const id = leadId.slice(0, 50);
+  const telefon = roh.trim().slice(0, 50);
+  if (telefon.replace(/\D/g, "").length < 6 || !/^[+0-9 ()/-]+$/.test(telefon)) {
+    return { ok: false, meldung: "Bitte eine gültige Telefonnummer eingeben." };
+  }
+  const supabase = await createClient();
+  const { data: lead } = await supabase.from("leads").select("id, firma, status").eq("id", id).maybeSingle();
+  if (!lead) return { ok: false, meldung: "Lead nicht gefunden." };
+  if (lead.status === "nicht_anrufen") return { ok: false, meldung: "Für diesen Lead gilt „Nicht anrufen“." };
+  if (!trotzdem) {
+    const { data: doppelt } = await supabase.rpc("lead_duplikate", { p_telefon: telefon, p_firma: "" });
+    const andere = ((doppelt ?? []) as { id: string | null; firma: string; besitzer: string }[]).filter((d) => d.id !== id);
+    if (andere.length) return { ok: false, meldung: "Diese Nummer gibt es schon bei:", doppelt: andere };
+  }
+  const { error } = await supabase.from("leads").update({ telefon }).eq("id", id);
+  if (error) return { ok: false, meldung: fehlerText(error.message) };
+  revalidatePath("/crm/leads");
+  revalidatePath(`/crm/leads/${id}`);
+  return { ok: true };
+}

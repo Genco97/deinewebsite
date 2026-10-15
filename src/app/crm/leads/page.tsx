@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CsvImport } from "@/components/crm/CsvImport";
 import { LeadAnlegen } from "@/components/crm/LeadAnlegen";
+import { NummerEintragen } from "@/components/crm/NummerEintragen";
 import { StatusAuswahl } from "@/components/crm/StatusAuswahl";
 import { WhatsAppKnopf } from "@/components/crm/WhatsApp";
 import { ZuteilenLeiste } from "@/components/crm/ZuteilenLeiste";
@@ -185,7 +186,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
   /** Nummer: antippen = anrufen. Ohne eingetragene Zustimmung gesperrt, mit einem Tipp eintragbar. */
   const telefon = (l: Zeile, gross: boolean) => {
     const hoehe = gross ? "min-h-12 text-base" : "min-h-9 text-sm";
-    if (!l.telefon) return <span className={`flex ${hoehe} flex-1 items-center justify-center rounded-lg bg-bg px-3 text-muted`}>Keine Nummer</span>;
+    if (!l.telefon) return l.status === "nicht_anrufen" ? <span className={`flex ${hoehe} flex-1 items-center justify-center rounded-lg bg-bg px-3 text-muted`}>Keine Nummer</span> : <NummerEintragen id={l.id} gross={gross} />;
     if (gesperrt(l))
       return <span className={`flex ${hoehe} flex-1 items-center justify-center rounded-lg bg-bg px-3 text-muted`}>{STATUS_LABEL[l.status]}</span>;
     if (anrufbar(l))

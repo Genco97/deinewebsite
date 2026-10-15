@@ -26,7 +26,10 @@ export type KartenLead = {
 const WIEN: [number, number] = [48.2082, 16.3738];
 const STANDARD_AN: LeadStatus[] = ["neu", "nicht_erreicht", "rueckruf", "interessiert", "demo", "angebot"];
 
-export function KarteAnsicht({ leads }: { leads: KartenLead[] }) {
+/** Zahlen je Status über alle Leads (auch ohne Pin) */
+export type StatusZahlen = Partial<Record<LeadStatus, { alle: number; ohnePin: number }>>;
+
+export function KarteAnsicht({ leads, zahlen }: { leads: KartenLead[]; zahlen?: StatusZahlen }) {
   const box = useRef<HTMLDivElement>(null);
   const karte = useRef<LeafletMap | null>(null);
   const ebene = useRef<LayerGroup | null>(null);
@@ -130,7 +133,8 @@ export function KarteAnsicht({ leads }: { leads: KartenLead[] }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2" role="group" aria-label="Status anzeigen">
-        {LEAD_STATUS.filter((s) => anzahl[s]).map((s) => {
+        {LEAD_STATUS.filter((s) => zahlen?.[s]?.alle ?? anzahl[s]).map((s) => {
+          const ohnePin = zahlen?.[s]?.ohnePin ?? 0;
           const an = filter.includes(s);
           return (
             <button
@@ -143,7 +147,8 @@ export function KarteAnsicht({ leads }: { leads: KartenLead[] }) {
               }`}
             >
               <span aria-hidden className="h-3 w-3 rounded-full border border-white shadow" style={{ background: STATUS_PIN[s] }} />
-              {STATUS_LABEL[s]} <span className="text-muted">{anzahl[s]}</span>
+              {STATUS_LABEL[s]} <span className="text-muted">{zahlen?.[s]?.alle ?? anzahl[s]}</span>
+              {ohnePin > 0 ? <span className="text-xs font-semibold text-amber-800">· {ohnePin} ohne Pin</span> : null}
             </button>
           );
         })}
