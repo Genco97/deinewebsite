@@ -7,7 +7,8 @@ export function BasicAnfrage({ leistungen, nummer, email, aktion }: { leistungen
   const [name, setName] = useState("");
   const [was, setWas] = useState(leistungen[0] ?? "");
   const [wann, setWann] = useState("diese Woche");
-  const text = `Hallo, hier ist ${name || "…"}. Ich möchte gern ${aktion.toLowerCase().includes("tisch") ? "reservieren" : "einen Termin"}: ${was}, ${wann}.`;
+  const wunsch = /vorbestell/i.test(aktion) ? "vorbestellen" : /tisch/i.test(aktion) ? "einen Tisch reservieren" : /angebot/i.test(aktion) ? "ein Angebot anfragen" : /abgabe/i.test(aktion) ? "eine Abgabe vormerken" : "einen Termin vereinbaren";
+  const text = `Hallo, hier ist ${name || "…"}. Ich möchte gern ${wunsch}: ${was}, ${wann}.`;
   const feld = "min-h-12 w-full rounded-xl border border-[var(--a-linie)] bg-[var(--a-bg)] px-4 outline-none focus:border-[var(--a-akzent)]";
   return (
     <form
@@ -31,7 +32,7 @@ export function BasicAnfrage({ leistungen, nummer, email, aktion }: { leistungen
         <label className="block text-sm text-[var(--a-muted)]">
           Wann?
           <select value={wann} onChange={(e) => setWann(e.target.value)} className={`${feld} mt-1.5 text-[var(--a-ink)]`}>
-            {["diese Woche", "nächste Woche", "am Wochenende", "so bald wie möglich"].map((w) => (
+            {["heute", "morgen", "diese Woche", "nächste Woche", "am Wochenende"].map((w) => (
               <option key={w}>{w}</option>
             ))}
           </select>
