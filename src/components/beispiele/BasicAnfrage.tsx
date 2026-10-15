@@ -1,12 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 /** Basic: kurze Terminanfrage, die per WhatsApp (oder E-Mail) beim Betrieb ankommt. */
 export function BasicAnfrage({ leistungen, nummer, email, aktion }: { leistungen: string[]; nummer: string; email: string; aktion: string }) {
   const [name, setName] = useState("");
   const [was, setWas] = useState(leistungen[0] ?? "");
   const [wann, setWann] = useState("diese Woche");
+  // Klick auf eine Leistung in der Preisliste (data-leistung) wählt sie hier aus
+  useEffect(() => {
+    const klick = (e: MouseEvent) => {
+      const name = (e.target as HTMLElement).closest<HTMLElement>("[data-leistung]")?.dataset.leistung;
+      if (name) setWas(name);
+    };
+    document.addEventListener("click", klick);
+    return () => document.removeEventListener("click", klick);
+  }, []);
   const wunsch = /vorbestell/i.test(aktion) ? "vorbestellen" : /tisch/i.test(aktion) ? "einen Tisch reservieren" : /angebot/i.test(aktion) ? "ein Angebot anfragen" : /abgabe/i.test(aktion) ? "eine Abgabe vormerken" : "einen Termin vereinbaren";
   const text = `Hallo, hier ist ${name || "…"}. Ich möchte gern ${wunsch}: ${was}, ${wann}.`;
   const feld = "min-h-12 w-full rounded-xl border border-[var(--a-linie)] bg-[var(--a-bg)] px-4 outline-none focus:border-[var(--a-akzent)]";

@@ -992,13 +992,31 @@ const EXTRAS: Record<BrancheId, Extras> = {
 
 export const extrasFuer = (b: Betrieb) => EXTRAS[b.branche];
 
-/** Fotos und Farbflächen für Galerien: echte Fotos zuerst, dann die Farbkacheln der Branche */
-export function galerieFuer(b: Betrieb): { titel: string; bild?: string; farbe: string }[] {
-  const fotos = [
-    b.bild?.einblick && { titel: "Einblick", bild: b.bild.einblick, farbe: b.heroFarbe },
-    b.bild && { titel: b.art, bild: b.bild.hero, farbe: b.heroFarbe },
-  ].filter((x) => !!x);
-  return [...fotos, ...b.galerie];
+export type GalerieBild = { titel: string; bild?: string; farbe: string; /** Ausschnitt: „x% y% / Zoom%“ */ lage?: string };
+
+/** Galerie nur aus echten Fotos: die Fotos selbst, dann Nahaufnahmen daraus. Ohne Fotos: Farbkacheln. */
+export function galerieFuer(b: Betrieb): GalerieBild[] {
+  if (!b.bild) return b.galerie;
+  const hero = b.bild.hero;
+  const einblick = b.bild.einblick ?? hero;
+  return [
+    { titel: "Einblick", bild: einblick, farbe: b.heroFarbe },
+    { titel: b.art, bild: hero, farbe: b.heroFarbe },
+    { titel: "Im Detail", bild: hero, farbe: b.heroFarbe, lage: "62% 38% / 230%" },
+    { titel: "Atmosphäre", bild: einblick, farbe: b.heroFarbe, lage: "30% 60% / 210%" },
+    { titel: "Nah dran", bild: hero, farbe: b.heroFarbe, lage: "35% 70% / 260%" },
+  ];
+}
+
+/** CSS-Hintergrund für ein Galerie-Bild (Foto, Ausschnitt oder Farbfläche) */
+export function galerieHintergrund(g: GalerieBild) {
+  if (!g.bild) return g.farbe;
+  return `${g.lage ?? "center / cover"} no-repeat url(${g.bild})`;
+}
+
+/** Link zu Google Maps mit Route zur Adresse */
+export function routeLink(b: Betrieb) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${b.strasse}, ${b.plz} ${b.ort}`)}`;
 }
 
 /** „Mila hat Salon Mila 2012 eröffnet. Heute sind sie zu dritt …“ – ohne Pronomen, passt für jede Person */
@@ -1066,3 +1084,9 @@ export const euroGanz = (n: number) => `${n.toLocaleString("de-AT")} €`;
 
 /** „ab 52 €“ – bei 0 „kostenlos“ */
 export const abPreis = (n: number) => (n === 0 ? "kostenlos" : `ab ${euroGanz(n)}`);
+
+/** Browser-Tab-Symbol des Beispiel-Betriebs: Anfangsbuchstabe auf der Akzentfarbe */
+export function betriebSymbol(b: Betrieb) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${b.stil.akzent}"/><text x="32" y="44" font-family="Georgia,serif" font-size="36" font-weight="700" text-anchor="middle" fill="${b.stil.aufAkzent}">${b.name[0]}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}

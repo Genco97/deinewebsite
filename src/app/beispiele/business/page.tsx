@@ -1,14 +1,18 @@
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
-import { Anfrage, Gutschein, Rueckruf, StimmenSlider, VorherNachherFoto } from "@/components/beispiele/BusinessWidgets";
+import { Anfrage, Gutschein, Rueckruf, StimmenSlider } from "@/components/beispiele/BusinessWidgets";
 import { BusinessBewegung } from "@/components/beispiele/BusinessBewegung";
 import { BranchenFunktion } from "@/components/beispiele/Funktionen";
+import { KartenGrafik } from "@/components/beispiele/KartenGrafik";
 import { Icon, Sterne } from "@/components/beispiele/Icon";
 import { OffenStatus } from "@/components/beispiele/OffenStatus";
 import { BUSINESS_TITEL, GRUNDSCHRIFT, schriftVariablen } from "@/lib/beispiel-schriften";
-import { abPreis, betriebAusSuche, extrasFuer, galerieFuer, type Betrieb, type Stil } from "@/lib/beispiele";
+import { abPreis, betriebAusSuche, betriebSymbol, extrasFuer, galerieFuer, galerieHintergrund, routeLink, type Betrieb, type Stil } from "@/lib/beispiele";
 
-export const metadata: Metadata = { title: "Beispiel: Business" };
+export async function generateMetadata({ searchParams }: PageProps<"/beispiele/business">): Promise<Metadata> {
+  const b = await betriebAusSuche(searchParams);
+  return { title: `${b.name} · Beispiel Business`, icons: { icon: betriebSymbol(b) } };
+}
 
 // Alle Farben kommen aus dem Stil der Branche (CSS-Variablen --b-…, für die Branchen-Funktion --f-…)
 function farben(st: Stil) {
@@ -56,7 +60,7 @@ export default async function BusinessBeispiel({ searchParams }: PageProps<"/bei
   // Die Funktion der Branche zeigt die Preise schon selbst – dann keine zweite Liste
   const preiseSchon = betrieb.funktion.art === "preistabelle" || betrieb.funktion.art === "speisekarte";
   const laufband = [...betrieb.leistungen.map((l) => l.name), ...betrieb.leistungen.map((l) => l.name)];
-  const mitVorher = !!(extras.vorherNachher && betrieb.bild?.einblick);
+  const handle = `@${betrieb.name.toLowerCase().replace(/[^a-z0-9äöü]+/g, "")}`;
 
   return (
     <div data-bseite className={`${schriftVariablen} flex-1 overflow-x-clip bg-[var(--b-bg)] pb-24 text-[var(--b-ink)] md:pb-0`} style={farben(st)}>
@@ -84,6 +88,11 @@ export default async function BusinessBeispiel({ searchParams }: PageProps<"/bei
           </a>
         </div>
       </header>
+
+      {/* Aktion */}
+      <p className="bg-[var(--b-akzent)] px-5 py-2.5 text-center text-sm font-semibold text-[var(--b-auf)]">
+        ✦ Neu bei uns? <b>10 % auf Ihren ersten Besuch</b> – einfach bei der Anfrage „WILLKOMMEN“ angeben.
+      </p>
 
       {/* Held: Foto über die ganze Breite, Buchungskarte aus Glas */}
       <section className="relative isolate overflow-hidden bg-[var(--b-tief)] text-white">
@@ -124,7 +133,7 @@ export default async function BusinessBeispiel({ searchParams }: PageProps<"/bei
             {betrieb.aktionKurz === "Termin" ? (
               <div className="mt-4 grid grid-cols-4 gap-2">
                 {termine.map((t, i) => (
-                  <a key={t} href="#anfrage" className={`rounded-xl border px-1 py-2.5 text-center text-sm font-bold ${i === 1 ? "border-[var(--b-akzent)] bg-[var(--b-akzent)] text-[var(--b-auf)]" : "border-white/25 bg-white/5"}`}>
+                  <a key={t} href="#anfrage" data-termin={t} className={`rounded-xl border px-1 py-2.5 text-center text-sm font-bold ${i === 1 ? "border-[var(--b-akzent)] bg-[var(--b-akzent)] text-[var(--b-auf)]" : "border-white/25 bg-white/5"}`}>
                     {t.split(" ")[0]}
                     <small className="block text-[11px] font-normal opacity-80">{t.split(" ")[1]}</small>
                   </a>
@@ -134,7 +143,10 @@ export default async function BusinessBeispiel({ searchParams }: PageProps<"/bei
               <p className="mt-3 text-3xl font-extrabold" style={titel}>{betrieb.naechster.gross}</p>
             )}
             <a href="#anfrage" className={`${voll} mt-5 !min-h-12 w-full text-sm`}>{betrieb.aktion}</a>
-            <p className="mt-3 text-center text-xs text-white/60">Antwort in Minuten · kostenlos · unverbindlich</p>
+            <p className="mt-3 flex items-center justify-center gap-2 text-center text-xs text-white/75">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+              {betrieb.aktionKurz === "Termin" ? "Heute noch 3 Termine frei" : "Antwort in Minuten"} · kostenlos · unverbindlich
+            </p>
           </div>
         </div>
       </section>
@@ -220,22 +232,14 @@ export default async function BusinessBeispiel({ searchParams }: PageProps<"/bei
         <div className="mx-auto max-w-6xl px-5">
           <p className={`${kicker} !text-white/60`}>Einblicke</p>
           <h2 className={h2} style={titel}>Das sind wir.</h2>
-          <div className={`mt-9 grid gap-6 ${mitVorher ? "lg:grid-cols-[0.9fr_1.1fr]" : ""}`}>
-            {mitVorher && (
-              <div className="flex flex-col">
-                <VorherNachherFoto bild={betrieb.bild!.einblick!} titel={extras.vorherNachher!} />
-                <p className="mt-3 text-sm text-white/65">{extras.vorherNachher} – ziehen Sie den Regler zur Seite.</p>
-              </div>
-            )}
-            <ul className={`grid auto-rows-[150px] grid-cols-2 gap-3 md:auto-rows-[190px] ${mitVorher ? "" : "md:grid-cols-4"}`}>
-              {galerie.slice(0, mitVorher ? 4 : 5).map((g, i) => (
-                <li key={g.titel + i} className={`group relative overflow-hidden rounded-2xl ${!mitVorher && i === 0 ? "col-span-2 row-span-2" : ""}`}>
-                  <div className="absolute inset-0 transition duration-700 group-hover:scale-105" style={{ background: g.bild ? `center / cover url(${g.bild})` : g.farbe }} />
-                  <span className="absolute bottom-3 left-3 rounded-full bg-black/45 px-3 py-1 text-xs backdrop-blur">{g.titel}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <ul className="mt-9 grid auto-rows-[150px] grid-cols-2 gap-3 md:auto-rows-[190px] md:grid-cols-4">
+            {galerie.map((g, i) => (
+              <li key={g.titel + i} className={`group relative overflow-hidden rounded-2xl ${i === 0 ? "col-span-2 row-span-2" : ""}`}>
+                <div className="absolute inset-0 transition duration-700 group-hover:scale-105" style={{ background: galerieHintergrund(g) }} />
+                <span className="absolute bottom-3 left-3 rounded-full bg-black/45 px-3 py-1 text-xs backdrop-blur">{g.titel}</span>
+              </li>
+            ))}
+          </ul>
           <div className="mt-20 grid items-center gap-10 md:grid-cols-[0.7fr_1.3fr]">
             <div>
               <p className={`${kicker} !text-white/60`}>Bewertungen</p>
@@ -338,6 +342,29 @@ export default async function BusinessBeispiel({ searchParams }: PageProps<"/bei
         </div>
         <div className="rounded-[26px] border border-[var(--b-linie)] bg-[var(--b-flaeche)] p-6 shadow-[0_30px_60px_-40px_rgba(0,0,0,.35)] sm:p-9">
           <Anfrage betrieb={betrieb} />
+        </div>
+      </section>
+
+      {/* Instagram + Anfahrt */}
+      <section data-r className="mx-auto grid max-w-6xl gap-6 px-5 pt-20 md:grid-cols-[1.3fr_1fr] md:pt-24">
+        <div className="rounded-[26px] border border-[var(--b-linie)] bg-[var(--b-flaeche)] p-6 sm:p-8">
+          <div className="flex items-center justify-between gap-4">
+            <p className="font-bold">
+              <span className="text-[var(--b-akzent)]">Instagram</span> · {handle}
+            </p>
+            <span className="rounded-full border border-[var(--b-linie)] px-4 py-1.5 text-sm font-semibold">Folgen</span>
+          </div>
+          <ul className="mt-5 grid grid-cols-3 gap-2">
+            {[...galerie, ...galerie].slice(0, 6).map((g, i) => (
+              <li key={i} className="aspect-square overflow-hidden rounded-xl" style={{ background: galerieHintergrund({ ...g, lage: g.lage ?? ["center / cover", "20% 30% / 200%", "80% 60% / 220%"][i % 3] }) }} />
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-[var(--b-muted)]">Die neuesten Beiträge erscheinen hier automatisch.</p>
+        </div>
+        <div className="flex flex-col rounded-[26px] border border-[var(--b-linie)] bg-[var(--b-flaeche)] p-6 sm:p-8">
+          <p className={kicker}>Anfahrt</p>
+          <p className="mt-2 text-xl font-extrabold" style={titel}>{betrieb.strasse}, {betrieb.plz} {betrieb.ort}</p>
+          <KartenGrafik link={routeLink(betrieb)} adresse="Route in Google Maps" akzent={st.akzent} className="mt-5 min-h-52 flex-1 text-[var(--b-ink)]" />
         </div>
       </section>
 

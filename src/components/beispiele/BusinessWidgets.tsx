@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Icon, Sterne } from "@/components/beispiele/Icon";
 import { abPreis, offeneTage, type Betrieb } from "@/lib/beispiele";
 
@@ -54,12 +54,26 @@ const knopf = "inline-flex min-h-13 w-full items-center justify-center gap-2 rou
 /** Anfrage mit Leistung, Person, Tag und Uhrzeit */
 export function Anfrage({ betrieb }: { betrieb: Betrieb }) {
   const heute = useSyncExternalStore(keinAbo, heuteTag, () => "");
-  const tage = heute ? offeneTage(betrieb.oeffnungszeiten, new Date(heute), 6) : [];
+  const tage = useMemo(() => (heute ? offeneTage(betrieb.oeffnungszeiten, new Date(heute), 6) : []), [heute, betrieb.oeffnungszeiten]);
   const [leistung, setLeistung] = useState(betrieb.leistungen[0].id);
   const [person, setPerson] = useState("egal");
   const [tag, setTag] = useState(1);
   const [zeit, setZeit] = useState("14:00");
   const [fertig, setFertig] = useState(false);
+  // Ein Termin oben auf der Seite (data-termin="Mi 14:00") wählt Tag und Uhrzeit hier schon aus
+  useEffect(() => {
+    const klick = (e: MouseEvent) => {
+      const el = (e.target as HTMLElement).closest<HTMLElement>("[data-termin]");
+      if (!el?.dataset.termin) return;
+      const [t, z] = el.dataset.termin.split(" ");
+      const i = tage.findIndex((d) => TAG.format(d).replace(".", "") === t.replace(".", ""));
+      if (i >= 0) setTag(i);
+      if (z && ZEITEN.includes(z)) setZeit(z);
+      setFertig(false);
+    };
+    document.addEventListener("click", klick);
+    return () => document.removeEventListener("click", klick);
+  }, [tage]);
   const l = betrieb.leistungen.find((x) => x.id === leistung) ?? betrieb.leistungen[0];
   if (fertig) return <Danke text={`Anfrage gesendet: ${l.name}${tage[tag] ? `, ${TAG.format(tage[tag])} ${DATUM.format(tage[tag])}` : ""} um ${zeit} Uhr`} zurueck={() => setFertig(false)} />;
   return (
@@ -96,7 +110,7 @@ export function Anfrage({ betrieb }: { betrieb: Betrieb }) {
       <p className={label}>Wunschtag</p>
       <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
         {tage.map((t, i) => (
-          <Wahl key={t.toISOString()} an={i === tag} aus={i === 3} onClick={() => setTag(i)}>
+          <Wahl key={t.toISOString()} an={i === tag} aus={i === 3 && i !== tag} onClick={() => setTag(i)}>
             {TAG.format(t)}
             <small className="block text-[11px] font-normal opacity-75">{DATUM.format(t)}</small>
           </Wahl>
@@ -105,7 +119,7 @@ export function Anfrage({ betrieb }: { betrieb: Betrieb }) {
       <p className={label}>Uhrzeit</p>
       <div className="mt-2 grid grid-cols-5 gap-2">
         {ZEITEN.map((z, i) => (
-          <Wahl key={z} an={z === zeit} aus={(i + tag) % 4 === 1} onClick={() => setZeit(z)}>
+          <Wahl key={z} an={z === zeit} aus={(i + tag) % 4 === 1 && z !== zeit} onClick={() => setZeit(z)}>
             {z}
           </Wahl>
         ))}

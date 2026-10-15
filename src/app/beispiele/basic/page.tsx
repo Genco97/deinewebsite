@@ -1,12 +1,16 @@
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import { BasicAnfrage } from "@/components/beispiele/BasicAnfrage";
+import { KartenGrafik } from "@/components/beispiele/KartenGrafik";
 import { Icon, Sterne } from "@/components/beispiele/Icon";
 import { OffenStatus } from "@/components/beispiele/OffenStatus";
 import { GRUNDSCHRIFT, TITELSCHRIFT, schriftVariablen } from "@/lib/beispiel-schriften";
-import { abPreis, betriebAusSuche, ueberUns } from "@/lib/beispiele";
+import { abPreis, betriebAusSuche, betriebSymbol, routeLink, ueberUns } from "@/lib/beispiele";
 
-export const metadata: Metadata = { title: "Beispiel: Basic" };
+export async function generateMetadata({ searchParams }: PageProps<"/beispiele/basic">): Promise<Metadata> {
+  const b = await betriebAusSuche(searchParams);
+  return { title: `${b.name} · Beispiel Basic`, icons: { icon: betriebSymbol(b) } };
+}
 
 const sterne = (n: number) => n.toLocaleString("de-AT", { minimumFractionDigits: 1 });
 
@@ -76,16 +80,11 @@ export default async function BasicBeispiel({ searchParams }: PageProps<"/beispi
               </a>
             </div>
           </div>
-          <div aria-hidden className="relative h-[420px] md:h-[600px]">
-            <div
-              className="absolute inset-y-0 right-0 w-[86%] rounded bg-cover bg-center md:w-[82%]"
-              style={{ background: betrieb.bild ? `center / cover url(${betrieb.bild.hero})` : betrieb.heroFarbe }}
-            />
-            <div
-              className="absolute bottom-10 left-0 h-44 w-[44%] rounded border-[10px] border-[var(--a-bg)] md:h-60"
-              style={{ background: betrieb.bild?.einblick ? `center / cover url(${betrieb.bild.einblick})` : betrieb.galerie[0].farbe }}
-            />
-          </div>
+          <div
+            aria-hidden
+            className="h-[420px] rounded bg-cover bg-center md:h-[600px]"
+            style={{ background: betrieb.bild ? `center / cover url(${betrieb.bild.hero})` : betrieb.heroFarbe }}
+          />
         </section>
 
         {/* Das Wichtigste in einer Leiste */}
@@ -117,14 +116,17 @@ export default async function BasicBeispiel({ searchParams }: PageProps<"/beispi
           </div>
           <ul className="mt-12 grid gap-x-16 md:grid-cols-2">
             {betrieb.leistungen.map((l) => (
-              <li key={l.id} className="grid grid-cols-[auto_1fr_auto] items-baseline gap-x-4 border-b border-[var(--a-linie)] py-5">
+              <li key={l.id} className="border-b border-[var(--a-linie)]">
+                <a href="#anfrage" data-leistung={l.name} className="group grid grid-cols-[auto_1fr_auto] items-baseline gap-x-4 py-5 transition hover:bg-[var(--a-flaeche)]">
                 <b className={`text-[22px] font-normal tracking-tight${gross}`} style={titel}>{l.name}</b>
                 <i aria-hidden className="-translate-y-1.5 border-b border-dotted border-[var(--a-muted)]/40" />
                 <span className="whitespace-nowrap text-[21px] text-[var(--a-akzent)]" style={titel}>{abPreis(l.preis)}</span>
                 <small className="col-span-3 mt-1 text-sm text-[var(--a-muted)]">
                   {l.text}
                   {l.dauer ? ` · ca. ${l.dauer} Min.` : ""}
+                  <span className="ml-2 font-semibold text-[var(--a-akzent)] opacity-70 transition group-hover:opacity-100">Anfragen →</span>
                 </small>
+                </a>
               </li>
             ))}
           </ul>
@@ -154,6 +156,15 @@ export default async function BasicBeispiel({ searchParams }: PageProps<"/beispi
           <p className="mt-6 text-[var(--a-muted)]">
             {zitat.name} · eine von {betrieb.bewertung.anzahl} Bewertungen auf Google
           </p>
+          <ul className="mt-12 grid gap-4 text-left sm:grid-cols-2">
+            {betrieb.bewertungen.slice(1, 3).map((b) => (
+              <li key={b.name} className="rounded-[18px] border border-[var(--a-linie)] bg-[var(--a-flaeche)] p-6">
+                <p className="text-sm text-[var(--a-akzent)]"><Sterne className="h-3.5 w-3.5" /></p>
+                <p className="mt-3 leading-relaxed">„{b.text}“</p>
+                <p className="mt-3 text-sm text-[var(--a-muted)]">{b.name}</p>
+              </li>
+            ))}
+          </ul>
         </section>
 
         {/* Anfrage per WhatsApp */}
@@ -228,11 +239,7 @@ export default async function BasicBeispiel({ searchParams }: PageProps<"/beispi
                 <br />
                 {betrieb.plz} {betrieb.ort}
               </p>
-              <a href="#besuch" className={`${knopf} mt-6 border border-white/35 !min-h-12`}>
-                <Icon name="pin" />
-                Route planen
-              </a>
-              <p className="mt-3 text-xs text-white/50">Auf der echten Seite: Google-Karte mit Route.</p>
+              <KartenGrafik link={routeLink(betrieb)} adresse="Route planen" akzent={st.akzent} className="mt-6 h-40 text-white" />
             </div>
             <div>
               <h3 className="mb-4 text-[13px] font-semibold uppercase tracking-[0.16em] text-white/60">{betrieb.aktion}</h3>
@@ -256,7 +263,7 @@ export default async function BasicBeispiel({ searchParams }: PageProps<"/beispi
           <Icon name="tel" />
           Anrufen
         </a>
-        <a href="#besuch" className={`${knopf} !min-h-12 flex-1 border border-[var(--a-linie)] bg-[var(--a-flaeche)]`}>
+        <a href={routeLink(betrieb)} target="_blank" rel="noopener noreferrer" className={`${knopf} !min-h-12 flex-1 border border-[var(--a-linie)] bg-[var(--a-flaeche)]`}>
           <Icon name="pin" />
           Route
         </a>
