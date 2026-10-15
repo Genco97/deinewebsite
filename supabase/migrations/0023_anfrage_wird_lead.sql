@@ -61,7 +61,6 @@ $$;
 
 revoke execute on function public.anfrage_zu_lead() from public, anon, authenticated;
 
-drop trigger if exists anfragen_zu_lead on public.anfragen;
 create trigger anfragen_zu_lead
   after insert on public.anfragen
   for each row execute function public.anfrage_zu_lead();
