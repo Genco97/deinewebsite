@@ -71,7 +71,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
 
   const { data: lead } = await supabase
     .from("leads")
-    .select("id, firma, ansprechpartner, branche, telefon, email, adresse, bezirk, status, naechster_rueckruf, quelle, einwilligung_wie, einwilligung_am, besuch_geplant, letzter_besuch, besitzer_id, status_seit, created_at")
+    .select("id, firma, ansprechpartner, branche, telefon, email, adresse, bezirk, status, naechster_rueckruf, quelle, einwilligung_wie, einwilligung_am, besuch_geplant, letzter_besuch, besitzer_id, status_seit, created_at, website")
     .eq("id", id)
     .maybeSingle();
   // RLS: fremde Leads liefern keine Zeile → 404
@@ -166,6 +166,16 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
             {[lead.branche, lead.bezirk].filter(Boolean).join(" · ")}
             {admin && lead.besitzer_id ? ` · Bei: ${personen.find((x) => x.id === lead.besitzer_id)?.name ?? "–"}` : ""}
           </p>
+          {lead.website ? (
+            <p className="mt-2 inline-flex flex-wrap items-center gap-2 rounded-lg bg-teal-50 px-3 py-1.5 text-sm text-teal-900">
+              <b>Hat schon eine Website:</b>
+              <a href={/^https?:\/\//i.test(lead.website) ? lead.website : `https://${lead.website}`} target="_blank" rel="noopener noreferrer" className="underline">
+                {lead.website}
+              </a>
+            </p>
+          ) : status === "hat_website" ? (
+            <p className="mt-2 inline-block rounded-lg bg-teal-50 px-3 py-1.5 text-sm font-semibold text-teal-900">Hat schon eine Website</p>
+          ) : null}
           {letzteNotiz ? (
             <a href="#verlauf" className="mt-3 block max-w-xl rounded-lg border border-line bg-surface px-3 py-2 text-sm hover:border-brand">
               <span className="font-semibold text-ink">📝 Zuletzt: </span>
