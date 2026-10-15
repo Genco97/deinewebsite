@@ -12,7 +12,7 @@ export function HeroVorschau() {
       {/* Computer: Fenster und Handy überlappen */}
       <div className="relative mx-auto hidden h-[470px] w-full max-w-[560px] lg:block">
         <div className="absolute left-0 top-10 w-[440px]">
-          <DesktopRahmen src={src} titel="Beispiel-Website am Computer" adresse="salon-mila.at" hoehe={290} />
+          <DesktopRahmen src={src} titel="Beispiel-Website am Computer" adresse="salon-mila.at" hoehe={290} klickbar={false} />
         </div>
         <div className="absolute right-0 top-0">
           <HandyRahmen src={src} titel="Beispiel-Website am Handy" breite={200} klickbar={false} />

@@ -68,7 +68,7 @@ export default async function ProBeispiel({ searchParams }: PageProps<"/beispiel
         <style>{".pro-vorspann{display:none}"}</style>
       </noscript>
 
-      <header data-pro-kopf className="absolute inset-x-0 top-auto z-50 mix-blend-difference md:fixed md:top-0">
+      <header data-pro-kopf className="absolute inset-x-0 top-auto z-50 mix-blend-difference md:fixed md:top-0 md:bg-[#08080c]/70 md:mix-blend-normal md:backdrop-blur-md">
         <div className="flex items-center justify-between gap-4 px-5 py-5 sm:px-10 sm:py-6">
           <p className="text-xl font-bold tracking-[0.04em] sm:text-2xl">{betrieb.marke}®</p>
           <nav aria-label="Beispiel-Navigation" className="hidden gap-9 text-[13px] uppercase tracking-[0.18em] md:flex">
@@ -122,8 +122,7 @@ export default async function ProBeispiel({ searchParams }: PageProps<"/beispiel
       {/* Manifest */}
       <section id="salon" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-36 sm:px-10 sm:py-52">
         <p data-manifest className="text-[clamp(2rem,4.6vw,4.4rem)] font-semibold leading-[1.08] tracking-[-0.035em]">
-          {betrieb.slogan}{" "}
-          <span aria-hidden className="inline-block h-[0.8em] w-[1.9em] rounded-full align-[-0.06em]" style={{ background: foto(0) }} /> {betrieb.einleitung}
+          {betrieb.slogan} {betrieb.einleitung}
         </p>
       </section>
 
