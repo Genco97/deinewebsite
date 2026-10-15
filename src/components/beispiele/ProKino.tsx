@@ -78,8 +78,9 @@ export function ProKino() {
         tl.from(titel, { yPercent: 115, rotate: 6, opacity: 0, stagger: 0.08, duration: 1.3, ease: "expo.out" }, vorspann ? "<.35" : 0).from("[data-held-info]", { opacity: 0, y: 30, duration: 1, stagger: 0.1 }, "<.4");
 
         // Titel fliegt beim Scrollen auseinander
+        // Bewegt wird die Zeile um das Wort – so kommt der Titel beim Hochscrollen sicher zurück
         titel.forEach((w, i) =>
-          gsap.to(w, { xPercent: [-40, 30, -20, 50][i % 4], yPercent: -60, opacity: 0, ease: "none", scrollTrigger: { trigger: "[data-held]", start: "top top", end: "bottom top", scrub: true } }),
+          gsap.to(w.parentElement ?? w, { xPercent: [-40, 30, -20, 50][i % 4], yPercent: -60, opacity: 0, ease: "none", scrollTrigger: { trigger: "[data-held]", start: "top top", end: "bottom top", scrub: true } }),
         );
 
         // Laufband: läuft immer, schneller und schräg mit dem Scroll-Tempo
@@ -151,15 +152,6 @@ export function ProKino() {
           const naechste = stapel[i + 1];
           if (naechste) gsap.to(k, { scale: 0.9, filter: "brightness(.45)", ease: "none", scrollTrigger: { trigger: naechste, start: "top bottom", end: "top 110px", scrub: true } });
         });
-
-        // Vorher/Nachher wischt beim Scrollen
-        const wisch = seite.querySelector("[data-wisch-sek]");
-        if (wisch) {
-          gsap
-            .timeline({ scrollTrigger: { trigger: wisch, pin: true, start: "top top", end: "+=130%", scrub: true } })
-            .fromTo("[data-wisch-neu]", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", ease: "none" }, 0)
-            .fromTo("[data-wisch-linie]", { left: "0%" }, { left: "100%", ease: "none" }, 0);
-        }
 
         // Zahlen zählen hoch
         $("[data-z]").forEach((el) => {

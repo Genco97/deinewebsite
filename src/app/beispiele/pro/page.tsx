@@ -11,10 +11,13 @@ import { ProBerater } from "@/components/beispiele/ProBerater";
 import { ProKino } from "@/components/beispiele/ProKino";
 import { ProWasserBild } from "@/components/beispiele/ProWasserBild";
 import { BERATER } from "@/lib/pro-berater";
-import { abPreis, betriebAusSuche, extrasFuer, galerieFuer } from "@/lib/beispiele";
+import { abPreis, betriebAusSuche, betriebSymbol, galerieFuer, galerieHintergrund } from "@/lib/beispiele";
 import "./pro.css";
 
-export const metadata: Metadata = { title: "Beispiel: Pro" };
+export async function generateMetadata({ searchParams }: PageProps<"/beispiele/pro">): Promise<Metadata> {
+  const b = await betriebAusSuche(searchParams);
+  return { title: `${b.name} · Beispiel Pro`, icons: { icon: betriebSymbol(b) } };
+}
 
 const grotesk = Space_Grotesk({ subsets: ["latin", "latin-ext"], variable: "--font-grotesk" });
 
@@ -35,7 +38,6 @@ export default async function ProBeispiel({ searchParams }: PageProps<"/beispiel
     "--f-akzent": a,
     "--f-auf": "#ffffff",
   } as CSSProperties;
-  const extras = extrasFuer(betrieb);
   const galerie = galerieFuer(betrieb);
   const fotos = [betrieb.bild?.einblick, betrieb.bild?.hero].filter((x): x is string => !!x);
   const foto = (i: number) => (fotos.length ? `center / cover url(${fotos[i % fotos.length]})` : betrieb.galerie[i % betrieb.galerie.length].farbe);
@@ -51,6 +53,8 @@ export default async function ProBeispiel({ searchParams }: PageProps<"/beispiel
     { t: "Willkommen", x: betrieb.slogan },
   ];
   const beliebt = betrieb.leistungen.slice(0, 3);
+  // Zeigt die Funktion der Branche die Preise schon (Rechner, Speisekarte), entfällt die lange Liste
+  const preiseSchon = betrieb.funktion.art === "preistabelle" || betrieb.funktion.art === "speisekarte";
   const offen = betrieb.oeffnungszeiten.filter((o) => o.zeit !== "geschlossen");
 
   return (
@@ -143,7 +147,7 @@ export default async function ProBeispiel({ searchParams }: PageProps<"/beispiel
               data-quer-karte
               className={`relative shrink-0 overflow-hidden rounded-[26px] ${i % 2 ? "h-[52vh] w-[70vw] md:h-[58vh] md:w-[32vw]" : "h-[60vh] w-[82vw] md:h-[72vh] md:w-[44vw]"}`}
             >
-              <div data-quer-bild className="absolute -inset-x-[15%] -inset-y-[8%]" style={{ background: g.bild ? `center / cover url(${g.bild})` : g.farbe }} />
+              <div data-quer-bild className="absolute -inset-x-[15%] -inset-y-[8%]" style={{ background: galerieHintergrund(g) }} />
               <figcaption className="absolute inset-x-6 bottom-5 flex items-end justify-between">
                 <b className="text-4xl tracking-[-0.03em] drop-shadow-[0_2px_12px_rgba(0,0,0,.5)]">{g.titel}</b>
                 <small className="text-white/70">{String(i + 1).padStart(2, "0")}</small>
@@ -190,6 +194,7 @@ export default async function ProBeispiel({ searchParams }: PageProps<"/beispiel
             </li>
           ))}
         </ul>
+        {!preiseSchon && (
         <ul className="mt-20">
           {betrieb.leistungen.map((l, i) => (
             <li
@@ -203,13 +208,14 @@ export default async function ProBeispiel({ searchParams }: PageProps<"/beispiel
                 <b className="block text-[clamp(1.6rem,3.2vw,3.2rem)] font-semibold leading-tight tracking-[-0.03em]">{l.name}</b>
                 <small className="text-white/60">{l.text}</small>
               </span>
-              <span className="text-xl font-semibold sm:text-3xl">{abPreis(l.preis)}</span>
+              <span className="whitespace-nowrap text-xl font-semibold sm:text-3xl">{abPreis(l.preis)}</span>
               <span aria-hidden className="hidden h-14 w-14 place-items-center rounded-full border border-white/20 sm:grid">
                 <Icon name="pfeil" className="h-5 w-5 -rotate-45" />
               </span>
             </li>
           ))}
         </ul>
+        )}
         <div data-folgebild aria-hidden className="pointer-events-none fixed left-0 top-0 z-40 -ml-[150px] -mt-[190px] h-[380px] w-[300px] scale-[.6] overflow-hidden rounded-[22px] opacity-0">
           <div className="h-full w-full" />
         </div>
@@ -253,24 +259,6 @@ export default async function ProBeispiel({ searchParams }: PageProps<"/beispiel
           </div>
         ))}
       </section>
-
-      {/* Vorher/Nachher wischt beim Scrollen */}
-      {extras.vorherNachher && betrieb.bild?.einblick && (
-        <section data-wisch-sek aria-label="Vorher und nachher" className="relative mt-32 h-screen overflow-hidden">
-          <div aria-hidden className="absolute inset-0 brightness-[.55] contrast-[.9] grayscale" style={{ background: `center / cover url(${betrieb.bild.einblick})` }} />
-          <div data-wisch-neu aria-hidden className="absolute inset-0 [clip-path:inset(0_50%_0_0)]" style={{ background: `center / cover url(${betrieb.bild.einblick})` }} />
-          <div data-wisch-linie aria-hidden className="absolute inset-y-0 left-1/2 w-[3px] bg-gradient-to-b from-fuchsia-500 to-cyan-400 shadow-[0_0_30px_var(--pro-a)]" />
-          <span className="absolute left-5 top-24 rounded-full bg-black/50 px-4 py-2 text-xs uppercase tracking-[0.24em] backdrop-blur sm:left-10">Vorher</span>
-          <span className="absolute right-5 top-24 rounded-full bg-black/50 px-4 py-2 text-xs uppercase tracking-[0.24em] backdrop-blur sm:right-10">Nachher</span>
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#07070c] to-transparent px-5 pb-12 pt-40 sm:px-10">
-            <p className={`${titel} text-[clamp(2.6rem,6vw,6.5rem)]`}>
-              Scrollen Sie –<br />
-              <span className="pro-verlauf-text">sehen Sie den Unterschied.</span>
-            </p>
-            <p className="mt-3 text-sm text-white/55">{extras.vorherNachher} · Beispielbild</p>
-          </div>
-        </section>
-      )}
 
       {/* Zahlen */}
       <section className="mx-auto grid max-w-7xl gap-8 px-5 pt-32 sm:grid-cols-3 sm:px-10 sm:pt-44">
