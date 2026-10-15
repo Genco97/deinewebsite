@@ -8,7 +8,7 @@ import { StatusAuswahl } from "@/components/crm/StatusAuswahl";
 import { WhatsAppKnopf } from "@/components/crm/WhatsApp";
 import { ZuteilenLeiste } from "@/components/crm/ZuteilenLeiste";
 import { Hinweis, Karte, Select, buttonClass, inputClass } from "@/components/ui";
-import { aktivePersonen, holeProfil } from "@/lib/crm";
+import { aktivePersonen, darfLeadFinder, holeProfil } from "@/lib/crm";
 import { EINWILLIGUNG_ARTEN } from "@/lib/einwilligung";
 import { LEAD_STATUS, STATUS_LABEL, istLeadStatus, type LeadStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
@@ -79,12 +79,16 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
   const fehlt = sp.fehlt === "telefon" || sp.fehlt === "adresse" ? sp.fehlt : "";
   const geschlossen = "(verkauft,kein_interesse,hat_website,falsche_nummer,nicht_anrufen)";
   const offeneLeads = () => supabase.from("leads").select("id", { count: "exact", head: true }).not("status", "in", geschlossen);
-  const [zAlle, zUnv, zTel, zAdr] = await Promise.all([
+  const [zAlle, zUnv, zTel, zAdr, zOffen, zAnrufbar] = await Promise.all([
     supabase.from("leads").select("id", { count: "exact", head: true }),
     offeneLeads().or("telefon.is.null,adresse.is.null"),
     offeneLeads().is("telefon", null),
     offeneLeads().is("adresse", null),
+    offeneLeads(),
+    offeneLeads().not("einwilligung_wie", "is", null),
   ]);
+  const zahlAnrufbar = zAnrufbar.count ?? 0;
+  const finder = darfLeadFinder(profil);
   const umschalter = (
     <div className="mb-4 flex flex-wrap items-center gap-2">
       <div className="inline-flex rounded-xl border border-line bg-surface p-1 text-sm font-semibold">
@@ -97,7 +101,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
           </Link>
         ))}
       </div>
-      {unv ? <p className="text-sm text-muted">Fehlendes ist gelb – eintippen, speichern, fertig.</p> : null}
+      {unv ? <p className="text-sm text-muted">Fehlendes ist gelb – auf Google oder in Maps nachschauen, eintippen, speichern.</p> : null}
     </div>
   );
   let abfrage = supabase
@@ -266,6 +270,16 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
           <p className="mt-1 text-sm text-muted">{admin ? "Alle Leads im Team und wie weit ihr seid." : "Deine Leads und wie weit ihr seid."}</p>
         </div>
         <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
+          {zahlAnrufbar > 0 ? (
+            <Link href="/crm/anrufen" className={buttonClass("secondary", "!min-h-11")}>
+              Anruf-Modus · {zahlAnrufbar}
+            </Link>
+          ) : null}
+          {finder ? (
+            <Link href="/crm/leadfinder" className={buttonClass("secondary", "!min-h-11")}>
+              Leads suchen
+            </Link>
+          ) : null}
           <LeadAnlegen />
           <CsvImport personen={personen} ichId={profil.id} />
         </div>
@@ -293,6 +307,24 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
       <>
         {kopf}
         {umschalter}
+        {(() => {
+          const gesamt = zOffen.count ?? 0;
+          const fertig = Math.max(0, gesamt - (zUnv.count ?? 0));
+          const prozent = gesamt ? Math.round((fertig / gesamt) * 100) : 100;
+          return (
+            <div className="mb-4 rounded-xl border border-line bg-surface px-4 py-3">
+              <p className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
+                <span>
+                  <b className="text-ink">{fertig}</b> <span className="text-muted">von {gesamt} offenen Leads sind vollständig</span>
+                </span>
+                <b className="text-ok">{prozent} %</b>
+              </p>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-line" aria-hidden>
+                <div className="h-full rounded-full bg-ok" style={{ width: `${prozent}%` }} />
+              </div>
+            </div>
+          );
+        })()}
         <div className="mb-3 flex flex-wrap gap-2">
           {chips.map((c) => (
             <Link

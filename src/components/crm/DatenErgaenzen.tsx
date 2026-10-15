@@ -28,7 +28,10 @@ export function DatenErgaenzen({ lead, tabelle }: { lead: UnvollstaendigerLead; 
   const [doppelt, setDoppelt] = useState<{ id: string | null; firma: string; besitzer: string }[]>([]);
   const [gespeichert, setGespeichert] = useState(false);
   const [laeuft, starten] = useTransition();
-  const google = `https://www.google.com/search?q=${encodeURIComponent([lead.firma, lead.bezirk ?? "Wien"].join(" "))}`;
+  const suche = encodeURIComponent([lead.firma, lead.adresse ?? lead.bezirk ?? "Wien"].join(" "));
+  const google = `https://www.google.com/search?q=${suche}`;
+  // In Google Maps stehen Telefon und Adresse meist direkt auf der Karte des Betriebs
+  const maps = `https://www.google.com/maps/search/?api=1&query=${suche}`;
 
   function speichern(trotzdem = false) {
     setFehler(null);
@@ -99,7 +102,10 @@ export function DatenErgaenzen({ lead, tabelle }: { lead: UnvollstaendigerLead; 
         {laeuft ? "Speichert …" : "Speichern"}
       </button>
       <a href={google} target="_blank" rel="noopener noreferrer" className="min-h-11 whitespace-nowrap rounded-lg border border-line bg-surface px-3 py-3 text-sm font-semibold text-ink hover:border-brand">
-        Auf Google suchen
+        Google
+      </a>
+      <a href={maps} target="_blank" rel="noopener noreferrer" className="min-h-11 whitespace-nowrap rounded-lg border border-line bg-surface px-3 py-3 text-sm font-semibold text-ink hover:border-brand">
+        Maps
       </a>
     </div>
   );

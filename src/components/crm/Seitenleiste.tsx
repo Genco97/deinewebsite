@@ -43,7 +43,7 @@ function initialen(name: string) {
   return (a + b).toUpperCase();
 }
 
-export function Seitenleiste({ name, admin, leadfinder = false, faellig = 0 }: { name: string; admin: boolean; leadfinder?: boolean; faellig?: number }) {
+export function Seitenleiste({ name, admin, faellig = 0 }: { name: string; admin: boolean; faellig?: number }) {
   const pfad = usePathname();
   const [offen, setOffen] = useState(false);
   const schliessenRef = useRef<HTMLButtonElement>(null);
@@ -52,19 +52,14 @@ export function Seitenleiste({ name, admin, leadfinder = false, faellig = 0 }: {
   const gruppen: { titel: string; eintraege: Eintrag[] }[] = [
     {
       titel: "Übersicht",
-      eintraege: [
-        { href: "/crm/zahlen", label: "Dashboard", icon: "dashboard", aktiv: pfad.startsWith("/crm/zahlen") },
-        { href: "/crm", label: "Heute", icon: "heute", aktiv: pfad === "/crm", zahl: faellig },
-        { href: "/crm/team", label: "Team", icon: "team", aktiv: pfad.startsWith("/crm/team") },
-      ],
+      eintraege: [{ href: "/crm", label: "Heute", icon: "heute", aktiv: pfad === "/crm" || pfad.startsWith("/crm/zahlen"), zahl: faellig }],
     },
     {
       titel: "Vertrieb",
       eintraege: [
         { href: "/crm/besuch", label: "Besuch-Modus", icon: "karte", aktiv: pfad.startsWith("/crm/besuch") && !pfad.startsWith("/crm/besuche") },
-        { href: "/crm/anrufen", label: "Anruf-Modus", icon: "anrufen", aktiv: pfad.startsWith("/crm/anrufen") },
-        { href: "/crm/leads", label: "Leads", icon: "leads", aktiv: pfad.startsWith("/crm/leads") },
-        ...(leadfinder ? [{ href: "/crm/leadfinder", label: "Lead Finder", icon: "suche" as const, aktiv: pfad.startsWith("/crm/leadfinder") }] : []),
+        // Anruf-Modus und Lead Finder sind Knöpfe auf der Leads-Seite
+        { href: "/crm/leads", label: "Leads", icon: "leads", aktiv: pfad.startsWith("/crm/leads") || pfad.startsWith("/crm/anrufen") || pfad.startsWith("/crm/leadfinder") },
         { href: "/crm/karte", label: "Karte", icon: "karte", aktiv: pfad.startsWith("/crm/karte") },
         { href: "/crm/postkarten", label: "Postkarten", icon: "postkarten", aktiv: pfad.startsWith("/crm/postkarten") },
       ],
@@ -76,7 +71,7 @@ export function Seitenleiste({ name, admin, leadfinder = false, faellig = 0 }: {
     {
       titel: "Verwaltung",
       eintraege: [
-        { href: "/crm/partner", label: "Partner & Provision", icon: "partner", aktiv: pfad.startsWith("/crm/partner") },
+        { href: "/crm/team", label: "Team & Provision", icon: "partner", aktiv: pfad.startsWith("/crm/team") || pfad.startsWith("/crm/partner") },
         ...(admin ? [{ href: "/crm/admin", label: "Admin", icon: "admin" as const, aktiv: pfad.startsWith("/crm/admin") }] : []),
         { href: "/crm/profil", label: "Mein Profil", icon: "profil", aktiv: pfad.startsWith("/crm/profil") },
       ],

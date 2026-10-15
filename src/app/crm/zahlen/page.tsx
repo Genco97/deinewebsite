@@ -1,3 +1,4 @@
+import { Reiter, UEBERSICHT } from "@/components/crm/Reiter";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Balken, Kennzahl, Saeulen } from "@/components/crm/Diagramme";
@@ -174,6 +175,7 @@ export default async function Zahlen() {
 
   return (
     <>
+      <Reiter eintraege={UEBERSICHT("zahlen")} />
       <div className="mb-6">
         <p className="text-sm font-semibold uppercase tracking-wide text-brand">{TAG_LANG.format(new Date())}</p>
         <h1 className="mt-1 font-serif text-2xl font-semibold tracking-tight text-ink sm:text-3xl">

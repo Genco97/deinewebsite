@@ -1,3 +1,4 @@
+import { Reiter, TEAM } from "@/components/crm/Reiter";
 import { ProvisionsRechner } from "@/components/crm/ProvisionsRechner";
 import type { Metadata } from "next";
 import { Kopf } from "@/components/crm/Kopf";
@@ -81,6 +82,7 @@ export default async function Partner() {
 
   return (
     <>
+      <Reiter eintraege={TEAM("provision")} />
       <Kopf
         titel="Partner & Provision"
         text={
