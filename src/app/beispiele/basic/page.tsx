@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
+import { BasicAnfrage } from "@/components/beispiele/BasicAnfrage";
 import { Icon, Sterne } from "@/components/beispiele/Icon";
 import { OffenStatus } from "@/components/beispiele/OffenStatus";
 import { GRUNDSCHRIFT, TITELSCHRIFT, schriftVariablen } from "@/lib/beispiel-schriften";
@@ -153,6 +154,53 @@ export default async function BasicBeispiel({ searchParams }: PageProps<"/beispi
           <p className="mt-6 text-[var(--a-muted)]">
             {zitat.name} · eine von {betrieb.bewertung.anzahl} Bewertungen auf Google
           </p>
+        </section>
+
+        {/* Anfrage per WhatsApp */}
+        <section id="anfrage" className="scroll-mt-6 pt-28 md:pt-36">
+          <div className="grid items-end gap-6 md:grid-cols-2 md:gap-16">
+            <h2 className={h2} style={titel}>
+              {betrieb.aktion}
+              <br />in 20 Sekunden
+            </h2>
+            <p className="max-w-md text-[17px] text-[var(--a-muted)]">Drei Angaben, ein Tipp – Ihre Nachricht kommt direkt bei uns an.</p>
+          </div>
+          <div className="mt-10">
+            <BasicAnfrage leistungen={betrieb.leistungen.map((l) => l.name)} nummer={betrieb.telefonLink.replace(/\D/g, "")} email={betrieb.email} aktion={betrieb.aktion} />
+          </div>
+        </section>
+
+        {/* Ablauf */}
+        <section className="pt-28 md:pt-36" aria-label="Ablauf">
+          <ol className="grid gap-10 md:grid-cols-3 md:gap-14">
+            {[
+              ["1", "Anfragen", "Per WhatsApp, Anruf oder Formular."],
+              ["2", "Bestätigung", "Wir melden uns noch am selben Tag."],
+              ["3", "Willkommen", betrieb.abschied],
+            ].map(([n, t, x]) => (
+              <li key={n} className="border-t border-[var(--a-ink)]/80 pt-5">
+                <span className="text-5xl text-[var(--a-akzent)]" style={titel}>{n}</span>
+                <b className="mt-3 block text-xl font-semibold">{t}</b>
+                <p className="mt-1 text-[var(--a-muted)]">{x}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        {/* Häufige Fragen */}
+        <section className="mx-auto max-w-3xl pt-28 md:pt-36" aria-label="Häufige Fragen">
+          <h2 className={h2} style={titel}>Gut zu wissen</h2>
+          <div className="mt-8">
+            {betrieb.fragen.slice(0, 3).map((f) => (
+              <details key={f.f} className="group border-b border-[var(--a-linie)] py-5">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-semibold">
+                  {f.f}
+                  <span aria-hidden className="text-2xl text-[var(--a-akzent)] transition group-open:rotate-45">+</span>
+                </summary>
+                <p className="mt-3 text-[var(--a-muted)]">{f.a}</p>
+              </details>
+            ))}
+          </div>
         </section>
       </main>
 

@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import { Anfrage, Gutschein, Rueckruf, StimmenSlider, VorherNachherFoto } from "@/components/beispiele/BusinessWidgets";
+import { BusinessBewegung } from "@/components/beispiele/BusinessBewegung";
 import { BranchenFunktion } from "@/components/beispiele/Funktionen";
 import { Icon, Sterne } from "@/components/beispiele/Icon";
 import { OffenStatus } from "@/components/beispiele/OffenStatus";
@@ -33,7 +34,7 @@ function farben(st: Stil) {
 
 const NAV: Record<Betrieb["funktion"]["art"], string> = { preistabelle: "Preise", wartezeit: "Wartezeit", speisekarte: "Speisekarte", projekte: "Projekte", termin: "Termin" };
 
-const MARQUEE = `@keyframes b-marq{to{transform:translateX(-50%)}}@keyframes b-sw{50%{transform:translateY(-8px)}}`;
+const MARQUEE = `@keyframes b-marq{to{transform:translateX(-50%)}}@keyframes b-sw{50%{transform:translateY(-8px)}}[data-bjs] [data-r]{opacity:0;transform:translateY(34px);transition:opacity .9s cubic-bezier(.2,.7,.2,1),transform .9s cubic-bezier(.2,.7,.2,1)}[data-bjs] [data-r][data-an]{opacity:1;transform:none}@keyframes b-zoom{from{transform:scale(1.08)}to{transform:scale(1)}}`;
 
 const sterne = (n: number) => n.toLocaleString("de-AT", { minimumFractionDigits: 1 });
 
@@ -58,8 +59,9 @@ export default async function BusinessBeispiel({ searchParams }: PageProps<"/bei
   const mitVorher = !!(extras.vorherNachher && betrieb.bild?.einblick);
 
   return (
-    <div className={`${schriftVariablen} flex-1 overflow-x-clip bg-[var(--b-bg)] pb-24 text-[var(--b-ink)] md:pb-0`} style={farben(st)}>
+    <div data-bseite className={`${schriftVariablen} flex-1 overflow-x-clip bg-[var(--b-bg)] pb-24 text-[var(--b-ink)] md:pb-0`} style={farben(st)}>
       <style>{MARQUEE}</style>
+      <BusinessBewegung />
       <header className="sticky top-0 z-40 border-b border-[var(--b-linie)] bg-[var(--b-bg)]/88 backdrop-blur-xl">
         <div className="mx-auto flex h-[70px] max-w-6xl items-center gap-8 px-5">
           <p className="text-[22px] font-extrabold tracking-[-0.03em]" style={titel}>
@@ -83,63 +85,56 @@ export default async function BusinessBeispiel({ searchParams }: PageProps<"/bei
         </div>
       </header>
 
-      {/* Held */}
-      <section className="relative mx-auto grid max-w-6xl items-center gap-12 px-5 pb-10 pt-10 md:grid-cols-[1.05fr_0.95fr] md:gap-14 md:pb-16 md:pt-16">
+      {/* Held: Foto über die ganze Breite, Buchungskarte aus Glas */}
+      <section className="relative isolate overflow-hidden bg-[var(--b-tief)] text-white">
         <div
           aria-hidden
-          className="pointer-events-none absolute -right-24 -top-24 h-[560px] w-[560px] rounded-full opacity-60 blur-3xl"
-          style={{ background: "radial-gradient(circle, color-mix(in srgb, var(--b-akzent) 28%, transparent), transparent 65%)" }}
+          className="absolute inset-0 -z-10 bg-cover bg-center"
+          style={{ background: betrieb.bild ? `center / cover url(${betrieb.bild.hero})` : betrieb.heroFarbe, animation: "b-zoom 2.4s cubic-bezier(.2,.7,.2,1) both" }}
         />
-        <div className="relative">
-          <span className="inline-flex rounded-full border border-[var(--b-linie)] bg-[var(--b-flaeche)] px-4 py-2 text-[13.5px] font-medium">
-            <OffenStatus zeiten={betrieb.oeffnungszeiten} />
-          </span>
-          <h1 className="mt-6 text-[clamp(2.9rem,8vw,5.4rem)] font-extrabold leading-[0.96] tracking-[-0.04em]" style={titel}>
-            {betrieb.hero[0]}
-            <em className="not-italic text-[var(--b-akzent)]">{betrieb.hero[1]}</em>
-            {betrieb.hero[2]}
-          </h1>
-          <p className="mt-6 max-w-md text-lg leading-relaxed text-[var(--b-muted)]">{betrieb.einleitung}</p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <a href="#anfrage" className={voll}>{betrieb.aktion}</a>
-            <a href={betrieb.telefonLink} className={`${knopf} border border-[var(--b-linie)] bg-[var(--b-flaeche)]`}>
-              <Icon name="tel" />
-              {betrieb.telefon}
-            </a>
-          </div>
-        </div>
-        <div className="relative mx-auto w-full max-w-[480px] pb-28 md:pb-0">
-          <div
-            aria-hidden
-            className="aspect-[4/5] w-full rounded-t-[999px] rounded-b-[28px] shadow-[0_40px_60px_-34px_rgba(0,0,0,.5)]"
-            style={{ background: betrieb.bild ? `center / cover url(${betrieb.bild.hero})` : betrieb.heroFarbe }}
-          />
-          <div className="absolute -right-1 top-14 flex items-center gap-3 rounded-2xl bg-[var(--b-flaeche)] px-4 py-3 shadow-[0_20px_40px_-20px_rgba(0,0,0,.45)] md:-right-6" style={{ animation: "b-sw 6s ease-in-out -2s infinite" }}>
-            <b className="text-3xl font-extrabold text-[var(--b-akzent)]" style={titel}>{sterne(betrieb.bewertung.sterne)}</b>
-            <span className="text-xs text-[var(--b-muted)]">
-              <span className="text-[#d79a1f]"><Sterne className="h-3.5 w-3.5" /></span>
-              <br />
-              {betrieb.bewertung.anzahl} Google-Bewertungen
+        <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(0,0,0,.78),rgba(0,0,0,.35)_60%,rgba(0,0,0,.15))] md:bg-[linear-gradient(90deg,rgba(0,0,0,.72),rgba(0,0,0,.2)_70%)]" />
+        <div className="mx-auto grid min-h-[640px] max-w-6xl items-center gap-10 px-5 py-16 md:grid-cols-[1.1fr_0.9fr] md:py-24">
+          <div>
+            <span className="inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-2 text-[13.5px] font-medium backdrop-blur">
+              <OffenStatus zeiten={betrieb.oeffnungszeiten} />
             </span>
+            <h1 className="mt-6 text-[clamp(2.9rem,8vw,5.6rem)] font-extrabold leading-[0.96] tracking-[-0.04em]" style={titel}>
+              {betrieb.hero[0]}
+              <em className="not-italic text-[color-mix(in_srgb,var(--b-akzent)_55%,white)]">{betrieb.hero[1]}</em>
+              {betrieb.hero[2]}
+            </h1>
+            <p className="mt-6 max-w-md text-lg leading-relaxed text-white/80">{betrieb.einleitung}</p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <a href="#anfrage" className={voll}>{betrieb.aktion}</a>
+              <a href={betrieb.telefonLink} className={`${knopf} border border-white/35 bg-white/10 backdrop-blur`}>
+                <Icon name="tel" />
+                {betrieb.telefon}
+              </a>
+            </div>
+            <p className="mt-7 flex items-center gap-3 text-sm text-white/80">
+              <span className="text-[#f3c35b]"><Sterne className="h-4 w-4" /></span>
+              <b>{sterne(betrieb.bewertung.sterne)}</b> · {betrieb.bewertung.anzahl} Google-Bewertungen
+            </p>
           </div>
-          <div className="absolute bottom-0 left-0 right-0 rounded-2xl bg-[var(--b-flaeche)] p-5 shadow-[0_30px_60px_-24px_rgba(0,0,0,.5)] md:bottom-10 md:left-[-56px] md:right-auto md:w-[330px]" style={{ animation: "b-sw 5s ease-in-out infinite" }}>
+          <div className="rounded-[26px] border border-white/20 bg-white/12 p-6 shadow-[0_40px_80px_-30px_rgba(0,0,0,.7)] backdrop-blur-xl md:ml-auto md:w-[360px]" style={{ animation: "b-sw 6s ease-in-out infinite" }}>
             <p className="flex items-baseline justify-between gap-3 text-[15px] font-bold">
               {betrieb.naechster.klein}
-              <small className="font-normal text-[var(--b-muted)]">{betrieb.aktionKurz === "Termin" ? "diese Woche" : "heute"}</small>
+              <small className="font-normal text-white/70">{betrieb.aktionKurz === "Termin" ? "diese Woche" : "heute"}</small>
             </p>
             {betrieb.aktionKurz === "Termin" ? (
-              <div className="mt-3 grid grid-cols-4 gap-2">
+              <div className="mt-4 grid grid-cols-4 gap-2">
                 {termine.map((t, i) => (
-                  <a key={t} href="#anfrage" className={`rounded-xl border px-1 py-2 text-center text-sm font-bold ${i === 1 ? "border-[var(--b-akzent)] bg-[var(--b-akzent)] text-[var(--b-auf)]" : "border-[var(--b-linie)]"}`}>
+                  <a key={t} href="#anfrage" className={`rounded-xl border px-1 py-2.5 text-center text-sm font-bold ${i === 1 ? "border-[var(--b-akzent)] bg-[var(--b-akzent)] text-[var(--b-auf)]" : "border-white/25 bg-white/5"}`}>
                     {t.split(" ")[0]}
-                    <small className="block text-[11px] font-normal opacity-75">{t.split(" ")[1]}</small>
+                    <small className="block text-[11px] font-normal opacity-80">{t.split(" ")[1]}</small>
                   </a>
                 ))}
               </div>
             ) : (
-              <p className="mt-2 text-2xl font-extrabold text-[var(--b-akzent)]" style={titel}>{betrieb.naechster.gross}</p>
+              <p className="mt-3 text-3xl font-extrabold" style={titel}>{betrieb.naechster.gross}</p>
             )}
-            <a href="#anfrage" className={`${voll} mt-4 !min-h-11 w-full text-sm`}>{betrieb.aktion}</a>
+            <a href="#anfrage" className={`${voll} mt-5 !min-h-12 w-full text-sm`}>{betrieb.aktion}</a>
+            <p className="mt-3 text-center text-xs text-white/60">Antwort in Minuten · kostenlos · unverbindlich</p>
           </div>
         </div>
       </section>
@@ -172,8 +167,21 @@ export default async function BusinessBeispiel({ searchParams }: PageProps<"/bei
         ))}
       </ul>
 
+      {/* Zahlen */}
+      <section aria-label="Zahlen" className="mx-auto grid max-w-6xl grid-cols-3 gap-4 px-5 pt-6 md:pt-10">
+        {betrieb.zahlen.map((z) => (
+          <div key={z.text} data-r className="rounded-[22px] border border-[var(--b-linie)] bg-[var(--b-flaeche)] p-4 text-center md:p-7">
+            <p className="text-[clamp(1.8rem,5vw,3.6rem)] font-extrabold leading-none tracking-[-0.04em] text-[var(--b-akzent)]" style={titel}>
+              <span data-zaehl={z.zahl} data-komma={z.komma ?? 0}>{z.zahl.toLocaleString("de-AT", { minimumFractionDigits: z.komma ?? 0 })}</span>
+              {z.zahl > 1000 ? "+" : ""}
+            </p>
+            <p className="mt-2 text-xs text-[var(--b-muted)] md:text-sm">{z.text}</p>
+          </div>
+        ))}
+      </section>
+
       {/* Die Funktion der Branche */}
-      <section id="angebot" className="mx-auto max-w-6xl scroll-mt-24 px-5 pt-20 md:pt-24">
+      <section data-r id="angebot" className="mx-auto max-w-6xl scroll-mt-24 px-5 pt-20 md:pt-24">
         <div className="mb-9 flex flex-wrap items-end justify-between gap-6">
           <div>
             <p className={kicker}>{NAV[betrieb.funktion.art]}</p>
@@ -208,7 +216,7 @@ export default async function BusinessBeispiel({ searchParams }: PageProps<"/bei
       )}
 
       {/* Einblicke + Stimmen */}
-      <section id="galerie" className="mt-20 scroll-mt-24 bg-[var(--b-tief)] py-20 text-white md:mt-24 md:py-24">
+      <section data-r id="galerie" className="mt-20 scroll-mt-24 bg-[var(--b-tief)] py-20 text-white md:mt-24 md:py-24">
         <div className="mx-auto max-w-6xl px-5">
           <p className={`${kicker} !text-white/60`}>Einblicke</p>
           <h2 className={h2} style={titel}>Das sind wir.</h2>
@@ -241,7 +249,7 @@ export default async function BusinessBeispiel({ searchParams }: PageProps<"/bei
       </section>
 
       {/* Team */}
-      <section id="team" className="mx-auto max-w-6xl scroll-mt-24 px-5 pt-20 md:pt-24">
+      <section data-r id="team" className="mx-auto max-w-6xl scroll-mt-24 px-5 pt-20 md:pt-24">
         <p className={kicker}>Team</p>
         <h2 className={h2} style={titel}>Die Menschen dahinter.</h2>
         <ul className="mt-9 grid gap-3 sm:grid-cols-3">

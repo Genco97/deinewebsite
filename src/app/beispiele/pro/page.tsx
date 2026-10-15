@@ -7,7 +7,9 @@ import { OffenStatus } from "@/components/beispiele/OffenStatus";
 import { ProBuchung } from "@/components/beispiele/ProBuchung";
 import { ProChat } from "@/components/beispiele/ProChat";
 import { ProDemoChat } from "@/components/beispiele/ProDemoChat";
+import { ProBerater } from "@/components/beispiele/ProBerater";
 import { ProKino } from "@/components/beispiele/ProKino";
+import { ProSignatur } from "@/components/beispiele/ProSignatur";
 import { ProWasserBild } from "@/components/beispiele/ProWasserBild";
 import { abPreis, betriebAusSuche, extrasFuer, galerieFuer } from "@/lib/beispiele";
 import "./pro.css";
@@ -125,6 +127,9 @@ export default async function ProBeispiel({ searchParams }: PageProps<"/beispiel
           {betrieb.slogan} {betrieb.einleitung}
         </p>
       </section>
+
+      {/* Signatur: die Schere schneidet sich durch die Seite */}
+      {betrieb.branche === "friseur" && <ProSignatur zeilen={["Schnitt für Schnitt.", "Mit ruhiger Hand.", "Bis es Ihnen gefällt."]} />}
 
       {/* Galerie, die seitwärts fährt */}
       <section data-quer aria-label="Galerie" className="relative overflow-x-auto md:h-screen md:overflow-hidden" style={{ scrollbarWidth: "none" }}>
@@ -284,6 +289,15 @@ export default async function ProBeispiel({ searchParams }: PageProps<"/beispiel
           </div>
         ))}
       </section>
+
+      {/* Look-Berater (Friseur) */}
+      {betrieb.branche === "friseur" && (
+        <section id="berater" className="mx-auto max-w-5xl scroll-mt-24 px-5 pt-32 sm:px-10 sm:pt-44">
+          <p className={kick}>Ihr Look in 3 Fragen</p>
+          <h2 data-h2 className={`${titel} mt-5 mb-10 text-[clamp(2.8rem,6vw,6rem)]`}>Was passt zu Ihnen?</h2>
+          <ProBerater ziel="#buchen" />
+        </section>
+      )}
 
       {/* Buchung + KI-Assistentin */}
       <section id="buchen" className="mx-auto max-w-7xl scroll-mt-24 px-5 pt-32 sm:px-10 sm:pt-48">
