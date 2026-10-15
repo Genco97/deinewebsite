@@ -1,14 +1,9 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { LayerGroup, Map as LeafletMap } from "leaflet";
-import { besucheEinplanen } from "@/app/crm/besuche/actions";
-import { buttonClass, inputClass } from "@/components/ui";
-import { mapsRoute } from "@/lib/besuche";
 import { LEAD_STATUS, STATUS_LABEL, STATUS_PIN, type LeadStatus } from "@/lib/status";
-import { heuteWien } from "@/lib/zeit";
 
 export type KartenLead = {
   id: string;
@@ -26,14 +21,15 @@ export type KartenLead = {
 const WIEN: [number, number] = [48.2082, 16.3738];
 const STANDARD_AN: LeadStatus[] = ["neu", "nicht_erreicht", "rueckruf", "interessiert", "demo", "angebot"];
 
-export function KarteAnsicht({ leads }: { leads: KartenLead[] }) {
+/** Zahlen je Status über alle Leads (auch ohne Pin) */
+export type StatusZahlen = Partial<Record<LeadStatus, { alle: number; ohnePin: number }>>;
+
+export function KarteAnsicht({ leads, zahlen }: { leads: KartenLead[]; zahlen?: StatusZahlen }) {
   const box = useRef<HTMLDivElement>(null);
   const karte = useRef<LeafletMap | null>(null);
   const ebene = useRef<LayerGroup | null>(null);
   const [bereit, setBereit] = useState(false);
   const [filter, setFilter] = useState<LeadStatus[]>(STANDARD_AN);
-  const [auswahl, setAuswahl] = useState<string[]>([]);
-  const [tag, setTag] = useState(heuteWien());
   const [standortFehler, setStandortFehler] = useState<string | null>(null);
 
   const sichtbar = useMemo(() => leads.filter((l) => filter.includes(l.status)), [leads, filter]);
@@ -42,7 +38,6 @@ export function KarteAnsicht({ leads }: { leads: KartenLead[] }) {
     for (const l of leads) z[l.status] = (z[l.status] ?? 0) + 1;
     return z;
   }, [leads]);
-  const gewaehlt = auswahl.map((id) => leads.find((l) => l.id === id)).filter((l): l is KartenLead => !!l);
 
   // Karte einmal aufbauen (Leaflet braucht das Browserfenster)
   useEffect(() => {
@@ -75,15 +70,14 @@ export function KarteAnsicht({ leads }: { leads: KartenLead[] }) {
       if (abbruch || !ebene.current) return;
       ebene.current.clearLayers();
       for (const l of sichtbar) {
-        const drin = auswahl.includes(l.id);
         const pin = L.circleMarker([l.lat, l.lng], {
-          radius: drin ? 11 : 8,
-          color: drin ? "#111827" : "#ffffff",
-          weight: drin ? 3 : 2,
+          radius: 8,
+          color: "#ffffff",
+          weight: 2,
           fillColor: STATUS_PIN[l.status],
           fillOpacity: 0.95,
         });
-        pin.bindPopup(() => popup(l, drin, () => umschalten(l.id)), { closeButton: true, minWidth: 220 });
+        pin.bindPopup(() => popup(l), { closeButton: true, minWidth: 220 });
         pin.bindTooltip(l.firma, { direction: "top", offset: [0, -8] });
         ebene.current.addLayer(pin);
       }
@@ -91,7 +85,7 @@ export function KarteAnsicht({ leads }: { leads: KartenLead[] }) {
     return () => {
       abbruch = true;
     };
-  }, [bereit, sichtbar, auswahl]);
+  }, [bereit, sichtbar]);
 
   // Beim ersten Laden auf alle Pins zoomen
   const gezoomt = useRef(false);
@@ -104,11 +98,6 @@ export function KarteAnsicht({ leads }: { leads: KartenLead[] }) {
       karte.current?.fitBounds(grenzen, { padding: [30, 30], maxZoom: 16 });
     })();
   }, [bereit, sichtbar]);
-
-  function umschalten(id: string) {
-    setAuswahl((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]));
-    karte.current?.closePopup();
-  }
 
   function standort() {
     setStandortFehler(null);
@@ -125,12 +114,11 @@ export function KarteAnsicht({ leads }: { leads: KartenLead[] }) {
     );
   }
 
-  const route = mapsRoute(gewaehlt);
-
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2" role="group" aria-label="Status anzeigen">
-        {LEAD_STATUS.filter((s) => anzahl[s]).map((s) => {
+        {LEAD_STATUS.filter((s) => zahlen?.[s]?.alle ?? anzahl[s]).map((s) => {
+          const ohnePin = zahlen?.[s]?.ohnePin ?? 0;
           const an = filter.includes(s);
           return (
             <button
@@ -143,7 +131,8 @@ export function KarteAnsicht({ leads }: { leads: KartenLead[] }) {
               }`}
             >
               <span aria-hidden className="h-3 w-3 rounded-full border border-white shadow" style={{ background: STATUS_PIN[s] }} />
-              {STATUS_LABEL[s]} <span className="text-muted">{anzahl[s]}</span>
+              {STATUS_LABEL[s]} <span className="text-muted">{zahlen?.[s]?.alle ?? anzahl[s]}</span>
+              {ohnePin > 0 ? <span className="text-xs font-semibold text-amber-800">· {ohnePin} ohne Pin</span> : null}
             </button>
           );
         })}
@@ -162,53 +151,12 @@ export function KarteAnsicht({ leads }: { leads: KartenLead[] }) {
       </div>
       {standortFehler ? <p className="text-sm text-danger">{standortFehler}</p> : null}
 
-      <div className="rounded-xl border border-line bg-surface p-4">
-        <h2 className="font-bold text-ink">Runde zusammenstellen</h2>
-        {gewaehlt.length === 0 ? (
-          <p className="mt-1 text-sm text-muted">Tippe auf Pins und dann auf „Zur Runde“, um eine Besuchsrunde zu planen.</p>
-        ) : (
-          <>
-            <ol className="mt-3 space-y-1 text-sm">
-              {gewaehlt.map((l, i) => (
-                <li key={l.id} className="flex items-center justify-between gap-2">
-                  <span className="min-w-0 truncate">
-                    <span className="font-semibold text-muted">{i + 1}.</span>{" "}
-                    <Link href={`/crm/leads/${l.id}`} className="font-semibold text-ink hover:text-brand">
-                      {l.firma}
-                    </Link>{" "}
-                    <span className="text-muted">{l.adresse}</span>
-                  </span>
-                  <button type="button" onClick={() => umschalten(l.id)} className="min-h-11 shrink-0 px-2 text-muted hover:text-danger" aria-label={`${l.firma} entfernen`}>
-                    ✕
-                  </button>
-                </li>
-              ))}
-            </ol>
-            <form action={besucheEinplanen} className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end">
-              {auswahl.map((id) => (
-                <input key={id} type="hidden" name="ids" value={id} />
-              ))}
-              <input type="hidden" name="zurueck" value={`/crm/besuche?tag=${tag}`} />
-              <label className="text-sm font-semibold text-ink">
-                Besuchen am
-                <input name="tag" type="date" min={heuteWien()} value={tag} onChange={(e) => setTag(e.target.value)} required className={`${inputClass} mt-1`} />
-              </label>
-              <button className={buttonClass("primary")}>{gewaehlt.length} {gewaehlt.length === 1 ? "Besuch" : "Besuche"} einplanen</button>
-              {route ? (
-                <a href={route} target="_blank" rel="noopener noreferrer" className={buttonClass("secondary")}>
-                  Route in Google Maps{gewaehlt.length > 10 ? " (erste 10)" : ""}
-                </a>
-              ) : null}
-            </form>
-          </>
-        )}
-      </div>
     </div>
   );
 }
 
 /** Popup-Inhalt als DOM – Texte nur über textContent (keine HTML-Einschleusung) */
-function popup(l: KartenLead, drin: boolean, umschalten: () => void) {
+function popup(l: KartenLead) {
   const el = document.createElement("div");
   el.className = "space-y-1 text-sm";
   const titel = document.createElement("a");
@@ -223,22 +171,17 @@ function popup(l: KartenLead, drin: boolean, umschalten: () => void) {
   ort.textContent = [l.adresse, l.bezirk].filter(Boolean).join(", ");
   ort.className = "text-muted";
   el.append(titel, info, ort);
-  if (l.besuch_geplant) {
-    const g = document.createElement("p");
-    g.textContent = `Besuch geplant: ${new Date(`${l.besuch_geplant}T12:00:00Z`).toLocaleDateString("de-AT")}`;
-    el.append(g);
-  }
   if (!l.einwilligung_wie && l.status !== "nicht_anrufen" && l.status !== "falsche_nummer") {
     const w = document.createElement("p");
-    w.textContent = "Kein Anruf – nur Besuch oder Brief";
+    w.textContent = "Keine Zustimmung eingetragen";
     w.className = "text-amber-800";
     el.append(w);
   }
-  const knopf = document.createElement("button");
-  knopf.type = "button";
-  knopf.textContent = drin ? "Aus der Runde nehmen" : "Zur Runde";
-  knopf.className = "mt-2 min-h-11 w-full rounded-lg bg-brand px-3 font-semibold text-white";
-  knopf.onclick = umschalten;
+  const knopf = document.createElement("a");
+  knopf.href = `/crm/leads/${l.id}`;
+  knopf.textContent = "Lead öffnen";
+  knopf.className = "mt-2 flex min-h-11 w-full items-center justify-center rounded-lg bg-brand px-3 font-semibold text-white";
+  knopf.style.color = "#fff";
   el.append(knopf);
   return el;
 }
