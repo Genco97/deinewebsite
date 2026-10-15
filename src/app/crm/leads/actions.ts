@@ -403,6 +403,7 @@ export async function statusAendern(
   leadId: string,
   status: string,
   rueckruf?: string | null,
+  website?: string | null,
 ): Promise<{ ok: boolean; meldung?: string }> {
   const profil = await holeProfil();
   const id = leadId.slice(0, 50);
@@ -419,7 +420,9 @@ export async function statusAendern(
     if (!Number.isFinite(t)) return { ok: false, meldung: "Ungültiger Termin." };
     termin = new Date(t).toISOString();
   }
-  const { error } = await supabase.from("leads").update({ status, naechster_rueckruf: termin, besuch_geplant: null }).eq("id", id);
+  const update: Record<string, unknown> = { status, naechster_rueckruf: termin, besuch_geplant: null };
+  if (status === "hat_website" && website?.trim()) update.website = website.trim().slice(0, 300);
+  const { error } = await supabase.from("leads").update(update).eq("id", id);
   if (error) return { ok: false, meldung: fehlerText(error.message) };
   revalidatePath("/crm/leads");
   revalidatePath(`/crm/leads/${id}`);

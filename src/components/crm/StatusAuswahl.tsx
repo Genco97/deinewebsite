@@ -14,21 +14,24 @@ export function StatusAuswahl({ id, status, admin = false }: { id: string; statu
   const [wert, setWert] = useState<LeadStatus>(status);
   const [frage, setFrage] = useState(false);
   const [eigen, setEigen] = useState("");
+  const [webfrage, setWebfrage] = useState(false);
+  const [website, setWebsite] = useState("");
   const [fehler, setFehler] = useState<string | null>(null);
   const [laeuft, starten] = useTransition();
 
   const gesperrt = status === "verkauft" || (status === "nicht_anrufen" && !admin);
 
-  function speichern(neu: LeadStatus, termin?: string | null) {
+  function speichern(neu: LeadStatus, termin?: string | null, web?: string | null) {
     setFehler(null);
     starten(async () => {
-      const r = await statusAendern(id, neu, termin ?? null);
+      const r = await statusAendern(id, neu, termin ?? null, web ?? null);
       if (!r.ok) {
         setWert(status);
         setFehler(r.meldung ?? "Das hat nicht geklappt.");
         return;
       }
       setFrage(false);
+      setWebfrage(false);
       router.refresh();
     });
   }
@@ -42,6 +45,10 @@ export function StatusAuswahl({ id, status, admin = false }: { id: string; statu
     setWert(s);
     if (s === "rueckruf") {
       setFrage(true);
+      return;
+    }
+    if (s === "hat_website") {
+      setWebfrage(true);
       return;
     }
     speichern(s);
@@ -120,6 +127,31 @@ export function StatusAuswahl({ id, status, admin = false }: { id: string; statu
           <button type="button" disabled={laeuft} onClick={() => speichern("rueckruf", null)} className="mt-2 text-sm font-semibold text-muted hover:text-ink">
             Ohne Termin speichern
           </button>
+        </div>
+      ) : null}
+      {webfrage ? (
+        <div className="mt-2 rounded-lg border border-teal-200 bg-teal-50 p-2.5">
+          <label htmlFor={`web-${id}`} className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-teal-800">
+            Adresse der Website (optional)
+          </label>
+          <input
+            id={`web-${id}`}
+            type="text"
+            inputMode="url"
+            autoComplete="off"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            placeholder="z. B. www.cafe-beispiel.at"
+            className="h-10 w-full rounded-lg border border-teal-200 bg-white px-3 text-sm"
+          />
+          <div className="mt-2 flex gap-2">
+            <button type="button" disabled={laeuft} onClick={() => speichern("hat_website", null, website)} className="min-h-9 rounded-lg bg-brand px-4 text-sm font-semibold text-white">
+              Speichern
+            </button>
+            <button type="button" onClick={() => { setWebfrage(false); setWert(status); }} className="min-h-9 px-2 text-sm font-semibold text-muted hover:text-ink">
+              Abbrechen
+            </button>
+          </div>
         </div>
       ) : null}
       {laeuft ? <p className="mt-1 text-xs text-muted">Speichert …</p> : null}

@@ -7,6 +7,7 @@ export const LEAD_STATUS = [
   "angebot",
   "verkauft",
   "kein_interesse",
+  "hat_website",
   "falsche_nummer",
   "nicht_anrufen",
 ] as const;
@@ -22,6 +23,7 @@ export const STATUS_LABEL: Record<LeadStatus, string> = {
   angebot: "Angebot",
   verkauft: "Verkauft",
   kein_interesse: "Kein Interesse",
+  hat_website: "Hat schon eine Website",
   falsche_nummer: "Falsche Nummer",
   nicht_anrufen: "Nicht anrufen",
 };
@@ -35,12 +37,13 @@ export const STATUS_FARBE: Record<LeadStatus, string> = {
   angebot: "bg-amber-50 text-amber-800",
   verkauft: "bg-ok-light text-ok",
   kein_interesse: "bg-stone-100 text-muted",
+  hat_website: "bg-teal-50 text-teal-800",
   falsche_nummer: "bg-stone-100 text-muted",
   nicht_anrufen: "bg-danger-light text-danger",
 };
 
 /** Status, bei denen kein Rückruf mehr fällig ist */
-export const ABGESCHLOSSEN: LeadStatus[] = ["verkauft", "kein_interesse", "falsche_nummer", "nicht_anrufen"];
+export const ABGESCHLOSSEN: LeadStatus[] = ["verkauft", "kein_interesse", "hat_website", "falsche_nummer", "nicht_anrufen"];
 
 export function istLeadStatus(v: unknown): v is LeadStatus {
   return typeof v === "string" && (LEAD_STATUS as readonly string[]).includes(v);
@@ -64,6 +67,7 @@ export const STATUS_PIN: Record<LeadStatus, string> = {
   angebot: "#db2777",
   verkauft: "#16a34a",
   kein_interesse: "#d6d3d1",
+  hat_website: "#0f766e",
   falsche_nummer: "#a8a29e",
   nicht_anrufen: "#b42318",
 };

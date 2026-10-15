@@ -77,7 +77,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
   // „Unvollständig“: offene Leads ohne Telefon oder ohne Adresse – zum Nachtragen
   const unv = sp.liste === "unvollstaendig";
   const fehlt = sp.fehlt === "telefon" || sp.fehlt === "adresse" ? sp.fehlt : "";
-  const geschlossen = "(verkauft,kein_interesse,falsche_nummer,nicht_anrufen)";
+  const geschlossen = "(verkauft,kein_interesse,hat_website,falsche_nummer,nicht_anrufen)";
   const offeneLeads = () => supabase.from("leads").select("id", { count: "exact", head: true }).not("status", "in", geschlossen);
   const [zAlle, zUnv, zTel, zAdr] = await Promise.all([
     supabase.from("leads").select("id", { count: "exact", head: true }),
@@ -103,7 +103,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
   let abfrage = supabase
     .from("leads")
     .select(
-      "id, firma, ansprechpartner, branche, telefon, bezirk, quelle, status, status_seit, naechster_rueckruf, einwilligung_wie, created_at, besitzer:profiles!leads_besitzer_id_fkey(name)",
+      "id, firma, ansprechpartner, branche, telefon, bezirk, quelle, status, status_seit, naechster_rueckruf, einwilligung_wie, created_at, website, besitzer:profiles!leads_besitzer_id_fkey(name)",
       { count: "exact" },
     )
     // Geplante Rückrufe zuerst (der früheste oben), dann die neuesten Leads
@@ -162,6 +162,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
     naechster_rueckruf: string | null;
     einwilligung_wie: string | null;
     created_at: string;
+    website: string | null;
     besitzer: { name: string } | null;
   }[];
   type Zeile = (typeof leads)[number];
@@ -458,6 +459,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
                 <Link href={`/crm/leads/${l.id}`} className="mt-2 block">
                   <span className="block text-lg font-semibold leading-snug text-ink">{l.firma}</span>
                   {l.ansprechpartner ? <span className="block text-sm text-muted">{l.ansprechpartner}</span> : null}
+                  {l.website ? <span className="block text-sm font-semibold text-teal-800">Website: {l.website}</span> : null}
                 </Link>
                 <div className="mt-3 flex items-stretch gap-2">
                   {telefon(l, true)}
@@ -512,6 +514,7 @@ export default async function Leads({ searchParams }: PageProps<"/crm/leads">) {
                         {l.firma}
                       </Link>
                       <span className="block text-xs text-muted">{[l.branche, l.ansprechpartner, quelleKurz(l.quelle)].filter(Boolean).join(" · ")}</span>
+                      {l.website ? <span className="block text-xs font-semibold text-teal-800">Website: {l.website}</span> : null}
                       {rueckruf(l)}
                     </td>
                     <td className="px-4 py-3">
