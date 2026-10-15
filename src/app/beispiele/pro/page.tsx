@@ -7,8 +7,10 @@ import { OffenStatus } from "@/components/beispiele/OffenStatus";
 import { ProBuchung } from "@/components/beispiele/ProBuchung";
 import { ProChat } from "@/components/beispiele/ProChat";
 import { ProDemoChat } from "@/components/beispiele/ProDemoChat";
+import { ProBerater } from "@/components/beispiele/ProBerater";
 import { ProKino } from "@/components/beispiele/ProKino";
 import { ProWasserBild } from "@/components/beispiele/ProWasserBild";
+import { BERATER } from "@/lib/pro-berater";
 import { abPreis, betriebAusSuche, extrasFuer, galerieFuer } from "@/lib/beispiele";
 import "./pro.css";
 
@@ -283,6 +285,13 @@ export default async function ProBeispiel({ searchParams }: PageProps<"/beispiel
             <p className="mt-3 text-white/60">{z.text}</p>
           </div>
         ))}
+      </section>
+
+      {/* Eigenes Werkzeug je Branche */}
+      <section id="berater" className="mx-auto max-w-5xl scroll-mt-24 px-5 pt-32 sm:px-10 sm:pt-44">
+        <p className={kick}>{BERATER[betrieb.branche].kick}</p>
+        <h2 data-h2 className={`${titel} mt-5 mb-10 text-[clamp(2.8rem,6vw,6rem)]`}>{BERATER[betrieb.branche].titel}</h2>
+        <ProBerater branche={betrieb.branche} ziel="#buchen" />
       </section>
 
       {/* Buchung + KI-Assistentin */}
