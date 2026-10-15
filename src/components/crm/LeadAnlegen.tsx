@@ -10,10 +10,11 @@ export function LeadAnlegen() {
   const doppelt = s.duplikate && s.duplikate.length > 0;
   const w = s.werte ?? {};
   return (
-    <details className="group rounded-xl border border-line bg-surface open:order-last open:basis-full" open={doppelt || undefined}>
-      <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 px-3 text-sm font-semibold text-ink group-open:min-h-12 group-open:text-base [&::-webkit-details-marker]:hidden">
+    <details className="group rounded-lg border border-brand bg-brand open:order-last open:col-span-2 open:basis-full open:border-line open:bg-surface" open={doppelt || undefined}>
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-center gap-2 whitespace-nowrap px-4 text-sm font-semibold text-white group-open:min-h-12 group-open:justify-start group-open:text-base group-open:text-ink [&::-webkit-details-marker]:hidden">
+        <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current group-open:hidden" strokeWidth={2} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
         Lead anlegen
-        <span aria-hidden className="text-xl text-brand group-open:rotate-45">+</span>
+        <span aria-hidden className="ml-auto hidden text-xl leading-none text-muted group-open:inline">×</span>
       </summary>
       <form key={JSON.stringify(w)} action={aktion} className="space-y-3 border-t border-line p-4">
         {s.meldung && !doppelt ? <Hinweis art="fehler">{s.meldung}</Hinweis> : null}

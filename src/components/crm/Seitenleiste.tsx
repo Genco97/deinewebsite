@@ -64,7 +64,6 @@ export function Seitenleiste({ name, admin, leadfinder = false, faellig = 0 }: {
         { href: "/crm/anrufen", label: "Anruf-Modus", icon: "anrufen", aktiv: pfad.startsWith("/crm/anrufen") },
         { href: "/crm/leads", label: "Leads", icon: "leads", aktiv: pfad.startsWith("/crm/leads") },
         ...(leadfinder ? [{ href: "/crm/leadfinder", label: "Lead Finder", icon: "suche" as const, aktiv: pfad.startsWith("/crm/leadfinder") }] : []),
-        { href: "/crm/besuche", label: "Besuche", icon: "besuche", aktiv: pfad.startsWith("/crm/besuche") },
         { href: "/crm/karte", label: "Karte", icon: "karte", aktiv: pfad.startsWith("/crm/karte") },
         { href: "/crm/postkarten", label: "Postkarten", icon: "postkarten", aktiv: pfad.startsWith("/crm/postkarten") },
       ],

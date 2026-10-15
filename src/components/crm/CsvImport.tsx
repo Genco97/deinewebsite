@@ -47,10 +47,12 @@ export function CsvImport({ personen = [], ichId }: { personen?: Person[]; ichId
   }
 
   return (
-    <details className="group rounded-xl border border-line bg-surface open:order-last open:basis-full">
-      <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 px-3 text-sm font-semibold text-ink group-open:min-h-12 group-open:text-base [&::-webkit-details-marker]:hidden">
-        CSV-Import
-        <span aria-hidden className="text-xl text-brand group-open:rotate-45">+</span>
+    <details className="group rounded-lg border border-line bg-surface open:order-last open:col-span-2 open:basis-full">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-center gap-2 whitespace-nowrap px-4 text-sm font-semibold text-ink group-open:min-h-12 group-open:justify-start group-open:text-base [&::-webkit-details-marker]:hidden">
+        <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current group-open:hidden" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>
+        <span className="group-open:hidden">Importieren</span>
+        <span className="hidden group-open:inline">Liste importieren</span>
+        <span aria-hidden className="ml-auto hidden text-xl leading-none text-muted group-open:inline">×</span>
       </summary>
       <div className="space-y-3 border-t border-line p-4">
         <p className="text-sm text-muted">

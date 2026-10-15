@@ -393,3 +393,36 @@ export async function whatsappZustimmung(leadId: string): Promise<{ ok: boolean;
   revalidatePath(`/crm/leads/${id}`);
   return { ok: true };
 }
+
+/**
+ * Status direkt in der Lead-Liste ändern – wird sofort gespeichert.
+ * Bei „Rückruf“ kann ein Termin mitkommen (ISO-Zeit), sonst wird ein geplanter Termin gelöscht.
+ * „Verkauft“ läuft über „Verkauf melden“ auf der Lead-Seite (Deal und Provision), nicht hier.
+ */
+export async function statusAendern(
+  leadId: string,
+  status: string,
+  rueckruf?: string | null,
+): Promise<{ ok: boolean; meldung?: string }> {
+  const profil = await holeProfil();
+  const id = leadId.slice(0, 50);
+  if (!istLeadStatus(status) || status === "verkauft") return { ok: false, meldung: "Ungültiger Status." };
+  const supabase = await createClient();
+  const { data: lead } = await supabase.from("leads").select("id, status").eq("id", id).maybeSingle();
+  if (!lead) return { ok: false, meldung: "Lead nicht gefunden." };
+  if (lead.status === "verkauft") return { ok: false, meldung: "Verkaufte Leads ändert ein Gründer unter Admin → Deals." };
+  if (lead.status === "nicht_anrufen" && profil.rolle !== "admin") return { ok: false, meldung: "Nur ein Gründer kann „Nicht anrufen“ aufheben." };
+
+  let termin: string | null = null;
+  if (status === "rueckruf" && rueckruf) {
+    const t = Date.parse(rueckruf);
+    if (!Number.isFinite(t)) return { ok: false, meldung: "Ungültiger Termin." };
+    termin = new Date(t).toISOString();
+  }
+  const { error } = await supabase.from("leads").update({ status, naechster_rueckruf: termin, besuch_geplant: null }).eq("id", id);
+  if (error) return { ok: false, meldung: fehlerText(error.message) };
+  revalidatePath("/crm/leads");
+  revalidatePath(`/crm/leads/${id}`);
+  revalidatePath("/crm");
+  return { ok: true };
+}

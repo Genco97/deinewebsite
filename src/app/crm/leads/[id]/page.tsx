@@ -46,9 +46,9 @@ function Abschnitt({ titel, id, children }: { titel: string; id?: string; childr
   );
 }
 
-function Klapp({ titel, children, offen = false }: { titel: string; children: React.ReactNode; offen?: boolean }) {
+function Klapp({ titel, children, offen = false, id }: { titel: string; children: React.ReactNode; offen?: boolean; id?: string }) {
   return (
-    <details open={offen} className="group rounded-2xl border border-line bg-surface">
+    <details id={id} open={offen} className="group rounded-2xl border border-line bg-surface">
       <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 px-4 font-bold text-ink sm:px-5 [&::-webkit-details-marker]:hidden">
         {titel}
         <span aria-hidden className="text-muted transition-transform group-open:rotate-180">
@@ -62,7 +62,7 @@ function Klapp({ titel, children, offen = false }: { titel: string; children: Re
 
 export default async function LeadDetail({ params, searchParams }: PageProps<"/crm/leads/[id]">) {
   const { id } = await params;
-  const { fehler, ok } = await searchParams;
+  const { fehler, ok, verkauf } = await searchParams;
   if (!UUID.test(id)) notFound();
 
   const profil = await holeProfil();
@@ -474,7 +474,7 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
             <KontaktFormular lead={kontakt} telefonSperre={gesperrt} />
           </Klapp>
 
-          <Klapp titel="Verkauf" offen={(deals ?? []).length > 0}>
+          <Klapp titel="Verkauf" id="verkauf" offen={(deals ?? []).length > 0 || verkauf === "1"}>
             {(deals ?? []).length > 0 ? (
               <ul className="mb-4 divide-y divide-line rounded-lg border border-line">
                 {(deals ?? []).map((d) => (
