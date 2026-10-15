@@ -185,11 +185,9 @@ export default async function Heute() {
   return (
     <>
       <Kopf titel={vorname ? `Hallo ${vorname}` : "Heute"} text={`Dein Überblick für ${datum(jetzt)}.`}>
-        {besuche.count ? (
-          <Link href="/crm/besuche" className={buttonClass("secondary")}>
-            Besuche heute: {besuche.count}
-          </Link>
-        ) : null}
+        <Link href="/crm/besuch" className={buttonClass("secondary")}>
+          Besuch-Modus{besuche.count ? ` · ${besuche.count} geplant` : ""}
+        </Link>
         <Link href="/crm/leads" className={buttonClass("primary")}>
           Zu den Leads
         </Link>
