@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Kopf } from "@/components/crm/Kopf";
+import { Reiter, UEBERSICHT } from "@/components/crm/Reiter";
 import { StatusBadge } from "@/components/crm/StatusBadge";
 import { RueckmeldungZeile, type Rueckmeldung } from "@/components/crm/Rueckmeldungen";
 import { Karte, buttonClass } from "@/components/ui";
@@ -184,6 +185,7 @@ export default async function Heute() {
 
   return (
     <>
+      <Reiter eintraege={UEBERSICHT("heute")} />
       <Kopf titel={vorname ? `Hallo ${vorname}` : "Heute"} text={`Dein Überblick für ${datum(jetzt)}.`}>
         <Link href="/crm/besuch" className={buttonClass("secondary")}>
           Besuch-Modus{besuche.count ? ` · ${besuche.count} geplant` : ""}

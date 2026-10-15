@@ -1,3 +1,4 @@
+import { Reiter, TEAM } from "@/components/crm/Reiter";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Kopf } from "@/components/crm/Kopf";
@@ -50,6 +51,7 @@ export default async function TeamSeite({ searchParams }: PageProps<"/crm/team">
 
   return (
     <>
+      <Reiter eintraege={TEAM("team")} />
       <Kopf
         titel={woche === 0 ? "Team diese Woche" : "Team in der Woche"}
         text={`${TAG.format(new Date(von))} – ${TAG.format(sonntag)} · gemeinsam ${summe("kontakte")} Kontakte, ${summe("besuche")} Besuche, ${summe("verkaeufe")} Verkäufe`}
