@@ -457,3 +457,48 @@ export async function telefonEintragen(
   revalidatePath(`/crm/leads/${id}`);
   return { ok: true };
 }
+
+/**
+ * Fehlende Telefonnummer und/oder Adresse nachtragen („Unvollständig“ in der Lead-Liste).
+ * Füllt nur leere Felder – vorhandene Daten werden nicht überschrieben.
+ */
+export async function datenErgaenzen(
+  leadId: string,
+  eingabe: { telefon?: string; adresse?: string; bezirk?: string },
+  trotzdem = false,
+): Promise<{ ok: boolean; meldung?: string; doppelt?: { id: string | null; firma: string; besitzer: string }[] }> {
+  await holeProfil();
+  const id = leadId.slice(0, 50);
+  const supabase = await createClient();
+  const { data: lead } = await supabase.from("leads").select("id, telefon, adresse, bezirk, status").eq("id", id).maybeSingle();
+  if (!lead) return { ok: false, meldung: "Lead nicht gefunden." };
+
+  const update: Record<string, string> = {};
+  const telefon = (eingabe.telefon ?? "").trim().slice(0, 50);
+  const adresse = (eingabe.adresse ?? "").trim().slice(0, 200);
+  const bezirk = (eingabe.bezirk ?? "").trim().slice(0, 100);
+
+  if (telefon && !lead.telefon) {
+    if (lead.status === "nicht_anrufen") return { ok: false, meldung: "Für diesen Lead gilt „Nicht anrufen“." };
+    if (telefon.replace(/\D/g, "").length < 6 || !/^[+0-9 ()/-]+$/.test(telefon)) {
+      return { ok: false, meldung: "Bitte eine gültige Telefonnummer eingeben." };
+    }
+    if (!trotzdem) {
+      const { data: doppelt } = await supabase.rpc("lead_duplikate", { p_telefon: telefon, p_firma: "" });
+      const andere = ((doppelt ?? []) as { id: string | null; firma: string; besitzer: string }[]).filter((d) => d.id !== id);
+      if (andere.length) return { ok: false, meldung: "Diese Nummer gibt es schon bei:", doppelt: andere };
+    }
+    update.telefon = telefon;
+  }
+  if (adresse && !lead.adresse) update.adresse = adresse;
+  if (bezirk && !lead.bezirk) update.bezirk = bezirk;
+  if (!Object.keys(update).length) return { ok: false, meldung: "Bitte zuerst etwas eintragen." };
+
+  // Neue Adresse: Position wird automatisch neu gesucht (Trigger setzt geo_status zurück)
+  const { error } = await supabase.from("leads").update(update).eq("id", id);
+  if (error) return { ok: false, meldung: fehlerText(error.message) };
+  revalidatePath("/crm/leads");
+  revalidatePath(`/crm/leads/${id}`);
+  revalidatePath("/crm/karte");
+  return { ok: true };
+}
