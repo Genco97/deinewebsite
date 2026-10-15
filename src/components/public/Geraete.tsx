@@ -58,7 +58,7 @@ export function HandyRahmen({ src, titel, breite = 260, klickbar = true }: { src
 }
 
 /** Beispielseite im Browser-Fenster, 1280 px breit gedacht */
-export function DesktopRahmen({ src, titel, adresse, hoehe = 520 }: { src: string; titel: string; adresse: string; hoehe?: number }) {
+export function DesktopRahmen({ src, titel, adresse, hoehe = 520, klickbar = true }: { src: string; titel: string; adresse: string; hoehe?: number; klickbar?: boolean }) {
   const [breite, setBreite] = useState<number | null>(null);
   const [geladen, setGeladen] = useState<string | null>(null);
   const rahmen = useRef<HTMLDivElement>(null);
@@ -89,8 +89,9 @@ export function DesktopRahmen({ src, titel, adresse, hoehe = 520 }: { src: strin
             src={src}
             title={titel}
             onLoad={() => setGeladen(src)}
+            tabIndex={klickbar ? 0 : -1}
             className="absolute left-0 top-0 origin-top-left border-0 transition-opacity duration-300"
-            style={{ width: 1280, height: hoehe / massstab, transform: `scale(${massstab})`, opacity: geladen === src ? 1 : 0 }}
+            style={{ width: 1280, height: hoehe / massstab, transform: `scale(${massstab})`, opacity: geladen === src ? 1 : 0, pointerEvents: klickbar ? undefined : "none" }}
           />
         ) : null}
         {geladen !== src ? <Laedt /> : null}
