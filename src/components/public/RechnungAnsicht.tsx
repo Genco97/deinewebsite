@@ -1,3 +1,4 @@
+import { LogoMark } from "@/components/Logo";
 import { DruckenKnopf } from "@/components/public/DruckenKnopf";
 import { FIRMA, firmenname } from "@/lib/firma";
 import { PAKET_NAMEN, istPaket } from "@/lib/pakete";
@@ -36,11 +37,16 @@ export function RechnungAnsicht({ nummer, datum: datumRoh, betrag, gesamt, paket
 
   return (
     <div className="min-h-screen bg-[#f3f4f6] px-4 py-8 print:bg-white print:p-0">
+      <style>{"@page{size:A4;margin:16mm}"}</style>
       <div className="mx-auto mb-4 flex max-w-[820px] justify-end print:hidden">
         <DruckenKnopf />
       </div>
-      <article className="mx-auto max-w-[820px] bg-white p-8 text-[15px] leading-relaxed text-[#1f2937] shadow-sm sm:p-12 print:max-w-none print:p-0 print:shadow-none">
-        <header className="flex flex-col justify-between gap-6 sm:flex-row">
+      <article className="relative mx-auto min-h-[1000px] max-w-[820px] overflow-hidden bg-white p-8 text-[15px] leading-relaxed text-[#1f2937] shadow-sm sm:p-12 print:max-w-none print:p-0 print:shadow-none">
+        {/* Wasserzeichen: unser Logo, groß und ganz blass hinter dem Text */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <LogoMark className="h-[560px] opacity-[0.07]" />
+        </div>
+        <header className="relative flex flex-col justify-between gap-6 sm:flex-row">
           <div>
             <p className="font-serif text-3xl font-bold uppercase tracking-[0.04em] text-[#0B1B3F]">{FIRMA.name}</p>
             <p className="mt-1 text-sm text-[#6b7280]">{firmenname()}</p>
@@ -55,7 +61,7 @@ export function RechnungAnsicht({ nummer, datum: datumRoh, betrag, gesamt, paket
           </div>
         </header>
 
-        <div className="mt-10 grid gap-6 sm:grid-cols-2">
+        <div className="relative mt-10 grid gap-6 sm:grid-cols-2">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">Rechnung an</p>
             <p className="mt-1 font-semibold">{lead?.firma ?? "–"}</p>
@@ -79,8 +85,8 @@ export function RechnungAnsicht({ nummer, datum: datumRoh, betrag, gesamt, paket
           </dl>
         </div>
 
-        <h1 className="mt-10 font-serif text-2xl font-semibold">Rechnung</h1>
-        <table className="mt-4 w-full border-collapse text-left">
+        <h1 className="relative mt-10 font-serif text-2xl font-semibold">Rechnung</h1>
+        <table className="relative mt-4 w-full border-collapse text-left">
           <thead>
             <tr className="border-b-2 border-[#1f2937] text-sm">
               <th className="py-2 font-semibold">Leistung</th>
@@ -116,11 +122,11 @@ export function RechnungAnsicht({ nummer, datum: datumRoh, betrag, gesamt, paket
           </tfoot>
         </table>
 
-        {ohneUst ? <p className="mt-6 text-sm">Umsatzsteuerfrei aufgrund der Kleinunternehmerregelung (§ 6 Abs. 1 Z 27 UStG).</p> : null}
-        <p className="mt-6 rounded-lg bg-[#ecfdf3] p-3 text-sm text-[#166534] print:border print:border-[#bbf7d0]">
+        {ohneUst ? <p className="relative mt-6 text-sm">Umsatzsteuerfrei aufgrund der Kleinunternehmerregelung (§ 6 Abs. 1 Z 27 UStG).</p> : null}
+        <p className="relative mt-6 rounded-lg bg-[#ecfdf3] p-3 text-sm text-[#166534] print:border print:border-[#bbf7d0]">
           ✓ Der Betrag wurde am {datum} per Karte über Stripe bezahlt. Es ist nichts mehr zu überweisen.
         </p>
-        <p className="mt-10 text-xs text-[#6b7280]">
+        <p className="relative mt-10 text-xs text-[#6b7280]">
           {firmenname()} · {absender} · {FIRMA.land}
           {FIRMA.uid ? ` · UID ${FIRMA.uid}` : ""} · Mitglied der {FIRMA.kammer}
         </p>
