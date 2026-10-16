@@ -505,3 +505,17 @@ export async function datenErgaenzen(
   revalidatePath("/crm/karte");
   return { ok: true };
 }
+
+/** Gründer geben die Zahlung frei (oder sperren sie wieder): Erst dann sieht der Kunde „Jetzt bezahlen“. */
+export async function zahlungFreigeben(fd: FormData) {
+  await nurAdmin();
+  const dealId = text(fd, "deal", 50);
+  const leadId = text(fd, "lead", 50);
+  const an = text(fd, "an", 5) === "1";
+  const supabase = await createClient();
+  const { data: deal } = await supabase.from("deals").select("id, status, betrag").eq("id", dealId).maybeSingle();
+  if (!deal || deal.status === "storniert" || deal.status === "voll_bezahlt") return;
+  if (an && Number(deal.betrag) <= 0) return;
+  await supabase.from("deals").update({ zahlung_freigegeben: an }).eq("id", dealId);
+  revalidatePath(`/crm/leads/${leadId}`);
+}
