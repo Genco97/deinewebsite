@@ -1,6 +1,7 @@
 import { Karte, buttonClass } from "@/components/ui";
 import { betragText, faelligBetrag } from "@/lib/zahlung";
 
+export type RechnungLink = { nummer: string; betrag: number };
 export type ZahlungsStand = { freigegeben: boolean; betrag: number; bezahlt: number; status: string };
 
 /** „Rechnung und Zahlung“ auf der Kundenseite. Der offene Betrag kommt aus der Datenbank, nie aus der Adresse. */
@@ -11,6 +12,7 @@ export function ZahlungsKarte({
   betreuer,
   zahlung: z,
   hinweis,
+  rechnungen = [],
 }: {
   code: string;
   paket: string;
@@ -18,17 +20,31 @@ export function ZahlungsKarte({
   betreuer: string | null;
   zahlung: ZahlungsStand | null | undefined;
   hinweis: string;
+  rechnungen?: RechnungLink[];
 }) {
   if (!z) return null;
   const bezahlt = Number(z.bezahlt);
   const betrag = Number(z.betrag);
   const faellig = faelligBetrag(paket, betrag, bezahlt);
+  const rechnungsListe =
+    rechnungen.length > 0 ? (
+      <ul className="mt-3 space-y-1 text-sm">
+        {rechnungen.map((r) => (
+          <li key={r.nummer}>
+            <a href={`/rechnung/${code}/${r.nummer}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand underline">
+              Rechnung {r.nummer} ansehen ({betragText(Number(r.betrag))})
+            </a>
+          </li>
+        ))}
+      </ul>
+    ) : null;
 
   if (betrag > 0 && bezahlt >= betrag) {
     return (
       <Karte className="mt-6 border-ok/40 bg-ok-light p-5 sm:p-7">
         <p className="font-bold text-ok">✓ Danke, Ihre Zahlung ist eingegangen.</p>
         <p className="mt-1 text-sm text-ink">Bezahlt: {betragText(bezahlt)}</p>
+        {rechnungsListe}
       </Karte>
     );
   }
@@ -36,7 +52,7 @@ export function ZahlungsKarte({
     return (
       <Karte className="mt-6 border-ok/40 bg-ok-light p-5 sm:p-7">
         <p className="font-bold text-ok">Danke! Wir bestätigen Ihre Zahlung in wenigen Minuten.</p>
-        <p className="mt-1 text-sm text-ink">Laden Sie diese Seite später noch einmal, dann steht hier „Zahlung eingegangen“.</p>
+        <p className="mt-1 text-sm text-ink">Laden Sie diese Seite später noch einmal, dann steht hier „Zahlung eingegangen“ und Ihre Rechnung.</p>
       </Karte>
     );
   }
@@ -69,6 +85,7 @@ export function ZahlungsKarte({
         Jetzt sicher bezahlen
       </a>
       <p className="mt-3 text-center text-xs text-muted">Bezahlt wird auf der Seite unseres Zahlungsdienstleisters Stripe. Wir sehen Ihre Kartendaten nie.</p>
+      {rechnungsListe}
       <p className="mt-3 text-sm text-muted">Sie möchten lieber überweisen? Schreiben Sie {betreuer ?? "uns"}, dann bekommen Sie eine Rechnung.</p>
     </Karte>
   );

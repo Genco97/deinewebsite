@@ -4,6 +4,7 @@ import { KundenRueckmeldung } from "@/components/public/KundenRueckmeldung";
 import { ZahlungsKarte } from "@/components/public/ZahlungsKarte";
 import { Karte, buttonClass } from "@/components/ui";
 import { PAKET_NAMEN, istPaket } from "@/lib/pakete";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -59,6 +60,14 @@ export default async function KundenProjekt({ params, searchParams }: PageProps<
     );
   }
 
+  // Rechnungen zu bereits bezahlten Zahlungen (der Kundenlink selbst ist der Zugang)
+  const adminDb = createAdminClient();
+  const { data: dealZeile } = await adminDb.from("deals").select("id").eq("kunden_code", code).maybeSingle();
+  const { data: rechnungenRoh } = dealZeile
+    ? await adminDb.from("rechnungen").select("nummer, betrag").eq("deal_id", dealZeile.id).order("created_at")
+    : { data: [] };
+  const rechnungen = (rechnungenRoh ?? []) as { nummer: string; betrag: number }[];
+
   const aktuell = REIHE.indexOf(p.phase) + 1; // Index in SCHRITTE
   const datumVon = (i: number) => {
     const id = SCHRITTE[i].id;
@@ -113,7 +122,7 @@ export default async function KundenProjekt({ params, searchParams }: PageProps<
       ) : null}
 
       {/* Zahlung: erst sichtbar, wenn wir sie freigegeben haben */}
-      <ZahlungsKarte code={code} paket={p.paket} paketName={paketName} betreuer={p.betreuer} zahlung={p.zahlung} hinweis={hinweis} />
+      <ZahlungsKarte code={code} paket={p.paket} paketName={paketName} betreuer={p.betreuer} zahlung={p.zahlung} hinweis={hinweis} rechnungen={rechnungen} />
 
       {/* I1: Rückmeldung */}
       {!online ? (
