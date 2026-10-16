@@ -7,6 +7,7 @@ import { istEinwilligungArt } from "@/lib/einwilligung";
 import { PAKETE, istPaket } from "@/lib/pakete";
 import { OHNE_SCHRITT, schrittAusFormular } from "@/lib/schritt";
 import { istLeadStatus, type LeadStatus } from "@/lib/status";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { ImportZeile } from "@/lib/csv-import";
 import { istEmail, text } from "@/lib/validierung";
@@ -286,17 +287,41 @@ export async function verkaufMelden(_v: AktionStatus, fd: FormData): Promise<Akt
   });
   if (error) return { meldung: fehlerText(error.message) };
 
+  // Basic und Business haben einen festen Preis: Der Verkauf wird gleich bestätigt und die Zahlung freigegeben.
+  // Das darf nur der Server – ein Partner kann den Deal selbst nicht ändern. Pro bleibt bei den Gründern (verhandelter Betrag).
+  let freigegeben = false;
+  if (paket.id !== "premium") {
+    const admin = createAdminClient();
+    const { data: neuer } = await admin
+      .from("deals")
+      .select("id")
+      .eq("lead_id", id)
+      .neq("status", "storniert")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (neuer) {
+      const { error: fehlerFreigabe } = await admin.from("deals").update({ status: "offen", zahlung_freigegeben: true }).eq("id", neuer.id);
+      freigegeben = !fehlerFreigabe;
+    }
+  }
+
   await supabase.from("leads").update({ status: "verkauft", naechster_rueckruf: null }).eq("id", id);
   await supabase.from("lead_verlauf").insert({
     lead_id: id,
     autor_id: profil.id,
     art: "verkauf",
-    text: `Verkauf gemeldet: ${paket.name} (${betrag.toLocaleString("de-AT")} €)`,
+    text: `Verkauf gemeldet: ${paket.name} (${betrag.toLocaleString("de-AT")} €)${freigegeben ? " – Zahlung freigegeben" : ""}`,
   });
 
   revalidatePath(`/crm/leads/${id}`);
   revalidatePath("/crm");
-  return { ok: true, meldung: "Verkauf gemeldet. Ein Admin prüft ihn und trägt die Zahlung ein." };
+  return {
+    ok: true,
+    meldung: freigegeben
+      ? "Verkauf gemeldet. Die Zahlung ist freigegeben: Der Kunde kann jetzt per QR-Code oder Link bezahlen (weiter unten bei „Online-Zahlung“)."
+      : "Verkauf gemeldet. Ein Gründer prüft ihn, bestätigt den Betrag und gibt die Zahlung frei.",
+  };
 }
 
 // ---------------------------------------------------------------------------

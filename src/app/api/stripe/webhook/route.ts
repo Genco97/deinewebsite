@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { rechnungAnlegen } from "@/lib/rechnung";
 import { holeStripe } from "@/lib/stripe";
 import { betragText, inCent, statusNachZahlung } from "@/lib/zahlung";
 
@@ -78,6 +79,7 @@ async function zahlungBuchen(session: Stripe.Checkout.Session): Promise<string |
     const { error } = await db.from("deals").update({ status: neu }).eq("id", deal.id);
     if (error) return `Status konnte nicht gesetzt werden: ${error.message}`;
   }
+  await rechnungAnlegen(zahlung.id, deal.id, Number(zahlung.betrag), new Date());
   if (deal.lead_id) {
     await db.from("lead_verlauf").insert({
       lead_id: deal.lead_id,

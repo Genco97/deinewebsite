@@ -7,7 +7,7 @@ import { Gespraechshilfe } from "@/components/crm/Gespraechshilfe";
 import { KundenLinkBox, type Rueckmeldung } from "@/components/crm/Rueckmeldungen";
 import { StatusBadge } from "@/components/crm/StatusBadge";
 import { VerkaufFormular } from "@/components/crm/VerkaufFormular";
-import { ZahlungBox, type ZahlungsZeile } from "@/components/crm/ZahlungBox";
+import { ZahlungBox, type RechnungsZeile, type ZahlungsZeile } from "@/components/crm/ZahlungBox";
 import { WhatsAppKnopf } from "@/components/crm/WhatsApp";
 import { Hinweis, Karte, Select, Textarea, buttonClass } from "@/components/ui";
 import { aktivePersonen, anzeigename, holeProfil } from "@/lib/crm";
@@ -99,6 +99,10 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
     ? await supabase.from("zahlungen").select("id, deal_id, betrag, status, created_at, bezahlt_am").in("deal_id", dealIds).order("created_at")
     : { data: [] };
   const zahlungen = (zahlungenRoh ?? []) as (ZahlungsZeile & { deal_id: string })[];
+  const { data: rechnungenRoh } = dealIds.length
+    ? await supabase.from("rechnungen").select("nummer, deal_id, betrag, datum").in("deal_id", dealIds).order("created_at")
+    : { data: [] };
+  const rechnungen = (rechnungenRoh ?? []) as (RechnungsZeile & { deal_id: string })[];
   const stripeBereit = !!process.env.STRIPE_SECRET_KEY && !!process.env.STRIPE_WEBHOOK_SECRET;
   const letzteNotiz = (verlauf ?? []).find((v) => v.art === "notiz") ?? null;
   const status = lead.status as LeadStatus;
@@ -531,6 +535,8 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
                       kundenCode={d.kunden_code}
                       site={site}
                       zahlungen={zahlungen.filter((z) => z.deal_id === d.id)}
+                      rechnungen={rechnungen.filter((r) => r.deal_id === d.id)}
+                      adresseFehlt={!lead.adresse}
                       admin={admin}
                       stripeBereit={stripeBereit}
                     />
