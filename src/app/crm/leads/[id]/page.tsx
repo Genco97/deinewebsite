@@ -7,6 +7,7 @@ import { Gespraechshilfe } from "@/components/crm/Gespraechshilfe";
 import { KundenLinkBox, type Rueckmeldung } from "@/components/crm/Rueckmeldungen";
 import { StatusBadge } from "@/components/crm/StatusBadge";
 import { VerkaufFormular } from "@/components/crm/VerkaufFormular";
+import { ZahlungBox, type ZahlungsZeile } from "@/components/crm/ZahlungBox";
 import { WhatsAppKnopf } from "@/components/crm/WhatsApp";
 import { Hinweis, Karte, Select, Textarea, buttonClass } from "@/components/ui";
 import { aktivePersonen, anzeigename, holeProfil } from "@/lib/crm";
@@ -86,13 +87,19 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
       .limit(100),
     supabase
       .from("deals")
-      .select("id, paket, betrag, status, projekt_phase, website_url, created_at, kunden_code, kunden_feedback(id, art, text, name, erledigt, created_at)")
+      .select("id, paket, betrag, status, projekt_phase, website_url, created_at, kunden_code, zahlung_freigegeben, kunden_feedback(id, art, text, name, erledigt, created_at)")
       .eq("lead_id", id)
       .order("created_at"),
     supabase.from("vorlagen").select("id, titel, betreff, text, reihenfolge, kanal").order("reihenfolge"),
   ]);
 
   const waZugestimmt = (verlauf ?? []).some((v) => v.art === "system" && v.text.startsWith("WhatsApp-Zustimmung bestätigt"));
+  const dealIds = (deals ?? []).map((d) => d.id);
+  const { data: zahlungenRoh } = dealIds.length
+    ? await supabase.from("zahlungen").select("id, deal_id, betrag, status, created_at, bezahlt_am").in("deal_id", dealIds).order("created_at")
+    : { data: [] };
+  const zahlungen = (zahlungenRoh ?? []) as (ZahlungsZeile & { deal_id: string })[];
+  const stripeBereit = !!process.env.STRIPE_SECRET_KEY && !!process.env.STRIPE_WEBHOOK_SECRET;
   const letzteNotiz = (verlauf ?? []).find((v) => v.art === "notiz") ?? null;
   const status = lead.status as LeadStatus;
   const gesperrt = status === "nicht_anrufen";
@@ -513,6 +520,21 @@ export default async function LeadDetail({ params, searchParams }: PageProps<"/c
               .map((d) => (
                 <div key={d.id} className="mb-4">
                   <KundenLinkBox code={d.kunden_code} rueckmeldungen={(d.kunden_feedback ?? []) as Rueckmeldung[]} zurueck={`/crm/leads/${lead.id}`} id={d.id} />
+                  <div className="mt-3">
+                    <ZahlungBox
+                      dealId={d.id}
+                      leadId={lead.id}
+                      paket={d.paket}
+                      betrag={Number(d.betrag)}
+                      status={d.status}
+                      freigegeben={!!d.zahlung_freigegeben}
+                      kundenCode={d.kunden_code}
+                      site={site}
+                      zahlungen={zahlungen.filter((z) => z.deal_id === d.id)}
+                      admin={admin}
+                      stripeBereit={stripeBereit}
+                    />
+                  </div>
                 </div>
               ))}
             {gesperrt ? (

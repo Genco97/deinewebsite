@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { KundenRueckmeldung } from "@/components/public/KundenRueckmeldung";
+import { ZahlungsKarte } from "@/components/public/ZahlungsKarte";
 import { Karte, buttonClass } from "@/components/ui";
 import { PAKET_NAMEN, istPaket } from "@/lib/pakete";
 import { createClient } from "@/lib/supabase/server";
@@ -21,6 +22,7 @@ type Projekt = {
   betreuer: string | null;
   erreicht: Partial<Record<"umsetzung" | "freigabe" | "online", string | null>>;
   rueckmeldungen: { art: "passt" | "aendern"; text: string | null; am: string }[];
+  zahlung: { freigegeben: boolean; betrag: number; bezahlt: number; status: string };
 };
 
 const DATUM = new Intl.DateTimeFormat("de-AT", { day: "numeric", month: "long", timeZone: "Europe/Vienna" });
@@ -36,8 +38,10 @@ const SCHRITTE = [
 
 const REIHE = ["inhalte", "umsetzung", "freigabe", "online"];
 
-export default async function KundenProjekt({ params }: PageProps<"/p/[code]">) {
+export default async function KundenProjekt({ params, searchParams }: PageProps<"/p/[code]">) {
   const { code: roh } = await params;
+  const sp = await searchParams;
+  const hinweis = typeof sp.zahlung === "string" ? sp.zahlung : "";
   const code = decodeURIComponent(roh).toLowerCase().replace(/[^0-9a-f]/g, "").slice(0, 32);
   const supabase = await createClient();
   const { data } = code.length === 32 ? await supabase.rpc("kunden_projekt", { p_code: code }) : { data: null };
@@ -107,6 +111,9 @@ export default async function KundenProjekt({ params }: PageProps<"/p/[code]">) 
           </a>
         </Karte>
       ) : null}
+
+      {/* Zahlung: erst sichtbar, wenn wir sie freigegeben haben */}
+      <ZahlungsKarte code={code} paket={p.paket} paketName={paketName} betreuer={p.betreuer} zahlung={p.zahlung} hinweis={hinweis} />
 
       {/* I1: Rückmeldung */}
       {!online ? (
